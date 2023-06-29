@@ -6,9 +6,8 @@
 # and genetic coverage. The createBuffers and compareBuffArea functions were sourced from 
 # the gap analysis code developed by Emily Beckman Bruns.
 
-# Load adegenet library, since some functions use the pop() and nInd() accessors
 library(adegenet)
-# Load parallel library, for parallelized resampling functions
+library(terra)
 library(parallel)
 
 # Create buffers around points, using specified projection
@@ -84,7 +83,7 @@ getAlleleCategories <- function(freqVector, sampleMat){
 # Wrapper of getAlleleCategories and compareBuffArea. Given a genetic matrix (rows are samples, columns are alleles)
 # and a data.frame of coordinates (3 columns: sample names, latitudes, and longitudes), it calculates the genetic
 # and geographic coverage from a random draw of some amount of samples (numSamples). 
-exSitu_Sample <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_buffProj, geo_boundary, numSamples){
+calculateCoverage <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_buffProj, geo_boundary, numSamples){
   # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
   if(!identical(rownames(gen_mat), geo_coordPts[,1])){
     stop("Error: Sample names between the genetic matrix and the first 
@@ -120,19 +119,37 @@ exSitu_Resample <- function(gen_obj, geo_coordPts, geo_buff, geo_ptProj, geo_buf
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different allele categories
   cov_matrix <- t(sapply(2:nrow(gen_mat), 
-                        function(x) exSitu_Sample(gen_mat, geo_coordPts, geo_buff, 
-                                                  geo_ptProj, geo_buffProj, geo_boundary, x)))
+                         function(x) calculateCoverage(gen_mat, geo_coordPts, geo_buff,
+                                                       geo_ptProj, geo_buffProj, geo_boundary, x)))
   # Return the matrix of representation values
   return(cov_matrix)
 }
 
+# Wrapper for exSitu_Resample, which will generate an array of values from a single genind object
+geo.gen.Resample <- function(gen_obj, geo_coordPts, geo_buff, 
+                             geo_ptProj, geo_buffProj, geo_boundary,
+                             reps=5){
+  # Run resampling for all replicates, using sapply and lambda function
+  resamplingArray <- 
+    sapply(1:reps, function(x) exSitu_Resample(gen_obj, geo_coordPts, geo_buff,
+                                               geo_ptProj, geo_buffProj, geo_boundary), 
+           simplify = "array")
+  # Return array
+  return(resamplingArray)
+}
+
 # Wrapper of exSitu_Resample: runs resampling in parallel over a specified cluster. Results
 # are saved to a specified file path.
-exSitu_Resample_Parallel <- function(gen.obj, geo_coordPts, geo_buff, geo_ptProj, geo_buffProj, geo_boundary, 
-                                     cluster, reps, arrayFilepath="~/resamplingArray.Rdata"){
-  # Run resampling in parallel, capturing results to an array
-  resamplingArray <- 
-    parSapply(cluster, 1:reps, function(a) exSitu_Resample(gen.obj = gen.obj), simplify = "array")
+exSitu_Resample_Parallel <- function(gen_obj, geo_coordPts, geo_buff, geo_ptProj, 
+                                     geo_buffProj, geo_boundary, reps, 
+                                     arrayFilepath="~/resamplingArray.Rdata",
+                                     cluster){
+# Run resampling in parallel, capturing results to an array
+resamplingArray <- 
+  parSapply(cluster, 1:reps, 
+            function(a) exSitu_Resample(gen_obj, geo_coordPts, geo_buff, 
+                                        geo_ptProj, geo_buffProj, geo_boundary), 
+            simplify = "array")
   # Save the resampling array object to disk, for later usage
   saveRDS(resamplingArray, file = arrayFilepath)
   # Return resampling array to global environment
@@ -140,7 +157,7 @@ exSitu_Resample_Parallel <- function(gen.obj, geo_coordPts, geo_buff, geo_ptProj
 }
 
 # From resampling array, calculate the mean minimum sample size to represent 95% of the Total wild diversity
-resample_min95_mean <- function(resamplingArray){
+gen_min95Mean <- function(resamplingArray){
   # resampling array[,1,]: returns the Total column values for each replicate (3rd array dimension)
   # apply(resamplingArray[,1,],1,mean): calculates the average across replicates for each row
   # which(apply(resamplingArray[,1,],1,mean) > 95): returns the rows with averages greater than 95
@@ -150,26 +167,39 @@ resample_min95_mean <- function(resamplingArray){
 }
 
 # From resampling array, calculate the standard deviation, at the mean 95% value
-resample_min95_sd <- function(resamplingArray){
+gen_min95SD <- function(resamplingArray){
   # Determine the mean value for representing 95% of allelic diversity
-  meanValue <- resample_min95_mean(resamplingArray)
+  meanValue <- gen_min95Mean(resamplingArray)
+  # Calculate the standard deviation, at that mean value, and return
+  sdValue <- apply(resamplingArray[,1,],1,sd)[meanValue]
+  return(sdValue)
+}
+
+# From resampling array, calculate the mean minimum sample size to represent 95% of the Total wild diversity
+geo_min95Mean <- function(resamplingArray){
+  meanValue <- min(which(apply(resamplingArray[,6,],1, mean, na.rm=TRUE) > 95))
+  return(meanValue)
+}
+
+# From resampling array, calculate the standard deviation, at the mean 95% value
+geo_min95SD <- function(resamplingArray){
+  # Determine the mean value for representing 95% of allelic diversity
+  meanValue <- geo_min95Mean(resamplingArray)
   # Calculate the standard deviation, at that mean value, and return
   sdValue <- apply(resamplingArray[,1,],1,sd)[meanValue]
   return(sdValue)
 }
 
 # From resampling array, calculate the mean values (across replicates) for each allele frequency category
-resample_meanValues <- function(resamplingArray){
+meanArrayValues <- function(resamplingArray){
   # Declare a matrix to receive average values
   meanValue_mat <- matrix(nrow=nrow(resamplingArray), ncol=ncol(resamplingArray))
   # For each column in the array, average results across replicates (3rd array dimension)
-  meanValue_mat[,1] <- apply(resamplingArray[,1,], 1, mean, na.rm=TRUE)
-  meanValue_mat[,2] <- apply(resamplingArray[,2,], 1, mean, na.rm=TRUE)
-  meanValue_mat[,3] <- apply(resamplingArray[,3,], 1, mean, na.rm=TRUE)
-  meanValue_mat[,4] <- apply(resamplingArray[,4,], 1, mean, na.rm=TRUE)
-  meanValue_mat[,5] <- apply(resamplingArray[,5,], 1, mean, na.rm=TRUE)
+  for(i in 1:ncol(resamplingArray)){
+    meanValue_mat[,i] <- apply(resamplingArray[,i,], 1, mean, na.rm=TRUE)
+  }
   # Give names to meanValue_mat columns, and return
-  colnames(meanValue_mat) <- c("Total","Very common","Common","Low frequency","Rare")
+  colnames(meanValue_mat) <- c("Total","V. common","Common","Low freq.","Rare", "Geo. coverage")
   return(meanValue_mat)
 }
 
