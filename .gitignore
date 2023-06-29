@@ -5,6 +5,9 @@
 # The files and folders specified in this file are not tracked in the GitHub repository for the GeoGenCorr project. 
 # A brief explanation of each file is provided above each one, and files are largely grouped by folders.
 
+# Resampling datasets
+/resamplingData
+
 # Any Rhistory/Rdata files
 *.Rhistory
 *.RData
