@@ -11,7 +11,8 @@ library(terra)
 library(parallel)
 
 # Create buffers around points, using specified projection
-createBuffers <- function(df, radius, pt_proj, buff_proj, boundary){
+createBuffers <- function(df, radius=1000, pt_proj="+proj=longlat +datum=WGS84", 
+                          buff_proj="+proj=eqearth +datum=WGS84", boundary){
   # Turn occurrence point data into a SpatVector
   spat_pts <- vect(df, geom=c("decimalLongitude", "decimalLatitude"), crs=pt_proj)
   # Reproject to specified projection
@@ -112,47 +113,47 @@ calculateCoverage <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_b
 }
 
 # Wrapper of exSitu_Sample: iterates that function over the entire sample matrix
-exSitu_Resample <- function(gen_obj, geo_coordPts, geo_buff, geo_ptProj, geo_buffProj, geo_boundary){
+exSituResample <- function(gen_obj, geo_coordPts, geo_buff=1000, geo_ptProj="+proj=longlat +datum=WGS84", 
+                           geo_buffProj="+proj=eqearth +datum=WGS84", geo_boundary){
   # Create a matrix of wild individuals (those with population "wild") from genind object
   gen_mat <- gen_obj@tab[which(pop(gen_obj) == "wild"),]
   # Apply the exSitu_Sample function to all rows of the wild matrix
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different allele categories
   cov_matrix <- t(sapply(2:nrow(gen_mat), 
-                         function(x) calculateCoverage(gen_mat, geo_coordPts, geo_buff,
-                                                       geo_ptProj, geo_buffProj, geo_boundary, x)))
+                         function(x) calculateCoverage(gen_mat=gen_mat, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
+                                                       geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, 
+                                                       geo_boundary=geo_boundary, numSamples=x)))
   # Return the matrix of representation values
   return(cov_matrix)
 }
 
-# Wrapper for exSitu_Resample, which will generate an array of values from a single genind object
-geo.gen.Resample <- function(gen_obj, geo_coordPts, geo_buff, 
-                             geo_ptProj, geo_buffProj, geo_boundary,
-                             reps=5){
-  # Run resampling for all replicates, using sapply and lambda function
-  resamplingArray <- 
-    sapply(1:reps, function(x) exSitu_Resample(gen_obj, geo_coordPts, geo_buff,
-                                               geo_ptProj, geo_buffProj, geo_boundary), 
-           simplify = "array")
-  # Return array
-  return(resamplingArray)
-}
-
-# Wrapper of exSitu_Resample: runs resampling in parallel over a specified cluster. Results
-# are saved to a specified file path.
-exSitu_Resample_Parallel <- function(gen_obj, geo_coordPts, geo_buff, geo_ptProj, 
-                                     geo_buffProj, geo_boundary, reps, 
-                                     arrayFilepath="~/resamplingArray.Rdata",
-                                     cluster){
-# Run resampling in parallel, capturing results to an array
-resamplingArray <- 
-  parSapply(cluster, 1:reps, 
-            function(a) exSitu_Resample(gen_obj, geo_coordPts, geo_buff, 
-                                        geo_ptProj, geo_buffProj, geo_boundary), 
-            simplify = "array")
+# Wrapper of geo.gen.Resample: runs resampling in parallel over a specified cluster
+# Results are saved to a specified file path.
+geo.gen.Resample.Parallel <- function(gen_obj, geo_coordPts, geo_buff=1000, geo_ptProj="+proj=longlat +datum=WGS84",
+                                      geo_buffProj="+proj=eqearth +datum=WGS84", geo_boundary, reps=5,
+                                      arrayFilepath="~/resamplingArray.Rdata", cluster){
+  # Run resampling in parallel, capturing results to an array
+  resamplingArray <- parSapply(cluster, 1:reps, 
+                               function(x) exSituResample(gen_obj=gen_obj, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
+                                                          geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, geo_boundary=geo_boundary), 
+                               simplify = "array")
   # Save the resampling array object to disk, for later usage
   saveRDS(resamplingArray, file = arrayFilepath)
   # Return resampling array to global environment
+  return(resamplingArray)
+}
+
+# Wrapper for exSituResample, which will generate an array of values from a single genind object
+geo.gen.Resample <- function(gen_obj, geo_coordPts, geo_buff=1000, 
+                             geo_ptProj="+proj=longlat +datum=WGS84", 
+                             geo_buffProj="+proj=eqearth +datum=WGS84", geo_boundary, reps=5){
+  # Run resampling for all replicates, using sapply and lambda function
+  resamplingArray <- 
+    sapply(1:reps, function(x) exSituResample(gen_obj=gen_obj, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
+                                              geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, geo_boundary=geo_boundary), 
+           simplify = "array")
+  # Return array
   return(resamplingArray)
 }
 
