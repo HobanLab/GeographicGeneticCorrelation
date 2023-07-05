@@ -11,6 +11,8 @@
 library(adegenet)
 library(terra)
 library(parallel)
+library(RColorBrewer)
+library(scales)
 
 # Read in relevant functions
 GeoGenCorr.wd <- "/home/akoontz/Documents/GeoGenCorr/Code/"
@@ -32,6 +34,10 @@ calcProj <- "+proj=eqearth +datum=WGS84"
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
   vect(file.path("~/Documents/GeoGenCorr/QUAC_demo/gis_layers/world_countries_10m/world_countries_10m.shp"))
+# This shapefile is by default a "non-exportable" object, which means it must be processed before it can be
+# exported to the cluster (for geographic calculations). The terra::wrap function is used to do this.
+world_poly_clip_W <- wrap(world_poly_clip)
+  
 # ---- PARALLELIZATION
 # Set up relevant cores 
 num_cores <- detectCores() - 8 
@@ -46,7 +52,7 @@ clusterEvalQ(cl, library("parallel"))
 # Read in wild occurrence points. This CSV has 3 columns: sample name,latitude, and longitude. 
 # The sample names (and order) have to match 
 # the sample names/order of the genind object (rownams of the genetic matrix) read in below.
-wildPoints <- read.csv("~/Documents/GeoGenCorr/QUAC_demo/Quercus_acerifolia.csv", header = TRUE)
+wildPoints <- read.csv("~/Documents/GeoGenCorr/QUAC_demo/Quercus_acerifolia.csv", header=TRUE)
 
 # ---- GENETIC
 # Read in genind file: Optimized de novo assembly; R80, min-maf=0, 
@@ -62,47 +68,51 @@ pop(QUAC.genind) <-
 # ---- RESAMPLING ----
 # Export the coordinate points data.frame and genind object to the cluster
 # clusterExport(cl, varlist = c("wildPoints", "QUAC.genind"))
-clusterExport(cl, varlist = c("wildPoints","QUAC.genind","num_reps","buffSize","ptProj","calcProj","world_poly_clip"))
+clusterExport(cl, varlist = c("wildPoints","QUAC.genind","num_reps","buffSize","ptProj","calcProj","world_poly_clip_W"))
 clusterExport(cl, varlist = c("createBuffers", "compareBuffArea", "getAlleleCategories","calculateCoverage",
-                              "exSituResample", "geo.gen.Resample", "geo.gen.Resample.Parallel"))
+                              "exSituResample", "geo.gen.Resample.Parallel"))
 # Specify file path, for saving resampling array
 arrayDir <- paste0(resamplingDataDir, "QUACdemoResampArr2.Rdata")
 # Run resampling
 print("%%% BEGIN RESAMPLING %%%")
-
-# Below line generates error:
-# "Error in evaluating the argument 'x' in selecting a method for function 't': NULL value passed as symbol address"
 QUAC_demoArray_Par <- geo.gen.Resample.Parallel(gen_obj=QUAC.genind, geo_coordPts=wildPoints,
                                                 geo_ptProj=ptProj, geo_buffProj=calcProj,
-                                                geo_boundary=world_poly_clip, reps=5,
+                                                geo_boundary=world_poly_clip_W, reps=5,
                                                 arrayFilepath=arrayDir, cluster=cl)
+# Close cores
+stopCluster(cl)
 
-# Working: Run resampling (single replicate)
-exSituResample(QUAC.genind, wildPoints, geo_boundary=world_poly_clip)
-# Working: Run resampling (5 replicates, not in parallel), and save array
-QUAC_demoArray <- geo.gen.Resample(gen_obj = QUAC.genind, geo_coordPts = wildPoints,
-                                   geo_buff = buffSize, geo_ptProj = ptProj, geo_buffProj = calcProj,
-                                   geo_boundary = world_poly_clip, reps = 5)
-saveRDS(QUAC_demoArray, file=paste0(resamplingDataDir, "QUACdemoResampArr.Rdata"))
-
-# ---- PLOTTING ----
+# ---- CORRELATION AND PLOTTTING ----
 # Specify plot colors
 plotColors <- c("red","red4","darkorange3","coral","purple", "darkblue")
 plotColors[2:5] <- alpha(plotColors[2:5], 0.35)
 plotColors_Sub <- plotColors[-(2:5)]
 
 # Calculate minimum 95% sample size for genetic and geographic values
-gen_min95Value <- gen_min95Mean(QUAC_demoArray) ; gen_min95Value
-gen_min95SD(QUAC_demoArray)
-geo_min95Value <- geo_min95Mean(QUAC_demoArray) ; geo_min95Value
-geo_min95SD(QUAC_demoArray)
-# Generate the average values (across replicates) for all proportions 
-averageValueMat <- meanArrayValues(QUAC_demoArray)
-averageValueMat_Sub <- averageValueMat[,-(2:5)]
+gen_min95Value <- gen_min95Mean(QUAC_demoArray_Par) ; gen_min95Value
+gen_min95SD(QUAC_demoArray_Par)
+geo_min95Value <- geo_min95Mean(QUAC_demoArray_Par) ; geo_min95Value
+geo_min95SD(QUAC_demoArray_Par)
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic and geographic proportions
+averageValueMat <- meanArrayValues(QUAC_demoArray_Par)
+# Generate linear model between both coverage values
+QUAC_model <- lm (Total ~ Geo, data=averageValueMat)
+QUAC_model_summary <- summary(QUAC_model)
+# Pull R-squared and p-value estimates from model
+QUAC_model_rSquared <- QUAC_model_summary$adj.r.squared
+QUAC_model_pValue <- QUAC_model_summary$coefficients[2, 4]
+
+# PLOTTING ----
+plot(averageValueMat$Geo, averageValueMat$Total, pch=20, main="Q. acerifolia: Geographic by genetic coverage",
+     xlab="Geographic coverage (%)", ylab="Genetic coverage (%)")
+mtext(text="91 Individuals; 1 km buffer; 5 replicates", side=3, line=0.3)
+mylabel = bquote(italic(R)^2 == .(format(QUAC_model_rSquared, digits = 3)))
+text(x = 35, y = 95, labels = mylabel)
 
 # %%%% TOTAL ALLELIC AND GEOGRAPHIC COLORS
 # Use the matplot function to plot the matrix of average values, with specified settings
-matplot(averageValueMat_Sub, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab="Coverage (%)")
+matplot(averageValueMat, ylim=c(0,100), col=plotColors, pch=16, ylab="Coverage (%)")
 # Add title and x-axis labels to the graph
 title(main="Quercus acerifolia: Geo-Gen Coverage (5 resampling replicates)", line=0.5)
 mtext(text="Number of individuals (91 Total)", side=1, line=2.4)
@@ -118,23 +128,20 @@ mtext(text=paste0("Geo 95% MSSE = ", geo_min95Value),
 # Add legend
 legend(x=65, y=80, inset = 0.05,
        legend = c("Genetic coverage (Total)", "Geographic coverage (1km buffer)"),
-       col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 0.3)
-
-# %%%% ALL ALLELE CATEGORIES
-# Use the matplot function to plot the matrix of average values, with specified settings
-matplot(averageValueMat, ylim=c(0,100), col=plotColors, pch=16, ylab="Coverage (%)")
-# Add title and x-axis labels to the graph
-title(main="Quercus acerifolia: Geographic and Genetic Coverage", line=0.5)
-mtext(text="Number of individuals", side=1, line=2.4)
-# Mark the 95% threshold line, as well as the 95% minimum sampling size
-abline(h=95, col="black", lty=3); abline(v=min95_Value, col="black")
-# Add text for the minimum sampling size line. Location based on min 95 value and function argument
-mtext(text=paste0("Minimum sampling size (95%) = ", min95_Value),
-      side=1, line=-1.5, at=50, cex=1)
-# Add legend
-legend(x=70, y=80, inset = 0.05,
-       legend = c("Total","Very common","Common","Low frequency", "Rare", "Geo. coverage"),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 0.3)
 
-# Close cores
-stopCluster(cl)
+# # %%%% ALL ALLELE CATEGORIES
+# # Use the matplot function to plot the matrix of average values, with specified settings
+# matplot(averageValueMat, ylim=c(0,100), col=plotColors, pch=16, ylab="Coverage (%)")
+# # Add title and x-axis labels to the graph
+# title(main="Quercus acerifolia: Geographic and Genetic Coverage", line=0.5)
+# mtext(text="Number of individuals", side=1, line=2.4)
+# # Mark the 95% threshold line, as well as the 95% minimum sampling size
+# abline(h=95, col="black", lty=3); abline(v=min95_Value, col="black")
+# # Add text for the minimum sampling size line. Location based on min 95 value and function argument
+# mtext(text=paste0("Minimum sampling size (95%) = ", min95_Value),
+#       side=1, line=-1.5, at=50, cex=1)
+# # Add legend
+# legend(x=70, y=80, inset = 0.05,
+#        legend = c("Total","Very common","Common","Low frequency", "Rare", "Geo. coverage"),
+#        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 0.3)
