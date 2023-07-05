@@ -28,7 +28,11 @@ createBuffers <- function(df, radius=1000, pt_proj="+proj=longlat +datum=WGS84",
 }
 
 # Given coordinate points and vector of sample names, calculate geographic coverage
-compareBuffArea <- function(insitu, samp_vect, radius, pt_proj, buff_proj, boundary){
+compareBuffArea <- function(insitu, samp_vect, radius, pt_proj, buff_proj, boundary, parFlag=FALSE){
+  # If running in parallel: world polygon shapefile needs to be "unwrapped", after being exported to cluster
+  if(parFlag==TRUE){
+    boundary <- unwrap(boundary)
+  }
   # Build ex situ points by subseting complete in situ points data.frame, according to samp_vect
   exsitu <- insitu[sort(match(samp_vect, insitu[,1])),]
   # Create buffers
@@ -84,7 +88,8 @@ getAlleleCategories <- function(freqVector, sampleMat){
 # Wrapper of getAlleleCategories and compareBuffArea. Given a genetic matrix (rows are samples, columns are alleles)
 # and a data.frame of coordinates (3 columns: sample names, latitudes, and longitudes), it calculates the genetic
 # and geographic coverage from a random draw of some amount of samples (numSamples). 
-calculateCoverage <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_buffProj, geo_boundary, numSamples){
+calculateCoverage <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_buffProj, 
+                              geo_boundary, parFlag=FALSE, numSamples){
   # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
   if(!identical(rownames(gen_mat), geo_coordPts[,1])){
     stop("Error: Sample names between the genetic matrix and the first 
@@ -105,8 +110,8 @@ calculateCoverage <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_b
   gen_rates <- gen_rates[,3]
   # GEOGRAPHIC PROCESSING
   # Geographic coverage: calculate sample's geographic representation, by passing sample names to compareBuffArea
-  geo_rate <- compareBuffArea(geo_coordPts, rownames(samp), geo_buff, geo_ptProj, geo_buffProj, geo_boundary)
-  names(geo_rate) <- "Geo. coverage"
+  geo_rate <- compareBuffArea(geo_coordPts, rownames(samp), geo_buff, geo_ptProj, geo_buffProj, geo_boundary, parFlag)
+  names(geo_rate) <- "Geo"
   # Combine genetic and geographic coverage rates into a vector, and return
   cov_rates <- c(gen_rates, geo_rate)
   return(cov_rates)
@@ -114,7 +119,7 @@ calculateCoverage <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_b
 
 # Wrapper of exSitu_Sample: iterates that function over the entire sample matrix
 exSituResample <- function(gen_obj, geo_coordPts, geo_buff=1000, geo_ptProj="+proj=longlat +datum=WGS84", 
-                           geo_buffProj="+proj=eqearth +datum=WGS84", geo_boundary){
+                           geo_buffProj="+proj=eqearth +datum=WGS84", geo_boundary, parFlag){
   # Create a matrix of wild individuals (those with population "wild") from genind object
   gen_mat <- gen_obj@tab[which(pop(gen_obj) == "wild"),]
   # Apply the exSitu_Sample function to all rows of the wild matrix
@@ -123,7 +128,7 @@ exSituResample <- function(gen_obj, geo_coordPts, geo_buff=1000, geo_ptProj="+pr
   cov_matrix <- t(sapply(2:nrow(gen_mat), 
                          function(x) calculateCoverage(gen_mat=gen_mat, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
                                                        geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, 
-                                                       geo_boundary=geo_boundary, numSamples=x)))
+                                                       geo_boundary=geo_boundary, parFlag=parFlag, numSamples=x)))
   # Return the matrix of representation values
   return(cov_matrix)
 }
@@ -135,8 +140,9 @@ geo.gen.Resample.Parallel <- function(gen_obj, geo_coordPts, geo_buff=1000, geo_
                                       arrayFilepath="~/resamplingArray.Rdata", cluster){
   # Run resampling in parallel, capturing results to an array
   resamplingArray <- parSapply(cluster, 1:reps, 
-                               function(x) exSituResample(gen_obj=gen_obj, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
-                                                          geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, geo_boundary=geo_boundary), 
+                               function(x) {exSituResample(gen_obj=gen_obj, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
+                                                          geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, 
+                                                          geo_boundary=geo_boundary, parFlag=TRUE)}, 
                                simplify = "array")
   # Save the resampling array object to disk, for later usage
   saveRDS(resamplingArray, file = arrayFilepath)
@@ -149,9 +155,10 @@ geo.gen.Resample <- function(gen_obj, geo_coordPts, geo_buff=1000,
                              geo_ptProj="+proj=longlat +datum=WGS84", 
                              geo_buffProj="+proj=eqearth +datum=WGS84", geo_boundary, reps=5){
   # Run resampling for all replicates, using sapply and lambda function
-  resamplingArray <- 
-    sapply(1:reps, function(x) exSituResample(gen_obj=gen_obj, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
-                                              geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, geo_boundary=geo_boundary), 
+  resamplingArray <- sapply(1:reps, 
+                            function(x) exSituResample(gen_obj=gen_obj, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
+                                                       geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, 
+                                                       geo_boundary=geo_boundary, parFlag=FALSE), 
            simplify = "array")
   # Return array
   return(resamplingArray)
@@ -192,20 +199,25 @@ geo_min95SD <- function(resamplingArray){
 }
 
 # From resampling array, calculate the mean values (across replicates) for each allele frequency category
-meanArrayValues <- function(resamplingArray){
+meanArrayValues <- function(resamplingArray, allValues=FALSE){
   # Declare a matrix to receive average values
   meanValue_mat <- matrix(nrow=nrow(resamplingArray), ncol=ncol(resamplingArray))
   # For each column in the array, average results across replicates (3rd array dimension)
   for(i in 1:ncol(resamplingArray)){
     meanValue_mat[,i] <- apply(resamplingArray[,i,], 1, mean, na.rm=TRUE)
   }
-  # Give names to meanValue_mat columns, and return
-  colnames(meanValue_mat) <- c("Total","V. common","Common","Low freq.","Rare", "Geo. coverage")
+  # Give names to all meanValue_mat columns
+  colnames(meanValue_mat) <- c("Total","V. common","Common","Low freq.","Rare", "Geo")
+  if(allValues==FALSE){
+    # Unless returning all matrix values is specified, return just the first ("Total") and last ("Geo") columns
+    meanValue_mat <- meanValue_mat[,-(2:5)]
+  } 
+  # Reformat the matrix as a data.frame, and return
+  meanValue_mat <- as.data.frame(meanValue_mat)
   return(meanValue_mat)
 }
 
 # GRAPHING FUNCTIONS ----
-
 # From resampling array, plot the results of the resampling analysis and save to a PDF file
 resample_singlePlot_PDF <- function(arrayPath, imagePath="~/", colors, xLeg, yLeg, minSampleLineDist, mainText){
   # Create two vectors for colors. This is to show points on the graph and in the legend clearly
