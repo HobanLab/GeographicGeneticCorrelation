@@ -120,6 +120,10 @@ calculateCoverage <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_b
 # Wrapper of exSitu_Sample: iterates that function over the entire sample matrix
 exSituResample <- function(gen_obj, geo_coordPts, geo_buff=1000, geo_ptProj="+proj=longlat +datum=WGS84", 
                            geo_buffProj="+proj=eqearth +datum=WGS84", geo_boundary, parFlag){
+  # Check populations of samples: if NULL, provide all samples with this popname (i.e. assume all are wild)
+  if(is.null(pop(gen_obj))){
+    pop(gen_obj) <- rep("wild", nInd(gen_obj))
+  }
   # Create a matrix of wild individuals (those with population "wild") from genind object
   gen_mat <- gen_obj@tab[which(pop(gen_obj) == "wild"),]
   # Apply the exSitu_Sample function to all rows of the wild matrix
