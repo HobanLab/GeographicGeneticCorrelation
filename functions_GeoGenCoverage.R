@@ -221,90 +221,58 @@ meanArrayValues <- function(resamplingArray, allValues=FALSE){
   return(meanValue_mat)
 }
 
-# GRAPHING FUNCTIONS ----
-# From resampling array, plot the results of the resampling analysis and save to a PDF file
-resample_singlePlot_PDF <- function(arrayPath, imagePath="~/", colors, xLeg, yLeg, minSampleLineDist, mainText){
-  # Create two vectors for colors. This is to show points on the graph and in the legend clearly
-  fullColors <- colors
-  fadedColors <- c(colors[1], alpha(colors[2:5], 0.4))
-  # Read in the resampling array, based on the array path argument
-  resamplingArray <- readRDS(file=arrayPath)
-  # Generate the average values (across replicates) for each allele frequency category 
-  averageValueMat <- resample_meanValues(resamplingArray)
-  # Generate the minimum sample size to represent 95% of allelic diversity (across replicates)
-  min95_Value <- resample_min95_mean(resamplingArray)
-  # Call pdf command, to save resampling plot to disk. 
-  pdf(file = imagePath, width = 9, height = 7.5)
-  # Use the matplot function to plot the matrix of average values, with specified settings
-  matplot(averageValueMat, ylim=c(0,110), col=fadedColors, pch=16, ylab="Allelic Representation (%)")
-  # Add title and x-axis labels to the graph
-  title(main=mainText, line=0.5)
-  mtext(text="Number of individuals", side=1, line=2.4)
-  # Mark the 95% threshold line, as well as the 95% minimum sampling size
-  abline(h=95, col="black", lty=3); abline(v=min95_Value, col="black")
-  # Add text for the minimum sampling size line. Location based on min 95 value and function argument
-  mtext(text=paste0("Minimum sampling size (95%) = ", min95_Value),
-        side=1, line=-1.5, at=min95_Value-minSampleLineDist, cex=1)
-  # Add legend
-  legend(x=xLeg, y=yLeg, inset = 0.05,
-         legend = c("Total","Very common","Common","Low frequency", "Rare"),
-         col=fullColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 1)
-  # Turn off plotting device
-  dev.off()
+# DATA EXPLORATION FUNCTIONS ----
+# Function for generating a vector of wild allele frequencies from a genind object
+getWildFreqs <- function(gen.obj){
+  # Build a vector of rows corresponding to wild individuals (those that do not have a population of "garden")
+  wildRows <- which(pop(gen.obj)!="garden")
+  # Build the wild allele frequency vector: colSums of alleles (removing NAs), divided by number of haplotypes (Ne*2)
+  wildFreqs <- colSums(gen.obj@tab[wildRows,], na.rm = TRUE)/(length(wildRows)*2)*100
+  return(wildFreqs)
 }
 
-# Plots the results of two different resampling analyses (usually R0 and R80), and saves to a PDF file
-resample_doublePlot_PDF <- function(arrayPath1, arrayPath2, imagePath="~/",
-                                    colors, xLeg, yLeg, minSampleLineDist, mainText1, mainText2){
-  # Create two vectors for colors. This is to show points on the graph and in the legend clearly
-  fullColors <- colors
-  fadedColors <- c(colors[1], alpha(colors[2:5], 0.4))
-  # Read in and process resampling arrays
-  # %%% FIRST ARRAY
-  resamplingArray1 <- readRDS(file=arrayPath1)
-  averageValueMat1 <- resample_meanValues(resamplingArray1)
-  min95_Value1 <- resample_min95_mean(resamplingArray1)
-  # %%% SECOND ARRAY
-  resamplingArray2 <- readRDS(file=arrayPath2)
-  averageValueMat2 <- resample_meanValues(resamplingArray2)
-  min95_Value2 <- resample_min95_mean(resamplingArray2)
-  # Call pdf command, to save resampling plot to disk. 
-  pdf(file = imagePath, width = 9, height = 7.5)
-  # Set plotting window to stack 2 graphs vertically
-  par(mfcol=c(2,1), oma=rep(0.1,4), mar=c(3,4,2,1))
-  
-  # %%% FIRST ARRAY
-  # Use the matplot function to plot the matrix of average values, with specified settings
-  matplot(averageValueMat1, ylim=c(0,110), col=fadedColors, pch=16, ylab="Allelic Representation (%)")
-  # Add title and x-axis labels to the graph
-  title(main=mainText1, line=0.5)
-  mtext(text="Number of individuals", side=1, line=1.8)
-  # Mark the 95% threshold line, as well as the 95% minimum sampling size
-  abline(h=95, col="black", lty=3); abline(v=min95_Value1, col="black")
-  # Add text for the minimum sampling size line. Location based on min 95 value and function argument
-  mtext(text=paste0("Minimum sampling size (95%) = ", min95_Value1),
-        side=1, line=-1.5, at=min95_Value1-minSampleLineDist, cex=1)
-  # Add legend
-  legend(x=xLeg, y=yLeg, inset = 0.05,
-         legend = c("Total","Very common","Common","Low frequency", "Rare"),
-         col=fullColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 1)
-  
-  # %%% SECOND ARRAY
-  # Use the matplot function to plot the matrix of average values, with specified settings
-  matplot(averageValueMat2, ylim=c(0,110), col=fadedColors, pch=16, ylab="Allelic Representation (%)")
-  # Add title and x-axis labels to the graph
-  title(main=mainText2, line=0.5)
-  mtext(text="Number of individuals", side=1, line=1.8)
-  # Mark the 95% threshold line, as well as the 95% minimum sampling size
-  abline(h=95, col="black", lty=3); abline(v=min95_Value2, col="black")
-  # Add text for the minimum sampling size line. Location based on min 95 value and function argument
-  mtext(text=paste0("Minimum sampling size (95%) = ", min95_Value2),
-        side=1, line=-1.5, at=min95_Value2-minSampleLineDist, cex=1)
-  # Add legend
-  legend(x=xLeg, y=yLeg, inset = 0.05,
-         legend = c("Total","Very common","Common","Low frequency", "Rare"),
-         col=fullColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 1)
-  
-  # Turn off plotting device
-  dev.off()
+# Function for generating a vector of total allele frequencies from a genind object
+getTotalFreqs <- function(gen.obj){
+  # Build allele frequency vector: colSums of alleles (removing NAs), divided by number of haplotypes (Ne*2)
+  totalFreqs <- colSums(gen.obj@tab, na.rm = TRUE)/(nInd(gen.obj)*2)*100
+  return(totalFreqs)
+}
+
+# Exploratory function for reporting the proprtion of alleles of each category, from a (wild) frequency vector
+getWildAlleleFreqProportions <- function(gen.obj){
+  # Build the wild allele frequency vector, using the getWildFreqs function
+  wildFreqs <- getWildFreqs(gen.obj)
+  # Very common
+  veryCommonAlleles <- wildFreqs[which(wildFreqs > 10)]
+  veryCommon_prop <- (length(veryCommonAlleles)/length(wildFreqs))*100
+  # Low frequency
+  lowFrequencyAlleles <- wildFreqs[which(wildFreqs < 10 & wildFreqs > 1)]
+  lowFrequency_prop <- (length(lowFrequencyAlleles)/length(wildFreqs))*100
+  # Rare
+  rareAlleles <- wildFreqs[which(wildFreqs < 1)]
+  rare_prop <- (length(rareAlleles)/length(wildFreqs))*100
+  # Build list of proportions, and return
+  freqProportions <- c(veryCommon_prop, lowFrequency_prop, rare_prop)
+  names(freqProportions) <- c("Very common (>10%)","Low frequency (1% -- 10%)","Rare (<1%)")
+  return(freqProportions)
+}
+
+# Exploratory function for reporting the proprtion of alleles of each category, 
+# from a frequency vector (of ALL alleles--garden AND wild)
+getTotalAlleleFreqProportions <- function(gen.obj){
+  # Build the wild allele frequency vector, using the getWildFreqs function
+  totalFreqs <- getTotalFreqs(gen.obj)
+  # Very common
+  veryCommonAlleles <- totalFreqs[which(totalFreqs > 10)]
+  veryCommon_prop <- (length(veryCommonAlleles)/length(totalFreqs))*100
+  # Low frequency
+  lowFrequencyAlleles <- totalFreqs[which(totalFreqs < 10 & totalFreqs > 1)]
+  lowFrequency_prop <- (length(lowFrequencyAlleles)/length(totalFreqs))*100
+  # Rare
+  rareAlleles <- totalFreqs[which(totalFreqs < 1)]
+  rare_prop <- (length(rareAlleles)/length(totalFreqs))*100
+  # Build list of proportions, and return
+  freqProportions <- c(veryCommon_prop, lowFrequency_prop, rare_prop)
+  names(freqProportions) <- c("Very common (>10%)","Low frequency (1% -- 10%)","Rare (<1%)")
+  return(freqProportions)
 }
