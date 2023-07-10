@@ -69,8 +69,9 @@ clusterExport(cl, varlist = c("createBuffers", "compareBuffArea", "getAlleleCate
                               "exSituResample", "geo.gen.Resample.Parallel"))
 # Specify file path, for saving resampling array
 arrayDir <- paste0(QULO.filePath, "resamplingData/QULO_50km_5r_resampArr.Rdata")
-# Run resampling
+# Run resampling (in parallel)
 QULO_demoArray_Par <- geo.gen.Resample.Parallel(gen_obj=QULO.genind, geo_coordPts=wildPoints,
+                                                geo_buff=buffSize,
                                                 geo_boundary=world_poly_clip_W, reps=5,
                                                 arrayFilepath=arrayDir, cluster=cl)
 # Close cores
@@ -102,7 +103,7 @@ plot(averageValueMat$Geo, averageValueMat$Total, pch=20, main="Q. lobata: Geogra
      xlab="Geographic coverage (%)", ylab="Genetic coverage (%)")
 mtext(text="436 Individuals; 50 km buffer; 5 replicates", side=3, line=0.3)
 mylabel = bquote(italic(R)^2 == .(format(QULO_model_rSquared, digits = 3)))
-text(x = 35, y = 75, labels = mylabel)
+text(x = 15, y = 85, labels = mylabel)
 
 # %%%% TOTAL ALLELIC AND GEOGRAPHIC COVERAGE
 # Use the matplot function to plot the matrix of average values, with specified settings
@@ -119,8 +120,8 @@ abline(v=geo_min95Value, col="darkblue")
 mtext(text=paste0("Gen 95% MSSE = ", gen_min95Value),
       side=1, line=-1.5, at=95, cex=1)
 mtext(text=paste0("Geo 95% MSSE = ", geo_min95Value),
-      side=1, line=-1.5, at=340, cex=1)
+      side=1, line=-1.5, at=200, cex=1)
 # Add legend
-legend(x=230, y=60, inset = 0.05,
+legend(x=205, y=60, inset = 0.05,
        legend = c("Genetic coverage (Total)", "Geographic coverage (50 km buffer)"),
-       col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 1)
+       col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 0.5)
