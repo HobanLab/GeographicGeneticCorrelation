@@ -26,11 +26,8 @@ resamplingDataDir <- paste0(GeoGenCorr.wd, "Code/resamplingData/")
 num_reps <- 5
 # ---- GEOGRAPHIC VARIABLES
 # Specify geographic buffer size in meters (i.e. 1 km, or 50 km)
-buffSize <- 1000
-# buffSize <- 50000
-# Define projections for points (WGS84) and for calculations (which use units in meters and equal area)
-ptProj <- "+proj=longlat +datum=WGS84"
-calcProj <- "+proj=eqearth +datum=WGS84"
+# buffSize <- 1000
+buffSize <- 50000
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
@@ -69,14 +66,14 @@ pop(QUAC.genind) <-
 
 # ---- RESAMPLING ----
 # Export the coordinate points data.frame and genind object to the cluster
-clusterExport(cl, varlist = c("wildPoints","QUAC.genind","num_reps","buffSize","ptProj","calcProj","world_poly_clip_W"))
+clusterExport(cl, varlist = c("wildPoints","QUAC.genind","num_reps","buffSize","world_poly_clip_W"))
 clusterExport(cl, varlist = c("createBuffers", "compareBuffArea", "getAlleleCategories","calculateCoverage",
                               "exSituResample", "geo.gen.Resample.Parallel"))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_1km_5r_resampArr.Rdata")
+arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_50km_5r_resampArr.Rdata")
 # Run resampling
 QUAC_demoArray_Par <- geo.gen.Resample.Parallel(gen_obj=QUAC.genind, geo_coordPts=wildPoints,
-                                                geo_ptProj=ptProj, geo_buffProj=calcProj,
+                                                geo_buff=buffSize,
                                                 geo_boundary=world_poly_clip_W, reps=5,
                                                 arrayFilepath=arrayDir, cluster=cl)
 # Close cores
@@ -106,7 +103,7 @@ QUAC_model_pValue <- QUAC_model_summary$coefficients[2, 4]
 # %%%% GEOGRAPHIC-GENETIC CORRELATION
 plot(averageValueMat$Geo, averageValueMat$Total, pch=20, main="Q. acerifolia: Geographic by genetic coverage",
      xlab="Geographic coverage (%)", ylab="Genetic coverage (%)")
-mtext(text="91 Individuals; 1 km buffer; 5 replicates", side=3, line=0.3)
+mtext(text="91 Individuals; 50 km buffer; 5 replicates", side=3, line=0.3)
 mylabel = bquote(italic(R)^2 == .(format(QUAC_model_rSquared, digits = 3)))
 text(x = 45, y = 95, labels = mylabel)
 
@@ -115,7 +112,7 @@ text(x = 45, y = 95, labels = mylabel)
 matplot(averageValueMat, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab="Coverage (%)")
 # Add title and x-axis labels to the graph
 title(main="Quercus acerifolia: Geo-Gen Coverage", line=1.5)
-mtext(text="91 Individuals; 1 km buffer; 5 replicates", side=3, line=0.3)
+mtext(text="91 Individuals; 50 km buffer; 5 replicates", side=3, line=0.3)
 mtext(text="Number of individuals", side=1, line=2.4)
 # Mark the 95% threshold line, and the genetic/geographic points
 abline(h=95, col="black", lty=3) 
@@ -128,5 +125,5 @@ mtext(text=paste0("Geo 95% MSSE = ", geo_min95Value),
       side=1, line=-1.5, at=10, cex=1)
 # Add legend
 legend(x=65, y=80, inset = 0.05,
-       legend = c("Genetic coverage (Total)", "Geographic coverage (1 km buffer)"),
-       col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 1)
+       legend = c("Genetic coverage (Total)", "Geographic coverage (50 km buffer)"),
+       col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 0.5)
