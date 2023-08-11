@@ -130,6 +130,26 @@ legend(x=65, y=80, inset = 0.05,
        legend = c("Genetic coverage (Total)", "Geographic coverage (1 km buffer IND)"),
        col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 0.75)
 
+# %%%% TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS
+# (For IMLS NLG subgroup presentation, 2023-08-17)
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab="Coverage (%)")
+# Add title and x-axis labels to the graph
+title(main="Quercus acerifolia: Geo-Gen Coverage", line=1.5)
+mtext(text="91 Individuals; 1 km buffer (individuals); 5 replicates", side=3, line=0.3)
+mtext(text="Number of individuals", side=1, line=2.4)
+# Mark the 95% threshold line, and the genetic/geographic points
+abline(h=95, col="black", lty=3) 
+abline(v=3, col="black") 
+# Add text for 3 sample example
+mtext(text="COVERAGE VALUES AT 3 (RANDOM) SAMPLES", side=1, line=-4.5, at=24, cex=1)
+mtext(text="Genetic coverage: 65.68%", side=1, line=-2.5, at=15.5, cex=1)
+mtext(text="Geographic coverage: 51.05%", side=1, line=-1.5, at=17, cex=1)
+# Add legend
+legend(x=58, y=70, inset = 0.05,
+       legend = c("Genetic coverage", "Geographic coverage (1 km buffer)"),
+       col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 0.75)
+
 # %%%% POPULATION-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that uses the same value for each individual 
 # in a given population. Essentially, there are only 4 unique combinations of latitude and longitude
