@@ -81,6 +81,14 @@ QUAC_demoArray_Par <- geo.gen.Resample.Parallel(gen_obj=QUAC.genind, geo_coordPt
 # Close cores
 stopCluster(cl)
 
+# Example: running resampling not in parallel
+# QUAC_demoArray <- geo.gen.Resample(gen_obj=QUAC.genind, geo_coordPts=wildPoints,
+#                                    geo_buff=buffSize,
+#                                    geo_boundary=world_poly_clip, reps=5,
+#                                    arrayFilepath=arrayDir)
+# # Array slice 1
+# QUAC_demoArray[,,1]
+
 # ---- CORRELATION AND PLOTTTING ----
 # Specify plot colors
 plotColors <- c("red","red4","darkorange3","coral","purple", "darkblue")
