@@ -23,9 +23,10 @@ source("Code/functions_GeoGenCoverage.R")
 # Declare a directory within which to store .Rdata objects of resampling arrays
 resamplingDataDir <- paste0(GeoGenCorr.wd, "Code/resamplingData/")
 # Specify number of resampling replicates. 
-num_reps <- 5
+# num_reps <- 5
+num_reps <- 3
 # ---- GEOGRAPHIC VARIABLES
-# Specify geographic buffer size in meters (i.e. 1 km, or 50 km)
+# Specify geographic buffer size in meters 
 buffSize <- 1000
 # buffSize <- 50000
 # Read in world countries layer (created as part of the gap analysis workflow)
@@ -72,22 +73,15 @@ clusterExport(cl, varlist = c("wildPoints","QUAC.genind","num_reps","buffSize","
 clusterExport(cl, varlist = c("createBuffers", "compareBuffArea", "getAlleleCategories","calculateCoverage",
                               "exSituResample", "geo.gen.Resample.Parallel"))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_1kmIND_5r_resampArr.Rdata")
+# arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_1kmIND_5r_resampArr.Rdata")
+arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_1kmIND_3r_resampArr.Rdata")
 # Run resampling
 QUAC_demoArray_Par <- geo.gen.Resample.Parallel(gen_obj=QUAC.genind, geo_coordPts=wildPoints,
                                                 geo_buff=buffSize,
-                                                geo_boundary=world_poly_clip_W, reps=5,
+                                                geo_boundary=world_poly_clip_W, reps=num_reps,
                                                 arrayFilepath=arrayDir, cluster=cl)
 # Close cores
 stopCluster(cl)
-
-# Example: running resampling not in parallel
-# QUAC_demoArray <- geo.gen.Resample(gen_obj=QUAC.genind, geo_coordPts=wildPoints,
-#                                    geo_buff=buffSize,
-#                                    geo_boundary=world_poly_clip, reps=5,
-#                                    arrayFilepath=arrayDir)
-# # Array slice 1
-# QUAC_demoArray[,,1]
 
 # ---- CORRELATION AND PLOTTTING ----
 # Specify plot colors
@@ -140,23 +134,38 @@ legend(x=65, y=80, inset = 0.05,
 
 # %%%% TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS
 # (For IMLS NLG subgroup presentation, 2023-08-17)
-# Use the matplot function to plot the matrix of average values, with specified settings
-matplot(averageValueMat, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab="Coverage (%)")
+# Use the matplot function to 3 average values, with specified settings
+matplot(averageValueMat[1:3,], col=plotColors_Sub, pch=16, xlim=c(0,100), ylim=c(0,100), ylab = "")
 # Add title and x-axis labels to the graph
 title(main="Quercus acerifolia: Geo-Gen Coverage", line=1.5)
-mtext(text="91 Individuals; 1 km buffer (individuals); 5 replicates", side=3, line=0.3)
-mtext(text="Number of individuals", side=1, line=2.4)
+mtext(text="91 Individuals; 1 km buffer (individuals); 5 replicates", side=3, line=0.3, cex=1.2)
+mtext(text="Number of individuals", side=1, line=3, cex=1.6)
+mtext(text="Coverage (%)", side=2, line=2.3, cex=1.6, srt=90)
 # Mark the 95% threshold line, and the genetic/geographic points
 abline(h=95, col="black", lty=3) 
 abline(v=3, col="black") 
 # Add text for 3 sample example
-mtext(text="COVERAGE VALUES AT 3 (RANDOM) SAMPLES", side=1, line=-4.5, at=24, cex=1)
-mtext(text="Genetic coverage: 65.68%", side=1, line=-2.5, at=15.5, cex=1)
-mtext(text="Geographic coverage: 51.05%", side=1, line=-1.5, at=17, cex=1)
+mtext(text="COVERAGE VALUES AT 3 (RANDOM) SAMPLES", side=1, line=-4.5, at=24.8, cex=1.2)
+mtext(text="Genetic coverage: 65.68%", side=1, line=-2.5, at=15.7, cex=1.2)
+mtext(text="Geographic coverage: 51.05%", side=1, line=-1.5, at=17.5, cex=1.2)
 # Add legend
 legend(x=58, y=70, inset = 0.05,
        legend = c("Genetic coverage", "Geographic coverage (1 km buffer)"),
-       col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 0.75)
+       col=plotColors_Sub, pch = c(20,20,20), cex=1.1, pt.cex = 2, bty="n", y.intersp = 0.75)
+
+# Use the matplot function to plot the entire matrix of average values, with specified settings
+matplot(averageValueMat, col=plotColors_Sub, pch=16, xlim=c(0,100), ylim=c(0,100), ylab = "")
+# Add title and x-axis labels to the graph
+title(main="Quercus acerifolia: Geo-Gen Coverage", line=1.5)
+mtext(text="91 Individuals; 1 km buffer (individuals); 5 replicates", side=3, line=0.3, cex=1.2)
+mtext(text="Number of individuals", side=1, line=3, cex=1.6)
+mtext(text="Coverage (%)", side=2, line=2.3, cex=1.6, srt=90)
+# Mark the 95% threshold line, and the genetic/geographic points
+abline(h=95, col="black", lty=3) 
+# Add legend
+legend(x=58, y=70, inset = 0.05,
+       legend = c("Genetic coverage", "Geographic coverage (1 km buffer)"),
+       col=plotColors_Sub, pch = c(20,20,20), cex=1.1, pt.cex = 2, bty="n", y.intersp = 0.75)
 
 # %%%% POPULATION-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that uses the same value for each individual 
