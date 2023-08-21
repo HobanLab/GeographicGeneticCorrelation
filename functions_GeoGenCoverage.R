@@ -28,22 +28,70 @@ createBuffers <- function(df, radius=1000, pt_proj="+proj=longlat +datum=WGS84",
 }
 
 # Given coordinate points and vector of sample names, calculate geographic coverage
-compareBuffArea <- function(insitu, samp_vect, radius, pt_proj, buff_proj, boundary, parFlag=FALSE){
+geo_compareBuff <- function(inSitu, sampVect, radius, pt_proj, buff_proj, boundary, parFlag=FALSE){
   # If running in parallel: world polygon shapefile needs to be "unwrapped", after being exported to cluster
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
   }
   # Build ex situ points by subseting complete in situ points data.frame, according to samp_vect
-  exsitu <- insitu[sort(match(samp_vect, insitu[,1])),]
+  exSitu <- inSitu[sort(match(sampVect, inSitu[,1])),]
   # Create buffers
-  buffer_insitu <- createBuffers(insitu,radius,pt_proj,buff_proj,boundary)
-  buffer_exsitu <- createBuffers(exsitu,radius,pt_proj,buff_proj,boundary)
+  geo_exSitu <- createBuffers(exSitu, radius, pt_proj, buff_proj, boundary)
+  geo_inSitu <- createBuffers(inSitu, radius, pt_proj, buff_proj, boundary)
   # Calculate buffer area
-  area_exsitu <- expanse(buffer_exsitu)/1000000
-  area_insitu <- expanse(buffer_insitu)/1000000
+  geo_exSituArea <- expanse(geo_exSitu)/1000000
+  geo_inSituArea <- expanse(geo_inSitu)/1000000
   # Calculate difference between in situ and ex situ buffer areas (% coverage)
-  area_diff_percent <- (area_exsitu/area_insitu)*100
-  return(area_diff_percent)
+  geo_Coverage <- (geo_exSituArea/geo_inSituArea)*100
+  return(geo_Coverage)
+}
+
+# create data frame with ecoregion data extracted for area covered by buffers
+eco_intersectBuff <- function(insitu, radius, pt_proj="+proj=longlat +datum=WGS84",
+                              buff_proj="+proj=eqearth +datum=WGS84", ecoregion, boundary){
+  # Create buffers
+  buffers <- createBuffers(df, radius, pt_proj, buff_proj, boundary)
+  # Make sure ecoregions are in same projection as buffers
+  eco_proj <- project(ecoregion,buff_proj)
+  # Intersect buffers with ecoregions
+  ecoBuffJoin <- intersect(buffers,eco_proj)
+  return(ecoBuffJoin)
+}
+
+# Create a data.frame with ecoregion data extracted for area covered by buffers
+# surrounding all points and sample points. Then, compare the ecoregions count of the
+# sample to the total.
+#		for both in situ and ex situ points, then compare count of ecoregions.
+#   uses the *North American Level III EPA* ecoregions layer
+eco_compareBuff <- function(inSitu, sampVect, radius, pt_proj, buff_proj, 
+                            ecoRegion, layerType=c("US","NA","GL"), boundary){
+  # Match layerType argument, which specifies which ecoregion data type to extract (below)
+  layerType <- match.arg(layerType)
+  # Build sample ex situ points by subseting complete in situ points data.frame, according to sampVect
+  exSitu <- inSitu[sort(match(sampVect, insitu[,1])),]
+  # Create data frame of ecoregion-buffer intersection
+  eco_exSitu <- eco_intersectBuff(exSitu, radius, pt_proj, buff_proj, ecoRegion, boundary)
+  eco_inSitu <- eco_intersectBuff(inSitu, radius, pt_proj, buff_proj, ecoRegion, boundary)
+  # Based on the ecoRegion shapefile and the specified layer type, count the number of ecoregions in
+  # the random sample (exSitu) and all of the data points (inSitu)
+  if(layerType=="US"){
+    # Extract the number of EPA Level IV ("U.S. Only") ecoregions
+    eco_exSituCount <- length(unique(eco_exSitu$US_L4CODE))
+    eco_inSituCount <- length(unique(eco_inSitu$US_L4CODE))
+  } else {
+    # Extract the number of EPA Level III ("North America") ecoregions 
+    if(layerType=="NA"){
+      eco_exSituCount <- length(unique(eco_exSitu$NA_L3CODE))
+      eco_inSituCount <- length(unique(eco_inSitu$NA_L3CODE))
+    } else{
+      # Extract the number of Nature Conservancy ("Global Terrestrial") ecoregions
+      eco_exSituCount <- length(unique(eco_exSitu$ECO_ID_U))
+      eco_inSituCount <- length(unique(eco_inSitu$ECO_ID_U))
+    }
+  }
+  # Calculate difference in number of ecoregions between the sample and all data points, and return
+  eco_Coverage <- (eco_exSituCount/eco_inSituCount)*100
+  return(eco_Coverage)
 }
 
 # Function for reporting representation rates, using a vector of allele frequencies and a sample matrix.
@@ -88,7 +136,68 @@ getAlleleCategories <- function(freqVector, sampleMat){
 # Wrapper of getAlleleCategories and compareBuffArea. Given a genetic matrix (rows are samples, columns are alleles)
 # and a data.frame of coordinates (3 columns: sample names, latitudes, and longitudes), it calculates the genetic
 # and geographic coverage from a random draw of some amount of samples (numSamples). 
-calculateCoverage <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_buffProj, 
+calculateCoverage <- function(gen_mat, coordPts, geoFlag=TRUE, geoBuff, 
+                              ptProj="+proj=longlat +datum=WGS84",
+                              buffProj="+proj=eqearth +datum=WGS84", boundary,
+                              ecoFlag=TRUE, ecoBuff, ecoRegions, ecoLayer=c("US","NA","GL"),
+                              parFlag=FALSE, numSamples){
+  
+  # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
+  if(!identical(rownames(gen_mat), coordPts[,1])){
+    stop("Error: Sample names between the genetic matrix and the first 
+         column of the coordinate point data.frame do not match.")
+  }
+  
+  # GENETIC PROCESSING
+  # Calculate a vector of allele frequencies, based on the total sample matrix
+  freqVector <- colSums(gen_mat, na.rm = TRUE)/(nrow(gen_mat)*2)*100
+  # Remove any missing alleles (those with frequencies of 0) from the frequency vector
+  freqVector <- freqVector[which(freqVector != 0)]
+  # From a matrix of individuals, select a set of random individuals (rows)
+  samp <- gen_mat[sample(nrow(gen_mat), size=numSamples, replace = FALSE),]
+  # Remove any missing alleles (those with colSums of 0) from the sample matrix
+  samp <- samp[,which(colSums(samp, na.rm = TRUE) != 0)]
+  # Genetic coverage: calculate sample's allelic representation
+  genRates <- getAlleleCategories(freqVector, samp)
+  # Subset matrix returned by getAlleleCategories to just 3rd column (representation rates), and return
+  genRates <- genRates[,3]
+  
+  # GEOGRAPHIC PROCESSING
+  if(geoFlag==TRUE){
+    # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
+    # the random subset of points (rownames(samp)) to the geo_compareBuffers function, which will calculate
+    # the proportion of area covered in the random sample
+    geoRate <- geo_compareBuff(coordPts, rownames(samp), geoBuff, ptProj, buffProj, boundary, parFlag)
+  } else{
+    geoRate <- NA
+  }
+  names(geoRate) <- "Geo"
+  
+  # ECOLOGICAL PROCESSING
+  if(ecoFlag==TRUE){
+    # Match ecoLayer argument, to ensure it is 1 of 3 possible values ("US", "NA", "GL)
+    ecoLayer <- match.arg(ecoLayer)
+    
+    # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
+    # the random subset of points (rownames(samp)) to the eco_compareBuffers function, which will calculate
+    # the proportion of ecoregions covered in the random sample
+    ecoRate <- eco_compareBuff(coordPts, rownames(samp), ecoBuff, ptProj, buffProj, 
+                               ecoBuff, ecoRegions, ecoLayer, boundary)
+  } else{
+    ecoRate <- NA
+  }
+  names(ecoRate) <- "Eco"
+  
+  # Combine genetic, geographic, and ecological coverage rates into a vector, and return
+  covRates <- c(genRates, geoRate, ecoRate)
+  return(covRates)
+}
+
+
+# Wrapper of getAlleleCategories and compareBuffArea. Given a genetic matrix (rows are samples, columns are alleles)
+# and a data.frame of coordinates (3 columns: sample names, latitudes, and longitudes), it calculates the genetic
+# and geographic coverage from a random draw of some amount of samples (numSamples). 
+calculateCoverage_OLD <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_buffProj, 
                               geo_boundary, parFlag=FALSE, numSamples){
   # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
   if(!identical(rownames(gen_mat), geo_coordPts[,1])){
