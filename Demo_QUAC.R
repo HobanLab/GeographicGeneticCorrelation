@@ -1,9 +1,9 @@
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%% GEOGRAPHIC-GENETIC CORRELATION DEMO: QUERCUS ACERIFOLIA %%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%% GEO-ECO-GEN CORRELATION DEMO: QUERCUS ACERIFOLIA %%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Script demonstrating first draft approach for calculating the correlation 
-# between genetic and geographic coverage. Uses a genind file from Quercus
+# between genetic, geographic, and ecological coverage. Uses a genind file from Quercus
 # acerifolia (SNP loci, complete dataset), as well as a CSV containing sample 
 # names, latitudes and longitudes, to iteratively resample wild points and measure
 # coverage.
@@ -23,20 +23,28 @@ source("Code/functions_GeoGenCoverage.R")
 # Declare a directory within which to store .Rdata objects of resampling arrays
 resamplingDataDir <- paste0(GeoGenCorr.wd, "Code/resamplingData/")
 # Specify number of resampling replicates. 
-# num_reps <- 5
 num_reps <- 3
-# ---- GEOGRAPHIC VARIABLES
+# num_reps <- 5
+# ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-buffSize <- 1000
-# buffSize <- 50000
+geo_buffSize <- 1000
+# geo_buffSize <- 50000
+# Specify ecological buffer size in meters 
+eco_buffSize <- 1000
+# eco_buffSize <- 50000
+# ---- SHAPEFILES
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
   vect(file.path(paste0(GeoGenCorr.wd, "GIS_shpFiles/world_countries_10m/world_countries_10m.shp")))
-# This shapefile is by default a "non-exportable" object, which means it must be processed before it can be
-# exported to the cluster (for geographic calculations). The terra::wrap function is used to do this.
+# Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
+ecoregion_poly <- 
+  vect(file.path(paste0(GeoGenCorr.wd, "GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp")))
+# Shapefiles are by default a "non-exportable" object, which means the must be processed before being
+# exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
 world_poly_clip_W <- wrap(world_poly_clip)
-  
+ecoregion_poly_W <- wrap(ecoregion_poly)
+
 # ---- PARALLELIZATION
 # Set up relevant cores 
 num_cores <- detectCores() - 8 
@@ -48,17 +56,18 @@ clusterEvalQ(cl, library("parallel"))
 
 # %%%% INDIVIDUAL-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that specify the location of each individual
-# ---- READ IN GEOGRAPHIC AND GENETIC DATA ----
+
+# ---- READ IN DATA ----
 # Specify filepath for QUAC geographic and genetic data
 QUAC.filePath <- paste0(GeoGenCorr.wd, "Datasets/QUAC/")
 
-# ---- GEOGRAPHIC
+# ---- COORDINATE POINTS
 # Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
 # The sample names (and order) have to match the sample names/order of the genind object 
 # (rownams of the genetic matrix) read in below.
 wildPoints <- read.csv(paste0(QUAC.filePath, "QUAC_coord_ind.csv"), header=TRUE)
 
-# ---- GENETIC
+# ---- GENETIC MATRIX
 # Read in genind file: Optimized de novo assembly; R80, min-maf=0, 
 # first SNP/locus, 2 populations (garden and wild), no Kessler individuals.
 # Wild sample names/order must match those in the sample name column of the CSV (above)
@@ -68,18 +77,22 @@ pop(QUAC.genind) <-
   factor(read.table(paste0(QUAC.filePath, "QUAC_popmap_GardenWild_NoK"), header=FALSE)[,2])
 
 # ---- RESAMPLING ----
-# Export the coordinate points data.frame and genind object to the cluster
-clusterExport(cl, varlist = c("wildPoints","QUAC.genind","num_reps","buffSize","world_poly_clip_W"))
-clusterExport(cl, varlist = c("createBuffers", "compareBuffArea", "getAlleleCategories","calculateCoverage",
-                              "exSituResample", "geo.gen.Resample.Parallel"))
+# Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
+clusterExport(cl, varlist = c("wildPoints","QUAC.genind","num_reps","geo_buffSize", "eco_buffSize",
+                              "world_poly_clip_W", "ecoregion_poly_W"))
+# Export necessary functions (for calculating geographic and ecological coverage) to the cluster
+clusterExport(cl, varlist = c("createBuffers", "geo_compareBuff", "eco_intersectBuff", "eco_compareBuff",
+                              "getAlleleCategories","calculateCoverage", "exSituResample", 
+                              "geo.gen.Resample.Parallel"))
 # Specify file path, for saving resampling array
-# arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_1kmIND_5r_resampArr.Rdata")
-arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_1kmIND_3r_resampArr.Rdata")
+arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata")
+# arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_1kmIND_GE_5r_resampArr.Rdata")
 # Run resampling
-QUAC_demoArray_Par <- geo.gen.Resample.Parallel(gen_obj=QUAC.genind, geo_coordPts=wildPoints,
-                                                geo_buff=buffSize,
-                                                geo_boundary=world_poly_clip_W, reps=num_reps,
-                                                arrayFilepath=arrayDir, cluster=cl)
+QUAC_demoArray_IND_Par <- 
+  geo.gen.Resample.Parallel(gen_obj = QUAC.genind, geoFlag = TRUE, coordPts = wildPoints, 
+                            geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
+                            ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = "US", 
+                            reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
 
@@ -90,13 +103,13 @@ plotColors[2:5] <- alpha(plotColors[2:5], 0.35)
 plotColors_Sub <- plotColors[-(2:5)]
 
 # Calculate minimum 95% sample size for genetic and geographic values
-gen_min95Value <- gen_min95Mean(QUAC_demoArray_Par) ; gen_min95Value
-gen_min95SD(QUAC_demoArray_Par)
-geo_min95Value <- geo_min95Mean(QUAC_demoArray_Par) ; geo_min95Value
-geo_min95SD(QUAC_demoArray_Par)
+gen_min95Value <- gen_min95Mean(QUAC_demoArray_IND_Par) ; gen_min95Value
+gen_min95SD(QUAC_demoArray_IND_Par)
+geo_min95Value <- geo_min95Mean(QUAC_demoArray_IND_Par) ; geo_min95Value
+geo_min95SD(QUAC_demoArray_IND_Par)
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic and geographic proportions
-averageValueMat <- meanArrayValues(QUAC_demoArray_Par)
+averageValueMat <- meanArrayValues(QUAC_demoArray_IND_Par)
 # Generate linear model between both coverage values
 QUAC_model <- lm (Total ~ Geo, data=averageValueMat)
 QUAC_model_summary <- summary(QUAC_model) ; QUAC_model_summary
@@ -170,17 +183,18 @@ legend(x=58, y=70, inset = 0.05,
 # %%%% POPULATION-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that uses the same value for each individual 
 # in a given population. Essentially, there are only 4 unique combinations of latitude and longitude
-# ---- READ IN GEOGRAPHIC AND GENETIC DATA ----
+
+# ---- READ IN DATA ----
 # Specify filepath for QUAC geographic and genetic data
 QUAC.filePath <- paste0(GeoGenCorr.wd, "Datasets/QUAC/")
 
-# ---- GEOGRAPHIC
+# ---- COORDINATE POINTS
 # Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
 # The sample names (and order) have to match the sample names/order of the genind object 
 # (rownams of the genetic matrix) read in below.
 wildPoints <- read.csv(paste0(QUAC.filePath, "QUAC_coord_pop.csv"), header=TRUE)
 
-# ---- GENETIC
+# ---- GENETIC MATRIX
 # Read in genind file: Optimized de novo assembly; R80, min-maf=0, 
 # first SNP/locus, 2 populations (garden and wild), no Kessler individuals.
 # Wild sample names/order must match those in the sample name column of the CSV (above)
@@ -190,17 +204,21 @@ pop(QUAC.genind) <-
   factor(read.table(paste0(QUAC.filePath, "QUAC_popmap_GardenWild_NoK"), header=FALSE)[,2])
 
 # ---- RESAMPLING ----
-# Export the coordinate points data.frame and genind object to the cluster
-clusterExport(cl, varlist = c("wildPoints","QUAC.genind","num_reps","buffSize","world_poly_clip_W"))
-clusterExport(cl, varlist = c("createBuffers", "compareBuffArea", "getAlleleCategories","calculateCoverage",
-                              "exSituResample", "geo.gen.Resample.Parallel"))
+# Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
+clusterExport(cl, varlist = c("wildPoints","QUAC.genind","num_reps","geo_buffSize", "eco_buffSize",
+                              "world_poly_clip_W", "ecoregion_poly_W"))
+# Export necessary functions (for calculating geographic and ecological coverage) to the cluster
+clusterExport(cl, varlist = c("createBuffers", "geo_compareBuff", "eco_intersectBuff", "eco_compareBuff",
+                              "getAlleleCategories","calculateCoverage", "exSituResample", 
+                              "geo.gen.Resample.Parallel"))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_50kmPOP_5r_resampArr.Rdata")
+arrayDir <- paste0(QUAC.filePath, "resamplingData/QUAC_1kmPOP_GE_5r_resampArr.Rdata")
 # Run resampling
-QUAC_demoArray_Par <- geo.gen.Resample.Parallel(gen_obj=QUAC.genind, geo_coordPts=wildPoints,
-                                                geo_buff=buffSize,
-                                                geo_boundary=world_poly_clip_W, reps=5,
-                                                arrayFilepath=arrayDir, cluster=cl)
+QUAC_demoArray_POP_Par <- 
+  geo.gen.Resample.Parallel(gen_obj = QUAC.genind, geoFlag = TRUE, coordPts = wildPoints, 
+                            geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
+                            ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = "US", 
+                            reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
 
