@@ -11,33 +11,33 @@ library(terra)
 library(parallel)
 
 # Create buffers around points, using specified projection
-createBuffers <- function(df, radius=1000, pt_proj="+proj=longlat +datum=WGS84", 
-                          buff_proj="+proj=eqearth +datum=WGS84", boundary){
+createBuffers <- function(df, radius=1000, ptProj="+proj=longlat +datum=WGS84", 
+                          buffProj="+proj=eqearth +datum=WGS84", boundary){
   # Turn occurrence point data into a SpatVector
-  spat_pts <- vect(df, geom=c("decimalLongitude", "decimalLatitude"), crs=pt_proj)
+  spat_pts <- vect(df, geom=c("decimalLongitude", "decimalLatitude"), crs=ptProj)
   # Reproject to specified projection
-  proj_df <- project(spat_pts, buff_proj)
+  proj_df <- project(spat_pts, buffProj)
   # Place buffer around each point, then dissolve into one polygon
   buffers <- buffer(proj_df,width=radius)
   buffers <- aggregate(buffers,dissolve = TRUE)
   # Clip by boundary so they don't extend into the water
-  boundary <- project(boundary,buff_proj)
+  boundary <- project(boundary,buffProj)
   buffers_clip <- crop(buffers,boundary)
   # Return buffer polygons
   return(buffers_clip)
 }
 
 # Given coordinate points and vector of sample names, calculate geographic coverage
-geo_compareBuff <- function(inSitu, sampVect, radius, pt_proj, buff_proj, boundary, parFlag=FALSE){
+geo_compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
   # If running in parallel: world polygon shapefile needs to be "unwrapped", after being exported to cluster
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
   }
-  # Build ex situ points by subseting complete in situ points data.frame, according to samp_vect
+  # Build ex situ points by subseting complete in situ points data.frame, according to sampVect
   exSitu <- inSitu[sort(match(sampVect, inSitu[,1])),]
   # Create buffers
-  geo_exSitu <- createBuffers(exSitu, radius, pt_proj, buff_proj, boundary)
-  geo_inSitu <- createBuffers(inSitu, radius, pt_proj, buff_proj, boundary)
+  geo_exSitu <- createBuffers(exSitu, radius, ptProj, buffProj, boundary)
+  geo_inSitu <- createBuffers(inSitu, radius, ptProj, buffProj, boundary)
   # Calculate buffer area
   geo_exSituArea <- expanse(geo_exSitu)/1000000
   geo_inSituArea <- expanse(geo_inSitu)/1000000
@@ -46,32 +46,43 @@ geo_compareBuff <- function(inSitu, sampVect, radius, pt_proj, buff_proj, bounda
   return(geo_Coverage)
 }
 
-# create data frame with ecoregion data extracted for area covered by buffers
-eco_intersectBuff <- function(insitu, radius, pt_proj="+proj=longlat +datum=WGS84",
-                              buff_proj="+proj=eqearth +datum=WGS84", ecoregion, boundary){
+# Create a data.frame with ecoregion data extracted for area covered by buffers
+eco_intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary, parFlag=FALSE){
+  # If running in parallel: world polygon and ecoregions shapefiles need to be "unwrapped", 
+  # after being exported to cluster
+  if(parFlag==TRUE){
+    ecoRegion <- unwrap(ecoRegion)
+    boundary <- unwrap(boundary)
+  }
   # Create buffers
-  buffers <- createBuffers(df, radius, pt_proj, buff_proj, boundary)
+  buffers <- createBuffers(df, radius, ptProj, buffProj, boundary)
   # Make sure ecoregions are in same projection as buffers
-  eco_proj <- project(ecoregion,buff_proj)
+  ecoProj <- project(ecoRegion, buffProj)
   # Intersect buffers with ecoregions
-  ecoBuffJoin <- intersect(buffers,eco_proj)
+  ecoBuffJoin <- intersect(buffers, ecoProj)
   return(ecoBuffJoin)
 }
 
 # Create a data.frame with ecoregion data extracted for area covered by buffers
 # surrounding all points and sample points. Then, compare the ecoregions count of the
-# sample to the total.
-#		for both in situ and ex situ points, then compare count of ecoregions.
-#   uses the *North American Level III EPA* ecoregions layer
-eco_compareBuff <- function(inSitu, sampVect, radius, pt_proj, buff_proj, 
-                            ecoRegion, layerType=c("US","NA","GL"), boundary){
+# sample to the total. The layerType argument allows for 3 possible values: US (EPA Level 4),
+# NA (EPA Level 3), and GL (TNC Global Terrestrial) ecoregions. These should correspond with 
+# the ecoRegion argument (which specifies the ecoregion shapefile).
+eco_compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, 
+                            ecoRegion, layerType=c("US","NA","GL"), boundary, parFlag=FALSE){
   # Match layerType argument, which specifies which ecoregion data type to extract (below)
   layerType <- match.arg(layerType)
+  # If running in parallel: world polygon and ecoregions shapefiles need to be "unwrapped", 
+  # after being exported to cluster
+  if(parFlag==TRUE){
+    ecoRegion <- unwrap(ecoRegion)
+    boundary <- unwrap(boundary)
+  }
   # Build sample ex situ points by subseting complete in situ points data.frame, according to sampVect
-  exSitu <- inSitu[sort(match(sampVect, insitu[,1])),]
+  exSitu <- inSitu[sort(match(sampVect, inSitu[,1])),]
   # Create data frame of ecoregion-buffer intersection
-  eco_exSitu <- eco_intersectBuff(exSitu, radius, pt_proj, buff_proj, ecoRegion, boundary)
-  eco_inSitu <- eco_intersectBuff(inSitu, radius, pt_proj, buff_proj, ecoRegion, boundary)
+  eco_exSitu <- eco_intersectBuff(exSitu, radius, ptProj, buffProj, ecoRegion, boundary)
+  eco_inSitu <- eco_intersectBuff(inSitu, radius, ptProj, buffProj, ecoRegion, boundary)
   # Based on the ecoRegion shapefile and the specified layer type, count the number of ecoregions in
   # the random sample (exSitu) and all of the data points (inSitu)
   if(layerType=="US"){
@@ -133,10 +144,13 @@ getAlleleCategories <- function(freqVector, sampleMat){
   return(exSituValues)
 }
 
-# Wrapper of getAlleleCategories and compareBuffArea. Given a genetic matrix (rows are samples, columns are alleles)
-# and a data.frame of coordinates (3 columns: sample names, latitudes, and longitudes), it calculates the genetic
-# and geographic coverage from a random draw of some amount of samples (numSamples). 
-calculateCoverage <- function(gen_mat, coordPts, geoFlag=TRUE, geoBuff, 
+# Wrapper of getAlleleCategories, geo_compareBuff, and eco_compareBuff. Given a genetic matrix 
+# (rows are samples, columns are alleles) and a data.frame of coordinates 
+# (3 columns: sample names, latitudes, and longitudes), it calculates the genetic,
+# geographic (if flagged), and ecologcial (if flagged) coverage from a random draw of some amount of 
+# samples (numSamples). The sample names between the genind object and the coordinate data.frame need
+# to match (in order to properly subset across genetic, geographic, and ecological datasets)
+calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, 
                               ptProj="+proj=longlat +datum=WGS84",
                               buffProj="+proj=eqearth +datum=WGS84", boundary,
                               ecoFlag=TRUE, ecoBuff, ecoRegions, ecoLayer=c("US","NA","GL"),
@@ -164,11 +178,16 @@ calculateCoverage <- function(gen_mat, coordPts, geoFlag=TRUE, geoBuff,
   
   # GEOGRAPHIC PROCESSING
   if(geoFlag==TRUE){
+    # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
+    if(missing(coordPts)) stop("For geographic coverage, a data.frame of wild coordinates (coordPts) is required")
+    if(missing(geoBuff)) stop("For geographic coverage, an integer specifying the geographic buffer size (geoBuff) is required")
+    if(missing(boundary)) stop("For geographic coverage, a SpatVector object of country boundaries (boundary) is required")
     # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
     # the random subset of points (rownames(samp)) to the geo_compareBuffers function, which will calculate
     # the proportion of area covered in the random sample
-    geoRate <- geo_compareBuff(coordPts, rownames(samp), geoBuff, ptProj, buffProj, boundary, parFlag)
-  } else{
+    geoRate <- geo_compareBuff(inSitu=coordPts, sampVect=rownames(samp), radius=geoBuff, 
+                               ptProj=ptProj, buffProj=buffProj, boundary=boundary, parFlag=parFlag)
+  } else {
     geoRate <- NA
   }
   names(geoRate) <- "Geo"
@@ -177,12 +196,17 @@ calculateCoverage <- function(gen_mat, coordPts, geoFlag=TRUE, geoBuff,
   if(ecoFlag==TRUE){
     # Match ecoLayer argument, to ensure it is 1 of 3 possible values ("US", "NA", "GL)
     ecoLayer <- match.arg(ecoLayer)
-    
+    # Check for the required arguments (ptProj, buffProj, and ecoLayer will use defaults, if not specified)
+    if(missing(coordPts)) stop("For ecological coverage, a data.frame of wild coordinates (coordPts) is required")
+    if(missing(ecoBuff)) stop("For ecological coverage, an integer specifying the ecological buffer size (ecoBuff) is required")
+    if(missing(ecoRegions)) stop("For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required")
+    if(missing(boundary)) stop("For ecological coverage, a SpatVector object of country boundaries (boundary) is required")
     # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
     # the random subset of points (rownames(samp)) to the eco_compareBuffers function, which will calculate
     # the proportion of ecoregions covered in the random sample
-    ecoRate <- eco_compareBuff(coordPts, rownames(samp), ecoBuff, ptProj, buffProj, 
-                               ecoBuff, ecoRegions, ecoLayer, boundary)
+    ecoRate <- eco_compareBuff(inSitu=coordPts, sampVect=rownames(samp), radius=ecoBuff, 
+                               ptProj=ptProj, buffProj=buffProj, ecoRegion=ecoRegions, 
+                               layerType=ecoLayer, boundary=boundary, parFlag=parFlag)
   } else{
     ecoRate <- NA
   }
@@ -193,70 +217,54 @@ calculateCoverage <- function(gen_mat, coordPts, geoFlag=TRUE, geoBuff,
   return(covRates)
 }
 
+# !!! WAYS FOR CALCULATECOVERAGE TO IMPROVE !!!
+# 1. Move calculation of ecoregions for all sample points out of the innermost function
+# 2. Move calculation of all allele frequencies out of the innermost function
 
-# Wrapper of getAlleleCategories and compareBuffArea. Given a genetic matrix (rows are samples, columns are alleles)
-# and a data.frame of coordinates (3 columns: sample names, latitudes, and longitudes), it calculates the genetic
-# and geographic coverage from a random draw of some amount of samples (numSamples). 
-calculateCoverage_OLD <- function(gen_mat, geo_coordPts, geo_buff, geo_ptProj, geo_buffProj, 
-                              geo_boundary, parFlag=FALSE, numSamples){
-  # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
-  if(!identical(rownames(gen_mat), geo_coordPts[,1])){
-    stop("Error: Sample names between the genetic matrix and the first 
-         column of the coordinate point data.frame do not match.")
-  }
-  # GENETIC PROCESSING
-  # Calculate a vector of allele frequencies, based on the total sample matrix
-  freqVector <- colSums(gen_mat, na.rm = TRUE)/(nrow(gen_mat)*2)*100
-  # Remove any missing alleles (those with frequencies of 0) from the frequency vector
-  freqVector <- freqVector[which(freqVector != 0)]
-  # From a matrix of individuals, select a set of random individuals (rows)
-  samp <- gen_mat[sample(nrow(gen_mat), size=numSamples, replace = FALSE),]
-  # Remove any missing alleles (those with colSums of 0) from the sample matrix
-  samp <- samp[,which(colSums(samp, na.rm = TRUE) != 0)]
-  # Genetic coverage: calculate sample's allelic representation
-  gen_rates <- getAlleleCategories(freqVector, samp)
-  # Subset matrix returned by getAlleleCategories to just 3rd column (representation rates), and return
-  gen_rates <- gen_rates[,3]
-  # GEOGRAPHIC PROCESSING
-  # Geographic coverage: calculate sample's geographic representation, by passing sample names to compareBuffArea
-  geo_rate <- compareBuffArea(geo_coordPts, rownames(samp), geo_buff, geo_ptProj, geo_buffProj, geo_boundary, parFlag)
-  names(geo_rate) <- "Geo"
-  # Combine genetic and geographic coverage rates into a vector, and return
-  cov_rates <- c(gen_rates, geo_rate)
-  return(cov_rates)
-}
-
-# Wrapper of exSitu_Sample: iterates that function over the entire sample matrix
-exSituResample <- function(gen_obj, geo_coordPts, geo_buff=1000, geo_ptProj="+proj=longlat +datum=WGS84", 
-                           geo_buffProj="+proj=eqearth +datum=WGS84", geo_boundary, parFlag){
-  # Check populations of samples: if NULL, provide all samples with this popname (i.e. assume all are wild)
+# Wrapper of exSitu_Sample: iterates calculateCoverage over the entire matrix of samples
+exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj="+proj=longlat +datum=WGS84", 
+                           buffProj="+proj=eqearth +datum=WGS84", boundary, ecoFlag=TRUE, ecoBuff=1000,
+                           ecoRegions, ecoLayer="US", parFlag){
+  # Check populations of samples: if NULL, provide all samples with the popname "wild" 
+  # This means that if no populations are specified in the genind object, all samples will be used!
   if(is.null(pop(gen_obj))){
     pop(gen_obj) <- rep("wild", nInd(gen_obj))
   }
   # Create a matrix of wild individuals (those with population "wild") from genind object
   gen_mat <- gen_obj@tab[which(pop(gen_obj) == "wild"),]
-  # Apply the exSitu_Sample function to all rows of the wild matrix
+  # Apply the calculateCoverage function to all rows of the wild matrix
   # (except row 1, because we need at least 2 individuals to sample)
-  # The resulting matrix needs to be transposed, in order to keep columns as different allele categories
+  # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
   cov_matrix <- t(sapply(2:nrow(gen_mat), 
-                         function(x) calculateCoverage(gen_mat=gen_mat, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
-                                                       geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, 
-                                                       geo_boundary=geo_boundary, parFlag=parFlag, numSamples=x)))
-  # Return the matrix of representation values
+                         function(x) calculateCoverage(gen_mat=gen_mat, geoFlag=geoFlag, coordPts=coordPts, 
+                                                       geoBuff=geoBuff, ptProj=ptProj, buffProj=buffProj, 
+                                                       boundary=boundary, ecoFlag=ecoFlag, ecoBuff=ecoBuff,
+                                                       ecoRegions=ecoRegions, ecoLayer=ecoLayer,
+                                                       parFlag=parFlag, numSamples=x)))
+  # Return the matrix of coverage values
   return(cov_matrix)
 }
 
-# Wrapper of geo.gen.Resample: runs resampling in parallel over a specified cluster
+# Wrapper of exSituResample: runs resampling in parallel over a specified cluster
 # Results are saved to a specified file path.
-geo.gen.Resample.Parallel <- function(gen_obj, geo_coordPts, geo_buff=1000, geo_ptProj="+proj=longlat +datum=WGS84",
-                                      geo_buffProj="+proj=eqearth +datum=WGS84", geo_boundary, reps=5,
+geo.gen.Resample.Parallel <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj="+proj=longlat +datum=WGS84",
+                                      buffProj="+proj=eqearth +datum=WGS84", boundary, ecoFlag=TRUE, ecoBuff=1000, 
+                                      ecoRegions, ecoLayer=c("US","NA","GL"), reps=5,
                                       arrayFilepath="~/resamplingArray.Rdata", cluster){
+  # Print starting time
+  startTime <- Sys.time() 
+  print(paste0("%%% RUNTIME START: ", startTime))
   # Run resampling in parallel, capturing results to an array
   resamplingArray <- parSapply(cluster, 1:reps, 
-                               function(x) {exSituResample(gen_obj=gen_obj, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
-                                                          geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, 
-                                                          geo_boundary=geo_boundary, parFlag=TRUE)}, 
+                               function(x) {exSituResample(gen_obj=gen_obj, geoFlag=geoFlag, coordPts=coordPts, 
+                                                           geoBuff=geoBuff, ptProj= ptProj, buffProj=buffProj,
+                                                           boundary=boundary, ecoFlag=ecoFlag, ecoBuff=ecoBuff,
+                                                           ecoRegions=ecoRegions, ecoLayer=ecoLayer, parFlag=TRUE)}, 
                                simplify = "array")
+  # Print ending time and total runtime
+  endTime <- Sys.time() 
+  print(paste0("%%% RUNTIME END: ", endTime))
+  cat(paste0("\n", "%%% TOTAL RUNTIME: ", endTime-startTime))
   # Save the resampling array object to disk, for later usage
   saveRDS(resamplingArray, file = arrayFilepath)
   # Return resampling array to global environment
@@ -264,14 +272,14 @@ geo.gen.Resample.Parallel <- function(gen_obj, geo_coordPts, geo_buff=1000, geo_
 }
 
 # Wrapper for exSituResample, which will generate an array of values from a single genind object
-geo.gen.Resample <- function(gen_obj, geo_coordPts, geo_buff=1000, 
-                             geo_ptProj="+proj=longlat +datum=WGS84", 
-                             geo_buffProj="+proj=eqearth +datum=WGS84", geo_boundary, reps=5){
+geo.gen.Resample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj="+proj=longlat +datum=WGS84", 
+                             buffProj="+proj=eqearth +datum=WGS84", boundary, ecoFlag=TRUE, ecoBuff=1000, 
+                             ecoRegions, ecoLayer=c("US","NA","GL"), reps=5){
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- sapply(1:reps, 
-                            function(x) exSituResample(gen_obj=gen_obj, geo_coordPts=geo_coordPts, geo_buff=geo_buff,
-                                                       geo_ptProj=geo_ptProj, geo_buffProj=geo_buffProj, 
-                                                       geo_boundary=geo_boundary, parFlag=FALSE), 
+                            function(x) exSituResample(gen_obj=gen_obj, geoFlag=geoFlag, coordPts=coordPts, geoBuff=geoBuff,
+                                                       ptProj=ptProj, buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag,
+                                                       ecoBuff=ecoBuff, ecoRegions=ecoRegions, ecoLayer=ecoLayer, parFlag=FALSE), 
            simplify = "array")
   # Return array
   return(resamplingArray)
