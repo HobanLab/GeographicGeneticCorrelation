@@ -315,7 +315,22 @@ geo_min95SD <- function(resamplingArray){
   # Determine the mean value for representing 95% of allelic diversity
   meanValue <- geo_min95Mean(resamplingArray)
   # Calculate the standard deviation, at that mean value, and return
-  sdValue <- apply(resamplingArray[,1,],1,sd)[meanValue]
+  sdValue <- apply(resamplingArray[,6,],1,sd)[meanValue]
+  return(sdValue)
+}
+
+# From resampling array, calculate the mean minimum sample size to represent 95% of the Total wild diversity
+eco_min95Mean <- function(resamplingArray){
+  meanValue <- min(which(apply(resamplingArray[,7,],1, mean, na.rm=TRUE) > 95))
+  return(meanValue)
+}
+
+# From resampling array, calculate the standard deviation, at the mean 95% value
+eco_min95SD <- function(resamplingArray){
+  # Determine the mean value for representing 95% of allelic diversity
+  meanValue <- eco_min95Mean(resamplingArray)
+  # Calculate the standard deviation, at that mean value, and return
+  sdValue <- apply(resamplingArray[,7,],1,sd)[meanValue]
   return(sdValue)
 }
 
@@ -328,7 +343,7 @@ meanArrayValues <- function(resamplingArray, allValues=FALSE){
     meanValue_mat[,i] <- apply(resamplingArray[,i,], 1, mean, na.rm=TRUE)
   }
   # Give names to all meanValue_mat columns
-  colnames(meanValue_mat) <- c("Total","V. common","Common","Low freq.","Rare", "Geo")
+  colnames(meanValue_mat) <- c("Total","V. common","Common","Low freq.","Rare", "Geo", "Eco")
   if(allValues==FALSE){
     # Unless returning all matrix values is specified, return just the first ("Total") and last ("Geo") columns
     meanValue_mat <- meanValue_mat[,-(2:5)]
