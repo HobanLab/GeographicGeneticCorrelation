@@ -337,20 +337,25 @@ eco_min95SD <- function(resamplingArray){
 # From resampling array, calculate the mean values (across replicates) for each allele frequency category
 meanArrayValues <- function(resamplingArray, allValues=FALSE){
   # Declare a matrix to receive average values
-  meanValue_mat <- matrix(nrow=nrow(resamplingArray), ncol=ncol(resamplingArray))
+  meanValues_mat <- matrix(nrow=nrow(resamplingArray), ncol=ncol(resamplingArray))
   # For each column in the array, average results across replicates (3rd array dimension)
   for(i in 1:ncol(resamplingArray)){
-    meanValue_mat[,i] <- apply(resamplingArray[,i,], 1, mean, na.rm=TRUE)
+    meanValues_mat[,i] <- apply(resamplingArray[,i,], 1, mean, na.rm=TRUE)
   }
-  # Give names to all meanValue_mat columns
-  colnames(meanValue_mat) <- c("Total","V. common","Common","Low freq.","Rare", "Geo", "Eco")
+  # Name columns in the mean value matrix according to columns from input array
+  if(ncol(resamplingArray==6)){
+    colnames(meanValues_mat) <- c("Total","V. common","Common","Low freq.","Rare", "Geo") 
+  } else{
+    # Give names to all meanValue_mat columns
+    colnames(meanValues_mat) <- c("Total","V. common","Common","Low freq.","Rare", "Geo", "Eco") 
+  }
+  # Unless returning all matrix values is specified, return just the first ("Total") and last ("Geo") columns
   if(allValues==FALSE){
-    # Unless returning all matrix values is specified, return just the first ("Total") and last ("Geo") columns
-    meanValue_mat <- meanValue_mat[,-(2:5)]
+    meanValues_mat <- meanValues_mat[,-(2:5)]
   } 
   # Reformat the matrix as a data.frame, and return
-  meanValue_mat <- as.data.frame(meanValue_mat)
-  return(meanValue_mat)
+  meanValues <- as.data.frame(meanValues_mat)
+  return(meanValues)
 }
 
 # DATA EXPLORATION FUNCTIONS ----
