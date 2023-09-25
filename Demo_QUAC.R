@@ -145,7 +145,7 @@ legend(x=65, y=80, inset = 0.05,
        legend = c("Genetic coverage (Total)", "Geographic coverage (1 km buffer IND)"),
        col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty="n", y.intersp = 0.75)
 
-# %%%% TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS
+# %%%% 2023-08-17 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS
 # (For IMLS NLG subgroup presentation, 2023-08-17)
 # Use the matplot function to 3 average values, with specified settings
 matplot(averageValueMat[1:3,], col=plotColors_Sub, pch=16, xlim=c(0,100), ylim=c(0,100), ylab = "")
@@ -160,6 +160,43 @@ abline(v=3, col="black")
 # Add text for 3 sample example
 mtext(text="COVERAGE VALUES AT 3 (RANDOM) SAMPLES", side=1, line=-4.5, at=24.8, cex=1.2)
 mtext(text="Genetic coverage: 65.68%", side=1, line=-2.5, at=15.7, cex=1.2)
+mtext(text="Geographic coverage: 51.05%", side=1, line=-1.5, at=17.5, cex=1.2)
+# Add legend
+legend(x=58, y=70, inset = 0.05,
+       legend = c("Genetic coverage", "Geographic coverage (1 km buffer)"),
+       col=plotColors_Sub, pch = c(20,20,20), cex=1.1, pt.cex = 2, bty="n", y.intersp = 0.75)
+
+# Use the matplot function to plot the entire matrix of average values, with specified settings
+matplot(averageValueMat, col=plotColors_Sub, pch=16, xlim=c(0,100), ylim=c(0,100), ylab = "")
+# Add title and x-axis labels to the graph
+title(main="Quercus acerifolia: Geo-Gen Coverage", line=1.5)
+mtext(text="91 Individuals; 1 km buffer (individuals); 5 replicates", side=3, line=0.3, cex=1.2)
+mtext(text="Number of individuals", side=1, line=3, cex=1.6)
+mtext(text="Coverage (%)", side=2, line=2.3, cex=1.6, srt=90)
+# Mark the 95% threshold line, and the genetic/geographic points
+abline(h=95, col="black", lty=3) 
+# Add legend
+legend(x=58, y=70, inset = 0.05,
+       legend = c("Genetic coverage", "Geographic coverage (1 km buffer)"),
+       col=plotColors_Sub, pch = c(20,20,20), cex=1.1, pt.cex = 2, bty="n", y.intersp = 0.75)
+
+# %%%% 2023-09-27 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS
+# (For IMLS NLG subgroup presentation, 2023-09-27)
+# Alter the values in the averageValueMat, to correspond with the presentation
+averageValueMat[1:3,1] <- c(70.2, 75.3, 80.9)
+# Use the matplot function to 3 average values, with specified settings
+matplot(averageValueMat[1:3,], col=plotColors_Sub, pch=16, xlim=c(0,100), ylim=c(0,100), ylab = "")
+# Add title and x-axis labels to the graph
+title(main="Quercus acerifolia: Geo-Gen Coverage", line=1.5)
+mtext(text="91 Individuals; 1 km buffer (individuals); 5 replicates", side=3, line=0.3, cex=1.2)
+mtext(text="Number of individuals", side=1, line=3, cex=1.6)
+mtext(text="Coverage (%)", side=2, line=2.3, cex=1.6, srt=90)
+# Mark the 95% threshold line, and the genetic/geographic points
+abline(h=95, col="black", lty=3) 
+abline(v=3, col="black") 
+# Add text for 3 sample example
+mtext(text="COVERAGE VALUES AT 3 (RANDOM) SAMPLES", side=1, line=-4.5, at=24.8, cex=1.2)
+mtext(text="Genetic coverage: 80.9%", side=1, line=-2.5, at=15.7, cex=1.2)
 mtext(text="Geographic coverage: 51.05%", side=1, line=-1.5, at=17.5, cex=1.2)
 # Add legend
 legend(x=58, y=70, inset = 0.05,
