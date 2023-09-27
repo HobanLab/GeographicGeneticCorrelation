@@ -10,6 +10,7 @@ library(adegenet)
 library(terra)
 library(parallel)
 
+# ---- BUILDING THE RESAMPLING ARRAY ----
 # Create buffers around points, using specified projection
 createBuffers <- function(df, radius=1000, ptProj="+proj=longlat +datum=WGS84", 
                           buffProj="+proj=eqearth +datum=WGS84", boundary){
@@ -28,7 +29,7 @@ createBuffers <- function(df, radius=1000, ptProj="+proj=longlat +datum=WGS84",
 }
 
 # Given coordinate points and vector of sample names, calculate geographic coverage
-geo_compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
+geo.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
   # If running in parallel: world polygon shapefile needs to be "unwrapped", after being exported to cluster
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
@@ -47,7 +48,7 @@ geo_compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, boundary
 }
 
 # Create a data.frame with ecoregion data extracted for area covered by buffers
-eco_intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary, parFlag=FALSE){
+eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary, parFlag=FALSE){
   # If running in parallel: world polygon and ecoregions shapefiles need to be "unwrapped", 
   # after being exported to cluster
   if(parFlag==TRUE){
@@ -68,7 +69,7 @@ eco_intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary,
 # sample to the total. The layerType argument allows for 3 possible values: US (EPA Level 4),
 # NA (EPA Level 3), and GL (TNC Global Terrestrial) ecoregions. These should correspond with 
 # the ecoRegion argument (which specifies the ecoregion shapefile).
-eco_compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, 
+eco.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, 
                             ecoRegion, layerType=c("US","NA","GL"), boundary, parFlag=FALSE){
   # Match layerType argument, which specifies which ecoregion data type to extract (below)
   layerType <- match.arg(layerType)
@@ -81,8 +82,8 @@ eco_compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj,
   # Build sample ex situ points by subseting complete in situ points data.frame, according to sampVect
   exSitu <- inSitu[sort(match(sampVect, inSitu[,1])),]
   # Create data frame of ecoregion-buffer intersection
-  eco_exSitu <- eco_intersectBuff(exSitu, radius, ptProj, buffProj, ecoRegion, boundary)
-  eco_inSitu <- eco_intersectBuff(inSitu, radius, ptProj, buffProj, ecoRegion, boundary)
+  eco_exSitu <- eco.intersectBuff(exSitu, radius, ptProj, buffProj, ecoRegion, boundary)
+  eco_inSitu <- eco.intersectBuff(inSitu, radius, ptProj, buffProj, ecoRegion, boundary)
   # Based on the ecoRegion shapefile and the specified layer type, count the number of ecoregions in
   # the random sample (exSitu) and all of the data points (inSitu)
   if(layerType=="US"){
@@ -185,7 +186,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
     # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
     # the random subset of points (rownames(samp)) to the geo_compareBuffers function, which will calculate
     # the proportion of area covered in the random sample
-    geoRate <- geo_compareBuff(inSitu=coordPts, sampVect=rownames(samp), radius=geoBuff, 
+    geoRate <- geo.compareBuff(inSitu=coordPts, sampVect=rownames(samp), radius=geoBuff, 
                                ptProj=ptProj, buffProj=buffProj, boundary=boundary, parFlag=parFlag)
   } else {
     geoRate <- NA
@@ -204,7 +205,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
     # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
     # the random subset of points (rownames(samp)) to the eco_compareBuffers function, which will calculate
     # the proportion of ecoregions covered in the random sample
-    ecoRate <- eco_compareBuff(inSitu=coordPts, sampVect=rownames(samp), radius=ecoBuff, 
+    ecoRate <- eco.compareBuff(inSitu=coordPts, sampVect=rownames(samp), radius=ecoBuff, 
                                ptProj=ptProj, buffProj=buffProj, ecoRegion=ecoRegions, 
                                layerType=ecoLayer, boundary=boundary, parFlag=parFlag)
   } else{
@@ -272,6 +273,7 @@ geo.gen.Resample.Parallel <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1
 }
 
 # Wrapper for exSituResample, which will generate an array of values from a single genind object
+# This function doesn't run in parallel, so it's primarily used for testing/demonstration purposes
 geo.gen.Resample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj="+proj=longlat +datum=WGS84", 
                              buffProj="+proj=eqearth +datum=WGS84", boundary, ecoFlag=TRUE, ecoBuff=1000, 
                              ecoRegions, ecoLayer=c("US","NA","GL"), reps=5){
@@ -285,8 +287,9 @@ geo.gen.Resample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptPr
   return(resamplingArray)
 }
 
+# ---- PROCESSING THE RESAMPLING ARRAY ----
 # From resampling array, calculate the mean minimum sample size to represent 95% of the Total wild diversity
-gen_min95Mean <- function(resamplingArray){
+gen.min95Mean <- function(resamplingArray){
   # resampling array[,1,]: returns the Total column values for each replicate (3rd array dimension)
   # apply(resamplingArray[,1,],1,mean): calculates the average across replicates for each row
   # which(apply(resamplingArray[,1,],1,mean) > 95): returns the rows with averages greater than 95
@@ -296,7 +299,7 @@ gen_min95Mean <- function(resamplingArray){
 }
 
 # From resampling array, calculate the standard deviation, at the mean 95% value
-gen_min95SD <- function(resamplingArray){
+gen.min95SD <- function(resamplingArray){
   # Determine the mean value for representing 95% of allelic diversity
   meanValue <- gen_min95Mean(resamplingArray)
   # Calculate the standard deviation, at that mean value, and return
@@ -305,13 +308,13 @@ gen_min95SD <- function(resamplingArray){
 }
 
 # From resampling array, calculate the mean minimum sample size to represent 95% of the Total wild diversity
-geo_min95Mean <- function(resamplingArray){
+geo.min95Mean <- function(resamplingArray){
   meanValue <- min(which(apply(resamplingArray[,6,],1, mean, na.rm=TRUE) > 95))
   return(meanValue)
 }
 
 # From resampling array, calculate the standard deviation, at the mean 95% value
-geo_min95SD <- function(resamplingArray){
+geo.min95SD <- function(resamplingArray){
   # Determine the mean value for representing 95% of allelic diversity
   meanValue <- geo_min95Mean(resamplingArray)
   # Calculate the standard deviation, at that mean value, and return
@@ -320,13 +323,13 @@ geo_min95SD <- function(resamplingArray){
 }
 
 # From resampling array, calculate the mean minimum sample size to represent 95% of the Total wild diversity
-eco_min95Mean <- function(resamplingArray){
+eco.min95Mean <- function(resamplingArray){
   meanValue <- min(which(apply(resamplingArray[,7,],1, mean, na.rm=TRUE) > 95))
   return(meanValue)
 }
 
 # From resampling array, calculate the standard deviation, at the mean 95% value
-eco_min95SD <- function(resamplingArray){
+eco.min95SD <- function(resamplingArray){
   # Determine the mean value for representing 95% of allelic diversity
   meanValue <- eco_min95Mean(resamplingArray)
   # Calculate the standard deviation, at that mean value, and return
@@ -335,30 +338,50 @@ eco_min95SD <- function(resamplingArray){
 }
 
 # From resampling array, calculate the mean values (across replicates) for each allele frequency category
+# The allValues flag indicates whether or not to return the coverage metrics for alleles of different 
+# categories (by default, the function will only return Total allelic coverage)
 meanArrayValues <- function(resamplingArray, allValues=FALSE){
   # Declare a matrix to receive average values
   meanValues_mat <- matrix(nrow=nrow(resamplingArray), ncol=ncol(resamplingArray))
+  # Name columns in the mean value matrix according to columns from input array
+  colnames(meanValues_mat) <- colnames(resamplingArray)
   # For each column in the array, average results across replicates (3rd array dimension)
   for(i in 1:ncol(resamplingArray)){
     meanValues_mat[,i] <- apply(resamplingArray[,i,], 1, mean, na.rm=TRUE)
   }
-  # Name columns in the mean value matrix according to columns from input array
-  if(ncol(resamplingArray==6)){
-    colnames(meanValues_mat) <- c("Total","V. common","Common","Low freq.","Rare", "Geo") 
-  } else{
-    # Give names to all meanValue_mat columns
-    colnames(meanValues_mat) <- c("Total","V. common","Common","Low freq.","Rare", "Geo", "Eco") 
-  }
   # Unless returning all matrix values is specified, return just the first ("Total") and last ("Geo") columns
   if(allValues==FALSE){
     meanValues_mat <- meanValues_mat[,-(2:5)]
-  } 
+  }
   # Reformat the matrix as a data.frame, and return
   meanValues <- as.data.frame(meanValues_mat)
   return(meanValues)
 }
 
-# DATA EXPLORATION FUNCTIONS ----
+# From resampling array, generate a data.frame by collapsing values across replicates into vectors
+# allValues flag indicates whether or not to include categories of alleles other that "Total"
+resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
+  # Create a vector of sample numbers. The values in this vector range from 2:total number
+  # of samples (at least 2 samples are required in order for sample function to work; see above).
+  # These values are repeated for the number of replicates in the resampling array (3rd dimension)
+  sampleNumbers <- rep(2:(nrow(resamplingArray)+1), dim(resamplingArray)[[3]])
+  # Pass sample number vector to data.frame, which will be the final output of the function
+  resamp_DF <- data.frame(sampleNumbers=sampleNumbers)
+  # Loop through the array by colunms (variables)
+  for(i in 1:ncol(resamplingArray)){
+    # For each, collapse the column into one long vector, and add that vector to the data.frame
+    resamp_DF <- cbind(resamp_DF, c(resamplingArray[,i,]))
+  }
+  # Rename the data.frame values according to the column names of the array
+  names(resamp_DF) <- c("sampleNumbers", colnames(resamplingArray))
+  # If allValues flag is FALSE, remove the allele categories other than "Total"
+  if(allValues==FALSE){
+    resamp_DF <- resamp_DF[,-(3:6)]
+  }
+  return(resamp_DF)
+}
+
+# ---- DATA EXPLORATION FUNCTIONS ----
 # Function for generating a vector of wild allele frequencies from a genind object
 getWildFreqs <- function(gen.obj){
   # Build a vector of rows corresponding to wild individuals (those that do not have a population of "garden")
