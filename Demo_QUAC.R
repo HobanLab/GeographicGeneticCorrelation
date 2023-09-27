@@ -96,35 +96,43 @@ QUAC_demoArray_IND_Par <-
 # Close cores
 stopCluster(cl)
 
-# ---- CORRELATION AND PLOTTTING ----
+# ---- CORRELATION ----
+# Build a data.frame from array values, to pass to linear models
+QUAC_DF <- resample.array2dataframe(QUAC_demoArray_IND_Par)
+
+# ---- LINEAR MODELS
+# Generate linear models, using Total allelic coverage as the response variable
+# GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
+QUAC_geoModel <- lm (Total ~ Geo, data=QUAC_DF)
+QUAC_geoModel_summary <- summary(QUAC_geoModel) ; QUAC_geoModel_summary
+# Pull R-squared and p-value estimates from model
+QUAC_geoModel_rSquared <- round(QUAC_geoModel_summary$adj.r.squared,2)
+QUAC_geoModel_pValue <- QUAC_geoModel_summary$coefficients[2, 4]
+
+# ---- PLOTTING ----
+# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
+# Calculate minimum 95% sample size for genetic and geographic values
+gen_min95Value <- gen.min95Mean(QUAC_demoArray_Par) ; gen_min95Value
+gen_min95SD(QUAC_demoArray_Par)
+geo_min95Value <- geo.min95Mean(QUAC_demoArray_Par) ; geo_min95Value
+geo_min95SD(QUAC_demoArray_Par)
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic and geographic proportions
+averageValueMat <- meanArrayValues(QUAC_demoArray_Par)
+
 # Specify plot colors
 plotColors <- c("red","red4","darkorange3","coral","purple", "darkblue")
 plotColors[2:5] <- alpha(plotColors[2:5], 0.35)
 plotColors_Sub <- plotColors[-(2:5)]
 
-# Calculate minimum 95% sample size for genetic and geographic values
-gen_min95Value <- gen_min95Mean(QUAC_demoArray_IND_Par) ; gen_min95Value
-gen_min95SD(QUAC_demoArray_IND_Par)
-geo_min95Value <- geo_min95Mean(QUAC_demoArray_IND_Par) ; geo_min95Value
-geo_min95SD(QUAC_demoArray_IND_Par)
-# Generate the average values (across replicates) for all proportions
-# This function has default arguments for returning just Total allelic and geographic proportions
-averageValueMat <- meanArrayValues(QUAC_demoArray_IND_Par)
-# Generate linear model between both coverage values
-QUAC_model <- lm (Total ~ Geo, data=averageValueMat)
-QUAC_model_summary <- summary(QUAC_model) ; QUAC_model_summary
-# Pull R-squared and p-value estimates from model
-QUAC_model_rSquared <- QUAC_model_summary$adj.r.squared; QUAC_model_rSquared
-QUAC_model_pValue <- QUAC_model_summary$coefficients[2, 4]
-
-# %%%% GEOGRAPHIC-GENETIC CORRELATION
+# ---- CORRELATION PLOTS
 plot(averageValueMat$Geo, averageValueMat$Total, pch=20, main="Q. acerifolia: Geographic by genetic coverage",
      xlab="Geographic coverage (%)", ylab="Genetic coverage (%)")
 mtext(text="91 Individuals; 1 km buffer (individuals); 5 replicates", side=3, line=0.3)
 mylabel = bquote(italic(R)^2 == .(format(QUAC_model_rSquared, digits = 3)))
 text(x = 45, y = 95, labels = mylabel)
 
-# %%%% TOTAL ALLELIC AND GEOGRAPHIC COVERAGE
+# ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(averageValueMat, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab="Coverage (%)")
 # Add title and x-axis labels to the graph
@@ -259,35 +267,43 @@ QUAC_demoArray_POP_Par <-
 # Close cores
 stopCluster(cl)
 
-# ---- CORRELATION AND PLOTTTING ----
+# ---- CORRELATION ----
+# Build a data.frame from array values, to pass to linear models
+QUAC_DF <- resample.array2dataframe(QUAC_demoArray_POP_Par)
+
+# ---- LINEAR MODELS
+# Generate linear models, using Total allelic coverage as the response variable
+# GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
+QUAC_geoModel <- lm (Total ~ Geo, data=QUAC_DF)
+QUAC_geoModel_summary <- summary(QUAC_geoModel) ; QUAC_geoModel_summary
+# Pull R-squared and p-value estimates from model
+QUAC_geoModel_rSquared <- round(QUAC_geoModel_summary$adj.r.squared,2)
+QUAC_geoModel_pValue <- QUAC_geoModel_summary$coefficients[2, 4]
+
+# ---- PLOTTING ----
+# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
+# Calculate minimum 95% sample size for genetic and geographic values
+gen_min95Value <- gen.min95Mean(QUAC_demoArray_Par) ; gen_min95Value
+gen_min95SD(QUAC_demoArray_Par)
+geo_min95Value <- geo.min95Mean(QUAC_demoArray_Par) ; geo_min95Value
+geo_min95SD(QUAC_demoArray_Par)
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic and geographic proportions
+averageValueMat <- meanArrayValues(QUAC_demoArray_Par)
+
 # Specify plot colors
 plotColors <- c("red","red4","darkorange3","coral","purple", "darkblue")
 plotColors[2:5] <- alpha(plotColors[2:5], 0.35)
 plotColors_Sub <- plotColors[-(2:5)]
 
-# Calculate minimum 95% sample size for genetic and geographic values
-gen_min95Value <- gen_min95Mean(QUAC_demoArray_Par) ; gen_min95Value
-gen_min95SD(QUAC_demoArray_Par)
-geo_min95Value <- geo_min95Mean(QUAC_demoArray_Par) ; geo_min95Value
-geo_min95SD(QUAC_demoArray_Par)
-# Generate the average values (across replicates) for all proportions
-# This function has default arguments for returning just Total allelic and geographic proportions
-averageValueMat <- meanArrayValues(QUAC_demoArray_Par)
-# Generate linear model between both coverage values
-QUAC_model <- lm (Total ~ Geo, data=averageValueMat)
-QUAC_model_summary <- summary(QUAC_model) ; QUAC_model_summary
-# Pull R-squared and p-value estimates from model
-QUAC_model_rSquared <- QUAC_model_summary$adj.r.squared ; QUAC_model_rSquared
-QUAC_model_pValue <- QUAC_model_summary$coefficients[2, 4]
-
-# %%%% GEOGRAPHIC-GENETIC CORRELATION
+# ---- CORRELATION PLOTS
 plot(averageValueMat$Geo, averageValueMat$Total, pch=20, main="Q. acerifolia: Geographic by genetic coverage",
      xlab="Geographic coverage (%)", ylab="Genetic coverage (%)")
 mtext(text="91 Individuals; 50 km buffer (populations); 5 replicates", side=3, line=0.3)
 mylabel = bquote(italic(R)^2 == .(format(QUAC_model_rSquared, digits = 3)))
 text(x = 45, y = 95, labels = mylabel)
 
-# %%%% TOTAL ALLELIC AND GEOGRAPHIC COVERAGE
+# ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(averageValueMat, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab="Coverage (%)")
 # Add title and x-axis labels to the graph

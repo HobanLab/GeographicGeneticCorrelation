@@ -91,35 +91,39 @@ QULO_demoArray_Par <-
 stopCluster(cl)
 
 # ---- CORRELATION ----
-# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
-# Calculate minimum 95% sample size for genetic and geographic values
-gen_min95Value <- gen_min95Mean(QULO_demoArray_Par) ; gen_min95Value
-gen_min95SD(QULO_demoArray_Par)
-geo_min95Value <- geo_min95Mean(QULO_demoArray_Par) ; geo_min95Value
-geo_min95SD(QULO_demoArray_Par)
-eco_min95Value <- eco_min95Mean(QULO_demoArray_Par) ; eco_min95Value
-eco_min95SD(QULO_demoArray_Par)
-# Generate the average values (across replicates) for all proportions
-# This function has default arguments for returning just Total allelic geographic proportions
-averageValueMat <- meanArrayValues(QULO_demoArray_Par, allValues = TRUE)
-# Subset matrix of all average values to just Total allelic coverage, geographic coverage, and ecological coverage
-averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+# Build a data.frame from array values, to pass to linear models
+QULO_DF <- resample.array2dataframe(QULO_demoArray_Par)
+
 # ---- LINEAR MODELS
 # Generate linear models, using Total allelic coverage as the response variable
 # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
-QULO_geoModel <- lm (Total ~ Geo, data=averageValueMat_TEG)
+QULO_geoModel <- lm (Total ~ Geo, data=QULO_DF)
 QULO_geoModel_summary <- summary(QULO_geoModel) ; QULO_geoModel_summary
 # Pull R-squared and p-value estimates from model
 QULO_geoModel_rSquared <- round(QULO_geoModel_summary$adj.r.squared,2)
 QULO_geoModel_pValue <- QULO_geoModel_summary$coefficients[2, 4]
 # ECOLOGICAL COVERAGE AS PREDICTOR VARIABLE
-QULO_ecoModel <- lm (Total ~ Eco, data=averageValueMat_TEG)
+QULO_ecoModel <- lm (Total ~ Eco, data=QULO_DF)
 QULO_ecoModel_summary <- summary(QULO_ecoModel) ; QULO_ecoModel_summary
 # Pull R-squared and p-value estimates from model
 QULO_ecoModel_rSquared <- round(QULO_ecoModel_summary$adj.r.squared, 2)
 QULO_ecoModel_pValue <- QULO_ecoModel_summary$coefficients[2, 4]
 
 # ---- PLOTTING ----
+# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
+# Calculate minimum 95% sample size for genetic and geographic values
+gen_min95Value <- gen.min95Mean(QULO_demoArray_Par) ; gen_min95Value
+gen_min95SD(QULO_demoArray_Par)
+geo_min95Value <- geo.min95Mean(QULO_demoArray_Par) ; geo_min95Value
+geo_min95SD(QULO_demoArray_Par)
+eco_min95Value <- eco.min95Mean(QULO_demoArray_Par) ; eco_min95Value
+eco_min95SD(QULO_demoArray_Par)
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic geographic proportions
+averageValueMat <- meanArrayValues(QULO_demoArray_Par, allValues = TRUE)
+# Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
+averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+
 # Specify plot colors ()
 plotColors <- c("red","red4","darkorange3","coral","purple", "darkblue", "darkgreen")
 plotColors <- alpha(plotColors, 0.45)
