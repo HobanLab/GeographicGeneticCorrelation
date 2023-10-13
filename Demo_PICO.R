@@ -89,9 +89,10 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersect
                               'getAlleleCategories','calculateCoverage', 'exSituResample', 
                               'geo.gen.Resample.Parallel'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(PICO.filePath, 'resamplingData/PICO_50km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_50km_GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
+print("%%% BEGINNING RESAMPLING %%%")
 PICO_demoArray_Par <- 
   geo.gen.Resample.Parallel(gen_obj = PICO_genind, geoFlag = TRUE, coordPts = wildPoints, 
                             geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
