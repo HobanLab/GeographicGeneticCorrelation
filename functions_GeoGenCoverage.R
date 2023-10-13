@@ -12,10 +12,10 @@ library(parallel)
 
 # ---- BUILDING THE RESAMPLING ARRAY ----
 # Create buffers around points, using specified projection
-createBuffers <- function(df, radius=1000, ptProj="+proj=longlat +datum=WGS84", 
-                          buffProj="+proj=eqearth +datum=WGS84", boundary){
+createBuffers <- function(df, radius=1000, ptProj='+proj=longlat +datum=WGS84', 
+                          buffProj='+proj=eqearth +datum=WGS84', boundary){
   # Turn occurrence point data into a SpatVector
-  spat_pts <- vect(df, geom=c("decimalLongitude", "decimalLatitude"), crs=ptProj)
+  spat_pts <- vect(df, geom=c('decimalLongitude', 'decimalLatitude'), crs=ptProj)
   # Reproject to specified projection
   proj_df <- project(spat_pts, buffProj)
   # Place buffer around each point, then dissolve into one polygon
@@ -30,7 +30,7 @@ createBuffers <- function(df, radius=1000, ptProj="+proj=longlat +datum=WGS84",
 
 # Given coordinate points and vector of sample names, calculate geographic coverage
 geo.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
-  # If running in parallel: world polygon shapefile needs to be "unwrapped", after being exported to cluster
+  # If running in parallel: world polygon shapefile needs to be 'unwrapped', after being exported to cluster
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
   }
@@ -49,7 +49,7 @@ geo.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, boundary
 
 # Create a data.frame with ecoregion data extracted for area covered by buffers
 eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary, parFlag=FALSE){
-  # If running in parallel: world polygon and ecoregions shapefiles need to be "unwrapped", 
+  # If running in parallel: world polygon and ecoregions shapefiles need to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
     ecoRegion <- unwrap(ecoRegion)
@@ -70,10 +70,10 @@ eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary,
 # NA (EPA Level 3), and GL (TNC Global Terrestrial) ecoregions. These should correspond with 
 # the ecoRegion argument (which specifies the ecoregion shapefile).
 eco.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, 
-                            ecoRegion, layerType=c("US","NA","GL"), boundary, parFlag=FALSE){
+                            ecoRegion, layerType=c('US','NA','GL'), boundary, parFlag=FALSE){
   # Match layerType argument, which specifies which ecoregion data type to extract (below)
   layerType <- match.arg(layerType)
-  # If running in parallel: world polygon and ecoregions shapefiles need to be "unwrapped", 
+  # If running in parallel: world polygon and ecoregions shapefiles need to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
     ecoRegion <- unwrap(ecoRegion)
@@ -86,17 +86,17 @@ eco.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj,
   eco_inSitu <- eco.intersectBuff(inSitu, radius, ptProj, buffProj, ecoRegion, boundary)
   # Based on the ecoRegion shapefile and the specified layer type, count the number of ecoregions in
   # the random sample (exSitu) and all of the data points (inSitu)
-  if(layerType=="US"){
-    # Extract the number of EPA Level IV ("U.S. Only") ecoregions
+  if(layerType=='US'){
+    # Extract the number of EPA Level IV ('U.S. Only') ecoregions
     eco_exSituCount <- length(unique(eco_exSitu$US_L4CODE))
     eco_inSituCount <- length(unique(eco_inSitu$US_L4CODE))
   } else {
-    # Extract the number of EPA Level III ("North America") ecoregions 
-    if(layerType=="NA"){
+    # Extract the number of EPA Level III ('North America') ecoregions 
+    if(layerType=='NA'){
       eco_exSituCount <- length(unique(eco_exSitu$NA_L3CODE))
       eco_inSituCount <- length(unique(eco_inSitu$NA_L3CODE))
     } else{
-      # Extract the number of Nature Conservancy ("Global Terrestrial") ecoregions
+      # Extract the number of Nature Conservancy ('Global Terrestrial') ecoregions
       eco_exSituCount <- length(unique(eco_exSitu$ECO_ID_U))
       eco_inSituCount <- length(unique(eco_inSitu$ECO_ID_U))
     }
@@ -140,8 +140,8 @@ getAlleleCategories <- function(freqVector, sampleMat){
   repRates <- c(totalPercentage,vComPercentage,comPercentage,lowFrPercentage,rarePercentage) 
   # Bind vectors to a matrix, name dimensions, and return
   exSituValues <- cbind(exSituAlleles, inSituAlleles, repRates)
-  rownames(exSituValues) <- c("Total","V. common","Common", "Low freq.","Rare")
-  colnames(exSituValues) <- c("Ex situ", "In situ", "Rate (%)")
+  rownames(exSituValues) <- c('Total','V. common','Common', 'Low freq.','Rare')
+  colnames(exSituValues) <- c('Ex situ', 'In situ', 'Rate (%)')
   return(exSituValues)
 }
 
@@ -152,15 +152,15 @@ getAlleleCategories <- function(freqVector, sampleMat){
 # samples (numSamples). The sample names between the genind object and the coordinate data.frame need
 # to match (in order to properly subset across genetic, geographic, and ecological datasets)
 calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, 
-                              ptProj="+proj=longlat +datum=WGS84",
-                              buffProj="+proj=eqearth +datum=WGS84", boundary,
-                              ecoFlag=TRUE, ecoBuff, ecoRegions, ecoLayer=c("US","NA","GL"),
+                              ptProj='+proj=longlat +datum=WGS84',
+                              buffProj='+proj=eqearth +datum=WGS84', boundary,
+                              ecoFlag=TRUE, ecoBuff, ecoRegions, ecoLayer=c('US','NA','GL'),
                               parFlag=FALSE, numSamples){
   
   # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
   if(!identical(rownames(gen_mat), coordPts[,1])){
-    stop("Error: Sample names between the genetic matrix and the first 
-         column of the coordinate point data.frame do not match.")
+    stop('Error: Sample names between the genetic matrix and the first 
+         column of the coordinate point data.frame do not match.')
   }
   
   # GENETIC PROCESSING
@@ -180,9 +180,14 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
   # GEOGRAPHIC PROCESSING
   if(geoFlag==TRUE){
     # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
-    if(missing(coordPts)) stop("For geographic coverage, a data.frame of wild coordinates (coordPts) is required")
-    if(missing(geoBuff)) stop("For geographic coverage, an integer specifying the geographic buffer size (geoBuff) is required")
-    if(missing(boundary)) stop("For geographic coverage, a SpatVector object of country boundaries (boundary) is required")
+    if(missing(coordPts)) stop('For geographic coverage, a data.frame of wild coordinates (coordPts) is required')
+    if(missing(geoBuff)) stop('For geographic coverage, an integer specifying the geographic buffer size (geoBuff) is required')
+    if(missing(boundary)) stop('For geographic coverage, a SpatVector object of country boundaries (boundary) is required')
+    # Check that the names of the latitude and longitude columns are properly written (this is unfortunately hard-coded)
+    if(!identical(colnames(coordPts)[2:3], c('decimalLatitude', 'decimalLongitude'))){
+      stop('The column names of the geographic coordinates data.frame (coordPts) need to be 
+           decimalLatitude and decimalLongitude. Please rename your data.frame of geographic coordinates!')
+    }
     # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
     # the random subset of points (rownames(samp)) to the geo_compareBuffers function, which will calculate
     # the proportion of area covered in the random sample
@@ -191,17 +196,17 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
   } else {
     geoRate <- NA
   }
-  names(geoRate) <- "Geo"
+  names(geoRate) <- 'Geo'
   
   # ECOLOGICAL PROCESSING
   if(ecoFlag==TRUE){
-    # Match ecoLayer argument, to ensure it is 1 of 3 possible values ("US", "NA", "GL)
+    # Match ecoLayer argument, to ensure it is 1 of 3 possible values ('US', 'NA', 'GL)
     ecoLayer <- match.arg(ecoLayer)
     # Check for the required arguments (ptProj, buffProj, and ecoLayer will use defaults, if not specified)
-    if(missing(coordPts)) stop("For ecological coverage, a data.frame of wild coordinates (coordPts) is required")
-    if(missing(ecoBuff)) stop("For ecological coverage, an integer specifying the ecological buffer size (ecoBuff) is required")
-    if(missing(ecoRegions)) stop("For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required")
-    if(missing(boundary)) stop("For ecological coverage, a SpatVector object of country boundaries (boundary) is required")
+    if(missing(coordPts)) stop('For ecological coverage, a data.frame of wild coordinates (coordPts) is required')
+    if(missing(ecoBuff)) stop('For ecological coverage, an integer specifying the ecological buffer size (ecoBuff) is required')
+    if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
+    if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
     # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
     # the random subset of points (rownames(samp)) to the eco_compareBuffers function, which will calculate
     # the proportion of ecoregions covered in the random sample
@@ -211,7 +216,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
   } else{
     ecoRate <- NA
   }
-  names(ecoRate) <- "Eco"
+  names(ecoRate) <- 'Eco'
   
   # Combine genetic, geographic, and ecological coverage rates into a vector, and return
   covRates <- c(genRates, geoRate, ecoRate)
@@ -223,16 +228,16 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
 # 2. Move calculation of all allele frequencies out of the innermost function
 
 # Wrapper of exSitu_Sample: iterates calculateCoverage over the entire matrix of samples
-exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj="+proj=longlat +datum=WGS84", 
-                           buffProj="+proj=eqearth +datum=WGS84", boundary, ecoFlag=TRUE, ecoBuff=1000,
-                           ecoRegions, ecoLayer="US", parFlag){
-  # Check populations of samples: if NULL, provide all samples with the popname "wild" 
+exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj='+proj=longlat +datum=WGS84', 
+                           buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=TRUE, ecoBuff=1000,
+                           ecoRegions, ecoLayer='US', parFlag){
+  # Check populations of samples: if NULL, provide all samples with the popname 'wild' 
   # This means that if no populations are specified in the genind object, all samples will be used!
   if(is.null(pop(gen_obj))){
-    pop(gen_obj) <- rep("wild", nInd(gen_obj))
+    pop(gen_obj) <- rep('wild', nInd(gen_obj))
   }
-  # Create a matrix of wild individuals (those with population "wild") from genind object
-  gen_mat <- gen_obj@tab[which(pop(gen_obj) == "wild"),]
+  # Create a matrix of wild individuals (those with population 'wild') from genind object
+  gen_mat <- gen_obj@tab[which(pop(gen_obj) == 'wild'),]
   # Apply the calculateCoverage function to all rows of the wild matrix
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
@@ -248,24 +253,24 @@ exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj
 
 # Wrapper of exSituResample: runs resampling in parallel over a specified cluster
 # Results are saved to a specified file path.
-geo.gen.Resample.Parallel <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj="+proj=longlat +datum=WGS84",
-                                      buffProj="+proj=eqearth +datum=WGS84", boundary, ecoFlag=TRUE, ecoBuff=1000, 
-                                      ecoRegions, ecoLayer=c("US","NA","GL"), reps=5,
-                                      arrayFilepath="~/resamplingArray.Rdata", cluster){
+geo.gen.Resample.Parallel <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj='+proj=longlat +datum=WGS84',
+                                      buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=TRUE, ecoBuff=1000, 
+                                      ecoRegions, ecoLayer=c('US','NA','GL'), reps=5,
+                                      arrayFilepath='~/resamplingArray.Rdata', cluster){
   # Print starting time
   startTime <- Sys.time() 
-  print(paste0("%%% RUNTIME START: ", startTime))
+  print(paste0('%%% RUNTIME START: ', startTime))
   # Run resampling in parallel, capturing results to an array
   resamplingArray <- parSapply(cluster, 1:reps, 
                                function(x) {exSituResample(gen_obj=gen_obj, geoFlag=geoFlag, coordPts=coordPts, 
                                                            geoBuff=geoBuff, ptProj= ptProj, buffProj=buffProj,
                                                            boundary=boundary, ecoFlag=ecoFlag, ecoBuff=ecoBuff,
                                                            ecoRegions=ecoRegions, ecoLayer=ecoLayer, parFlag=TRUE)}, 
-                               simplify = "array")
+                               simplify = 'array')
   # Print ending time and total runtime
   endTime <- Sys.time() 
-  print(paste0("%%% RUNTIME END: ", endTime))
-  cat(paste0("\n", "%%% TOTAL RUNTIME: ", endTime-startTime))
+  print(paste0('%%% RUNTIME END: ', endTime))
+  cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
   # Save the resampling array object to disk, for later usage
   saveRDS(resamplingArray, file = arrayFilepath)
   # Return resampling array to global environment
@@ -274,15 +279,15 @@ geo.gen.Resample.Parallel <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1
 
 # Wrapper for exSituResample, which will generate an array of values from a single genind object
 # This function doesn't run in parallel, so it's primarily used for testing/demonstration purposes
-geo.gen.Resample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj="+proj=longlat +datum=WGS84", 
-                             buffProj="+proj=eqearth +datum=WGS84", boundary, ecoFlag=TRUE, ecoBuff=1000, 
-                             ecoRegions, ecoLayer=c("US","NA","GL"), reps=5){
+geo.gen.Resample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj='+proj=longlat +datum=WGS84', 
+                             buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=TRUE, ecoBuff=1000, 
+                             ecoRegions, ecoLayer=c('US','NA','GL'), reps=5){
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- sapply(1:reps, 
                             function(x) exSituResample(gen_obj=gen_obj, geoFlag=geoFlag, coordPts=coordPts, geoBuff=geoBuff,
                                                        ptProj=ptProj, buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag,
                                                        ecoBuff=ecoBuff, ecoRegions=ecoRegions, ecoLayer=ecoLayer, parFlag=FALSE), 
-           simplify = "array")
+           simplify = 'array')
   # Return array
   return(resamplingArray)
 }
@@ -349,7 +354,7 @@ meanArrayValues <- function(resamplingArray, allValues=FALSE){
   for(i in 1:ncol(resamplingArray)){
     meanValues_mat[,i] <- apply(resamplingArray[,i,], 1, mean, na.rm=TRUE)
   }
-  # Unless returning all matrix values is specified, return just the first ("Total") and last ("Geo") columns
+  # Unless returning all matrix values is specified, return just the first ('Total') and last ('Geo') columns
   if(allValues==FALSE){
     meanValues_mat <- meanValues_mat[,-(2:5)]
   }
@@ -359,7 +364,7 @@ meanArrayValues <- function(resamplingArray, allValues=FALSE){
 }
 
 # From resampling array, generate a data.frame by collapsing values across replicates into vectors
-# allValues flag indicates whether or not to include categories of alleles other that "Total"
+# allValues flag indicates whether or not to include categories of alleles other that 'Total'
 resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
   # Create a vector of sample numbers. The values in this vector range from 2:total number
   # of samples (at least 2 samples are required in order for sample function to work; see above).
@@ -373,8 +378,8 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
     resamp_DF <- cbind(resamp_DF, c(resamplingArray[,i,]))
   }
   # Rename the data.frame values according to the column names of the array
-  names(resamp_DF) <- c("sampleNumbers", colnames(resamplingArray))
-  # If allValues flag is FALSE, remove the allele categories other than "Total"
+  names(resamp_DF) <- c('sampleNumbers', colnames(resamplingArray))
+  # If allValues flag is FALSE, remove the allele categories other than 'Total'
   if(allValues==FALSE){
     resamp_DF <- resamp_DF[,-(3:6)]
   }
@@ -384,8 +389,8 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
 # ---- DATA EXPLORATION FUNCTIONS ----
 # Function for generating a vector of wild allele frequencies from a genind object
 getWildFreqs <- function(gen.obj){
-  # Build a vector of rows corresponding to wild individuals (those that do not have a population of "garden")
-  wildRows <- which(pop(gen.obj)!="garden")
+  # Build a vector of rows corresponding to wild individuals (those that do not have a population of 'garden')
+  wildRows <- which(pop(gen.obj)!='garden')
   # Build the wild allele frequency vector: colSums of alleles (removing NAs), divided by number of haplotypes (Ne*2)
   wildFreqs <- colSums(gen.obj@tab[wildRows,], na.rm = TRUE)/(length(wildRows)*2)*100
   return(wildFreqs)
@@ -413,7 +418,7 @@ getWildAlleleFreqProportions <- function(gen.obj){
   rare_prop <- (length(rareAlleles)/length(wildFreqs))*100
   # Build list of proportions, and return
   freqProportions <- c(veryCommon_prop, lowFrequency_prop, rare_prop)
-  names(freqProportions) <- c("Very common (>10%)","Low frequency (1% -- 10%)","Rare (<1%)")
+  names(freqProportions) <- c('Very common (>10%)','Low frequency (1% -- 10%)','Rare (<1%)')
   return(freqProportions)
 }
 
@@ -433,6 +438,6 @@ getTotalAlleleFreqProportions <- function(gen.obj){
   rare_prop <- (length(rareAlleles)/length(totalFreqs))*100
   # Build list of proportions, and return
   freqProportions <- c(veryCommon_prop, lowFrequency_prop, rare_prop)
-  names(freqProportions) <- c("Very common (>10%)","Low frequency (1% -- 10%)","Rare (<1%)")
+  names(freqProportions) <- c('Very common (>10%)','Low frequency (1% -- 10%)','Rare (<1%)')
   return(freqProportions)
 }
