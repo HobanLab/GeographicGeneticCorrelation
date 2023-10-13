@@ -95,13 +95,8 @@ arrayDir <- paste0(PICO.filePath, 'resamplingData/PICO_50km_GE_5r_resampArr.Rdat
 PICO_demoArray_Par <- 
   geo.gen.Resample.Parallel(gen_obj = PICO_genind, geoFlag = TRUE, coordPts = wildPoints, 
                             geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                            ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
+                            ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', 
                             reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
-
-PICO_demoArrayr <- 
-  geo.gen.Resample(gen_obj = PICO_genind, geoFlag = TRUE, coordPts = PICO_coordinates, 
-                   geoBuff = geo_buffSize, boundary=world_poly_clip, ecoFlag = FALSE, 
-                   reps = 1)
 
 # Close cores
 stopCluster(cl)
