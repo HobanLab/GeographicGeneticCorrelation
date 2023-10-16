@@ -50,6 +50,8 @@ clusterEvalQ(cl, library('adegenet'))
 clusterEvalQ(cl, library('terra'))
 clusterEvalQ(cl, library('parallel'))
 
+
+# %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
 # Specify filepath for QULO geographic and genetic data
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
@@ -87,6 +89,10 @@ QULO_demoArray_Par <-
                             reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
+
+# %%% ANALYZE DATA %%% ----
+# Read in the resampling array .Rdata object, saved to disk
+QULO_demoArray_Par <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
