@@ -51,6 +51,7 @@ clusterEvalQ(cl, library('adegenet'))
 clusterEvalQ(cl, library('terra'))
 clusterEvalQ(cl, library('parallel'))
 
+# %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
 # Specify filepath for PICO geographic and genetic data
 PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
@@ -101,3 +102,88 @@ PICO_demoArray_Par <-
 
 # Close cores
 stopCluster(cl)
+
+# %%% ANALYZE DATA %%% ----
+# Read in the resampling array .Rdata object, saved to disk
+PICO_demoArray_Par <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
+# Build a data.frame from array values, to pass to linear models
+PICO_DF <- resample.array2dataframe(PICO_demoArray_Par)
+
+# ---- LINEAR MODELS
+# Generate linear models, using Total allelic coverage as the response variable
+# GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
+PICO_geoModel <- lm (Total ~ Geo, data=PICO_DF)
+PICO_geoModel_summary <- summary(PICO_geoModel) ; PICO_geoModel_summary
+# Pull R-squared and p-value estimates from model
+PICO_geoModel_rSquared <- round(PICO_geoModel_summary$adj.r.squared,2)
+PICO_geoModel_pValue <- PICO_geoModel_summary$coefficients[2, 4]
+# ECOLOGICAL COVERAGE AS PREDICTOR VARIABLE
+PICO_ecoModel <- lm (Total ~ Eco, data=PICO_DF)
+PICO_ecoModel_summary <- summary(PICO_ecoModel) ; PICO_ecoModel_summary
+# Pull R-squared and p-value estimates from model
+PICO_ecoModel_rSquared <- round(PICO_ecoModel_summary$adj.r.squared, 2)
+PICO_ecoModel_pValue <- PICO_ecoModel_summary$coefficients[2, 4]
+
+# ---- PLOTTING ----
+# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
+# Calculate minimum 95% sample size for genetic and geographic values
+gen_min95Value <- gen.min95Mean(PICO_demoArray_Par) ; gen_min95Value
+geo_min95Value <- geo.min95Mean(PICO_demoArray_Par) ; geo_min95Value
+eco_min95Value <- eco.min95Mean(PICO_demoArray_Par) ; eco_min95Value
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic geographic proportions
+averageValueMat <- meanArrayValues(PICO_demoArray_Par, allValues = TRUE)
+# Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
+averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+
+# Specify plot colors ()
+plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'darkgreen')
+plotColors <- alpha(plotColors, 0.45)
+plotColors_Sub <- plotColors[-(2:5)]
+
+# ---- CORRELATION PLOTS
+par(mfrow=c(2,1))
+# ---- GEOGRAPHIC-GENETIC
+plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
+     main='P. contorta: Geographic by genetic coverage',xlab='', ylab='')
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.6)
+mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+mylabel = bquote(italic(R)^2 == .(format(PICO_geoModel_rSquared, digits = 3)))
+text(x = 7, y = 92, labels = mylabel, cex=1.4)
+# ---- ECOLOGICAL-GENETIC
+plot(averageValueMat_TEG$Eco, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
+     main='P. contorta: Ecological by genetic coverage',xlab='', ylab='')
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Ecological coverage (%)', side=1, line=3, cex=1.6)
+mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+mylabel = bquote(italic(R)^2 == .(format(PICO_ecoModel_rSquared, digits = 3)))
+text(x = 7, y = 85, labels = mylabel, cex=1.4)
+
+# ---- COVERAGE PLOTS
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat_TEG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='Pinus contorta: Geo-Eco-Gen Coverage', line=1.5)
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Mark the 95% threshold line, and the genetic/geographic points
+abline(h=95, col='black', lty=3)
+abline(v=gen_min95Value, col='red')
+abline(v=geo_min95Value, col='darkblue')
+abline(v=eco_min95Value, col='darkgreen')
+# Add text for the minimum sampling size lines
+mtext(text=paste0('genMSSE: ', gen_min95Value),
+      side=1, line=-1.5, at=130, cex=1.3)
+mtext(text=paste0('geoMSSE: ', geo_min95Value),
+      side=1, line=-3.5, at=270, cex=1.3)
+mtext(text=paste0('ecoMSSE: ', eco_min95Value),
+      side=1, line=-3.5, at=70, cex=1.3)
+# Add legend
+legend(x=605, y=60, inset = 0.05,
+       legend = c('Genetic coverage (Total)', 'Geographic coverage', 'Ecological coverage'),
+       col=c('red', 'darkblue', 'darkgreen'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n', 
+       y.intersp = 0.8)
