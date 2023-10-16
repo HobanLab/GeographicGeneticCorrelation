@@ -174,7 +174,7 @@ mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 abline(h=95, col='black', lty=3)
 abline(v=gen_min95Value, col='red')
 abline(v=geo_min95Value, col='darkblue')
-abline(v=eco_min95Value, col='darkgreen')
+abline(v=eco_min95Value, col='purple')
 # Add text for the minimum sampling size lines
 mtext(text=paste0('genMSSE: ', gen_min95Value),
       side=1, line=-1.5, at=130, cex=1.3)
@@ -185,5 +185,5 @@ mtext(text=paste0('ecoMSSE: ', eco_min95Value),
 # Add legend
 legend(x=605, y=60, inset = 0.05,
        legend = c('Genetic coverage (Total)', 'Geographic coverage', 'Ecological coverage'),
-       col=c('red', 'darkblue', 'darkgreen'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n', 
+       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n', 
        y.intersp = 0.8)
