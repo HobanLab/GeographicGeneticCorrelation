@@ -16,10 +16,11 @@ are inteded to provide a simplified interface at the "uppermost" level of the co
 scripts are organized by species, but this layout might change as the project develops and more datasets are analyzed.
 
 ## Code structure
-Resampling arrays (see Outputs below) are generated using a series of nested functions iterated using `sapply`. The functions at the uppermost level (`geo.gen.Resample` and its 
-parallelized version, `geo.gen.Resample.Parallel`) are called in the demo scripts for each species. These functions are wrappers: they `sapply` the 
-`exSituResample` function over the number of specified resampling replicats. In turn, `exSituResample` is a wrapper that uses `sapply` to reiterate the 
-`calculateCoverage` function for every number of samples included in a wild dataset, starting at 2 and ranging all the way up to the total number of samples.
+Resampling arrays (see [Outputs](https://github.com/HobanLab/GeographicGeneticCorrelation#outputs) below) are generated using a series of nested functions 
+iterated using `sapply`. The functions at the uppermost level (`geo.gen.Resample` and its parallelized version, `geo.gen.Resample.Parallel`) are called in 
+the demo scripts for each species. These functions are wrappers: they `sapply` the `exSituResample` function over the number of specified resampling replicats. 
+In turn, `exSituResample` is a wrapper that uses `sapply` to reiterate the `calculateCoverage` function for every number of samples included in a wild dataset, 
+starting at 2 and ranging all the way up to the total number of samples.
 
 `calculcateCoverage` is a wrapper of several different functions, and is the "core function" of the code structure. It is divided into sections that calculate the 
 coverage values of a subset of randomly selected samples (variable name `samp`) using worker functions. The genetic section uses the worker function `getAlleleCategories`; 
