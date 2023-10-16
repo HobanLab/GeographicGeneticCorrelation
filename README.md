@@ -7,7 +7,7 @@ we utilize resampling approaches to randomly generate subsets of individuals and
 or ecological diversity of the complete sample set (what we term "coverage"). We iterate this process for different subset sizes to account for the 
 stochasticity of random sampling, and generate summary metrics of our coverage results across replicates.
 
-The methodology for this approach is very much in development. Several functions (specifically the underlying functions used to calculate geographic
+The methodology for this project is very much in development. Several functions (specifically the underlying functions used to calculate geographic
 and ecological coverage) were adapted from gap analysis approaches (for instance, see the repository [here](https://github.com/eb-bruns/conservation-gap-analysis)).
 
 # Repository layout
