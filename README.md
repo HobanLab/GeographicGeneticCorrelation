@@ -40,9 +40,11 @@ representing both national borders and ecoregion data (if available), and the nu
 ## Outputs
 The uppermost resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Parallel`) generate a single 3 dimensional array, with the dimensions as follows:
 - **rows**: number of randomly selected samples, for which genetic, geographic, and ecological coverage is calculated. This ranges from 2 to the total number of samples.
-- **columns**: coverage values of different metrics. Column 1 is the Total allelic representation; Columns 2--5 are the representation values for different
-frequency categories of alleles (Very common, Common, Low frequency, Rare); Column 6 contains the geographic coverage values; and Column 7 contains the ecological 
-coverage values (assuming ecological coverage calculation is specified in the resampling function call--this is optional).
+- **columns**: coverage values of different metrics. 
+	- **Column 1**: the Total allelic representation (all categories of alleles)
+	- **Columns 2--5**: the representation values for alleles of different frequency categories (Very common, Common, Low frequency, Rare) 
+	- **Column 6**: the geographic coverage values (optional) 
+	- **Column 7**: the ecological coverage values (optional)
 - **slices**: each array slice represents a different, independent resampling replicate. Averaging results across resampling replicates allows us to calculate summary statistics.
 
 ## Analysis
