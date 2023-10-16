@@ -168,7 +168,8 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
   freqVector <- colSums(gen_mat, na.rm = TRUE)/(nrow(gen_mat)*2)*100
   # Remove any missing alleles (those with frequencies of 0) from the frequency vector
   freqVector <- freqVector[which(freqVector != 0)]
-  # From a matrix of individuals, select a set of random individuals (rows)
+  # From a matrix of individuals, select a set of random individuals (rows). This is the set of individuals that will
+  # be used for all downstream coverage calculations within this function (genetic, geographic, and ecological)
   samp <- gen_mat[sample(nrow(gen_mat), size=numSamples, replace = FALSE),]
   # Remove any missing alleles (those with colSums of 0) from the sample matrix
   samp <- samp[,which(colSums(samp, na.rm = TRUE) != 0)]
