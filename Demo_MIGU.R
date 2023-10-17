@@ -92,12 +92,6 @@ MIGU_demoArray_Par <-
                             ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'GL', 
                             reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 
-MIGU_demoArray <- 
-  geo.gen.Resample(gen_obj = MIGU_genind, geoFlag = TRUE, coordPts = MIGU_coordinates, 
-                   geoBuff = geo_buffSize, boundary=world_poly_clip, ecoFlag = TRUE, 
-                   ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = 'GL', 
-                   reps = num_reps)
-
 # Close cores
 stopCluster(cl)
 
