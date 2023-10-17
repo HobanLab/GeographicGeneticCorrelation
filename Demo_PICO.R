@@ -2,7 +2,7 @@
 # %%% GEO-ECO-GEN CORRELATION DEMO: PINUS CONTORTA %%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Script demonstrating calculating the correlation between genetic, geographic, and ecological coverage
+# Script calculating the correlation between genetic, geographic, and ecological coverage
 # for Pinus contorta. Uses data files from MacLachlan et al. 2021 to pull in genetic data (as a STRUCTURE input file) 
 # and geographic coordinates (included in a CSV) to conduct correlation analyses. We also process
 # the geographic coordinates to match the order of the genetic samples, prior to passing both along
