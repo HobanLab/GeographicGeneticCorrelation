@@ -139,7 +139,7 @@ averageValueMat <- meanArrayValues(PICO_demoArray_Par, allValues = TRUE)
 averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
 
 # Specify plot colors ()
-plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'darkgreen')
+plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
 plotColors <- alpha(plotColors, 0.45)
 plotColors_Sub <- plotColors[-(2:5)]
 
@@ -152,7 +152,7 @@ mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=
 mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 mylabel = bquote(italic(R)^2 == .(format(PICO_geoModel_rSquared, digits = 3)))
-text(x = 7, y = 92, labels = mylabel, cex=1.4)
+text(x = 2, y = 10, labels = mylabel, cex=0.8)
 # ---- ECOLOGICAL-GENETIC
 plot(averageValueMat_TEG$Eco, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
      main='P. contorta: Ecological by genetic coverage',xlab='', ylab='')
@@ -160,30 +160,30 @@ mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=
 mtext(text='Ecological coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 mylabel = bquote(italic(R)^2 == .(format(PICO_ecoModel_rSquared, digits = 3)))
-text(x = 7, y = 85, labels = mylabel, cex=1.4)
+text(x = 2, y = 10, labels = mylabel, cex=0.8)
 
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(averageValueMat_TEG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
 # Add title and x-axis labels to the graph
-title(main='Pinus contorta: Geo-Eco-Gen Coverage', line=1.5)
+title(main='Pinus contorta: Gen-Geo-Eco Coverage', line=1.5)
 mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3)
-abline(v=gen_min95Value, col='red')
-abline(v=geo_min95Value, col='darkblue')
-abline(v=eco_min95Value, col='purple')
-# Add text for the minimum sampling size lines
-mtext(text=paste0('genMSSE: ', gen_min95Value),
-      side=1, line=-1.5, at=130, cex=1.3)
-mtext(text=paste0('geoMSSE: ', geo_min95Value),
-      side=1, line=-3.5, at=270, cex=1.3)
-mtext(text=paste0('ecoMSSE: ', eco_min95Value),
-      side=1, line=-3.5, at=70, cex=1.3)
+# abline(h=95, col='black', lty=3)
+# abline(v=gen_min95Value, col='red')
+# abline(v=geo_min95Value, col='darkblue')
+# abline(v=eco_min95Value, col='purple')
+# # Add text for the minimum sampling size lines
+# mtext(text=paste0('genMSSE: ', gen_min95Value),
+#       side=1, line=-1.5, at=130, cex=1.3)
+# mtext(text=paste0('geoMSSE: ', geo_min95Value),
+#       side=1, line=-3.5, at=270, cex=1.3)
+# mtext(text=paste0('ecoMSSE: ', eco_min95Value),
+#       side=1, line=-3.5, at=70, cex=1.3)
 # Add legend
-legend(x=605, y=60, inset = 0.05,
-       legend = c('Genetic coverage (Total)', 'Geographic coverage', 'Ecological coverage'),
+legend(x=405, y=60, inset = 0.05,
+       legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level III)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n', 
-       y.intersp = 0.8)
+       y.intersp = 0.5)

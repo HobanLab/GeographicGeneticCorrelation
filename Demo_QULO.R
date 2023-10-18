@@ -117,11 +117,8 @@ QULO_ecoModel_pValue <- QULO_ecoModel_summary$coefficients[2, 4]
 # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
 # Calculate minimum 95% sample size for genetic and geographic values
 gen_min95Value <- gen.min95Mean(QULO_demoArray_Par) ; gen_min95Value
-gen_min95SD(QULO_demoArray_Par)
 geo_min95Value <- geo.min95Mean(QULO_demoArray_Par) ; geo_min95Value
-geo_min95SD(QULO_demoArray_Par)
 eco_min95Value <- eco.min95Mean(QULO_demoArray_Par) ; eco_min95Value
-eco_min95SD(QULO_demoArray_Par)
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic geographic proportions
 averageValueMat <- meanArrayValues(QULO_demoArray_Par, allValues = TRUE)
@@ -129,7 +126,7 @@ averageValueMat <- meanArrayValues(QULO_demoArray_Par, allValues = TRUE)
 averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
 
 # Specify plot colors ()
-plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'darkgreen')
+plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
 plotColors <- alpha(plotColors, 0.45)
 plotColors_Sub <- plotColors[-(2:5)]
 
@@ -142,7 +139,7 @@ mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=
 mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 mylabel = bquote(italic(R)^2 == .(format(QULO_geoModel_rSquared, digits = 3)))
-text(x = 7, y = 85, labels = mylabel, cex=1.4)
+text(x = 2, y = 10, labels = mylabel, cex=0.8)
 # ---- ECOLOGICAL-GENETIC
 plot(averageValueMat_TEG$Eco, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
      main='Q. lobata: Ecological by genetic coverage',xlab='', ylab='')
@@ -150,7 +147,7 @@ mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=
 mtext(text='Ecological coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 mylabel = bquote(italic(R)^2 == .(format(QULO_ecoModel_rSquared, digits = 3)))
-text(x = 7, y = 85, labels = mylabel, cex=1.4)
+text(x = 2, y = 10, labels = mylabel, cex=0.8)
 
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
@@ -160,22 +157,22 @@ title(main='Quercus lobata: Geo-Eco-Gen Coverage', line=1.5)
 mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3)
-abline(v=gen_min95Value, col='red')
-abline(v=geo_min95Value, col='darkblue')
-abline(v=eco_min95Value, col='darkgreen')
-# Add text for the minimum sampling size lines
-mtext(text=paste0('Gen 95% MSSE = ', gen_min95Value),
-      side=1, line=-1.5, at=95, cex=1.3)
-mtext(text=paste0('Geo 95% MSSE = ', geo_min95Value),
-      side=1, line=-1.5, at=200, cex=1.3)
-mtext(text=paste0('Eco 95% MSSE = ', eco_min95Value),
-      side=1, line=-3.5, at=111, cex=1.3)
+# # Mark the 95% threshold line, and the genetic/geographic points
+# abline(h=95, col='black', lty=3)
+# abline(v=gen_min95Value, col='red')
+# abline(v=geo_min95Value, col='darkblue')
+# abline(v=eco_min95Value, col='purple')
+# # Add text for the minimum sampling size lines
+# mtext(text=paste0('Gen 95% MSSE = ', gen_min95Value),
+#       side=1, line=-1.5, at=95, cex=1.3)
+# mtext(text=paste0('Geo 95% MSSE = ', geo_min95Value),
+#       side=1, line=-1.5, at=200, cex=1.3)
+# mtext(text=paste0('Eco 95% MSSE = ', eco_min95Value),
+#       side=1, line=-3.5, at=111, cex=1.3)
 # Add legend
 legend(x=205, y=60, inset = 0.05,
-       legend = c('Genetic coverage (Total)', 'Geographic coverage', 'Ecological coverage'),
-       col=c('red', 'darkblue', 'darkgreen'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n', 
+       legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level IV)'),
+       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n', 
        y.intersp = 0.8)
 
 # ---- BOTH PLOTS (For IMLS NLG subgroup presentation, 2023-08-17) ----
