@@ -28,9 +28,10 @@ createBuffers <- function(df, radius=1000, ptProj='+proj=longlat +datum=WGS84',
   return(buffers_clip)
 }
 
-# Given coordinate points and vector of sample names, calculate geographic coverage
+# WORKER FUNCTION: Given coordinate points and vector of sample names, calculate geographic coverage
 geo.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
-  # If running in parallel: world polygon shapefile needs to be 'unwrapped', after being exported to cluster
+  # If running in parallel: world polygon shapefile needs to be 'unwrapped', 
+  # after being exported to cluster
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
   }
@@ -64,7 +65,7 @@ eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary,
   return(ecoBuffJoin)
 }
 
-# Create a data.frame with ecoregion data extracted for area covered by buffers
+# WORKER FUNCTION: Create a data.frame with ecoregion data extracted for area covered by buffers
 # surrounding all points and sample points. Then, compare the ecoregions count of the
 # sample to the total. The layerType argument allows for 3 possible values: US (EPA Level 4),
 # NA (EPA Level 3), and GL (TNC Global Terrestrial) ecoregions. These should correspond with 
@@ -106,14 +107,15 @@ eco.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj,
   return(eco_Coverage)
 }
 
-# Function for reporting representation rates, using a vector of allele frequencies and a sample matrix.
-# Assumes that freqVector represents the absolute allele frequencies for the population of interest 
-# (typically, entire wild population). Allele names between frequency vector and sample matrix must match! 
+# WORKER FUNCTION: Function for reporting representation rates, using a vector of allele frequencies 
+# and a sample matrix. Assumes that freqVector represents the absolute allele frequencies 
+# for the population of interest (typically, entire wild population). Allele names between 
+# frequency vector and sample matrix must match! 
 # 1. The length of matches between garden and wild alleles is calculated (numerator). 
 # 2. The complete number of wild alleles of that category (denominator) is calculated. 
 # 3. From these 2 values, a percentage is calculated. 
 # This function returns the numerators, denominators, and the proportion (representation rates) in a matrix.
-getAlleleCategories <- function(freqVector, sampleMat){
+gen.getAlleleCategories <- function(freqVector, sampleMat){
   # Determine how many Total alleles in the sample matrix are found in the frequency vector 
   exSitu_totalAlleles <- length(which(names(freqVector) %in% colnames(sampleMat)))
   inSitu_totalAlleles <- length(freqVector)
@@ -145,8 +147,8 @@ getAlleleCategories <- function(freqVector, sampleMat){
   return(exSituValues)
 }
 
-# Wrapper of getAlleleCategories, geo_compareBuff, and eco_compareBuff. Given a genetic matrix 
-# (rows are samples, columns are alleles) and a data.frame of coordinates 
+# Wrapper of gen.getAlleleCategories, geo.compareBuff, and eco.compareBuff worker functions. 
+# Given a genetic matrix (rows are samples, columns are alleles) and a data.frame of coordinates 
 # (3 columns: sample names, latitudes, and longitudes), it calculates the genetic,
 # geographic (if flagged), and ecologcial (if flagged) coverage from a random draw of some amount of 
 # samples (numSamples). The sample names between the genind object and the coordinate data.frame need
@@ -174,7 +176,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
   # Remove any missing alleles (those with colSums of 0) from the sample matrix
   samp <- samp[,which(colSums(samp, na.rm = TRUE) != 0)]
   # Genetic coverage: calculate sample's allelic representation
-  genRates <- getAlleleCategories(freqVector, samp)
+  genRates <- gen.getAlleleCategories(freqVector, samp)
   # Subset matrix returned by getAlleleCategories to just 3rd column (representation rates), and return
   genRates <- genRates[,3]
   
@@ -288,7 +290,7 @@ geo.gen.Resample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptPr
                             function(x) exSituResample(gen_obj=gen_obj, geoFlag=geoFlag, coordPts=coordPts, geoBuff=geoBuff,
                                                        ptProj=ptProj, buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag,
                                                        ecoBuff=ecoBuff, ecoRegions=ecoRegions, ecoLayer=ecoLayer, parFlag=FALSE), 
-           simplify = 'array')
+                            simplify = 'array')
   # Return array
   return(resamplingArray)
 }
