@@ -29,8 +29,8 @@ which are used for the geographic/ecological coverage calculations (`eco.interse
 
 ## Inputs
 The most important arguments provided to resampling functions are
-1. a `data.frame` with 3 columns: sample name, latitude, and longitude. Lat/longs need to be in decimal degree format, and need to have the column names `decimalLongitude` 
-and `decimalLatitude`
+1. a `data.frame` with 3 columns: sample name, latitude, and longitude. Lat/longs need to be in decimal degree format, and need to have the column names `decimalLatitude` and
+`decimalLongitude`
 2. a `genind` file, in which the order and the names of samples match the order/names of samples in the coordinate data.frame (#1)
 
 An error will be thrown if sample names/order do not match between these two arguments!
