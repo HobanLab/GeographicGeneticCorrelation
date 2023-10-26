@@ -1,10 +1,22 @@
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%% FUNCTIONS FOR GEOGRAPHIC-GENETIC COVERAGE CALCULATIONS %%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%% FUNCTIONS FOR GENETIC-GEOGRAPHIC-ECOLOGICAL COVERAGE CALCULATIONS %%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# This script declares the functions used for the analysis of correlation between geographic
-# and genetic coverage. The createBuffers and compareBuffArea functions were sourced from 
-# the gap analysis code developed by Emily Beckman Bruns.
+# This script declares the functions used for correlation analyses between genetic, geographic, and
+# ecological coverage metrics. The functions here are used to generate resampling arrays, in which the
+# rows are numbers, the columns are the various coverage values (genetic, geographic, ecological), and the
+# slices are different resampling replicates. In general, these resampling replicates are built using a 
+# genetic matrix (part of a genind file) and a data.frame of decimal latitude and longitude values.
+
+# The functions in this script are divided into sections based on their role in the workflow. The majority
+# of the most relevant functions are within the 'BUILDING THE RESAMPLING ARRAY" section. 
+
+# Note: the following functions were derived from the gap analysis code, developed by Emily Bruns, Colin Khoury,
+# and many others
+#     + createBuffers
+#     + geo.compareBuff
+#     + eco.intersectBuff
+#     + eco.compareBuff
 
 library(adegenet)
 library(terra)
@@ -147,17 +159,16 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
   return(exSituValues)
 }
 
-# Wrapper of gen.getAlleleCategories, geo.compareBuff, and eco.compareBuff worker functions. 
+# CORE FUNCTION: Wrapper of gen.getAlleleCategories, geo.compareBuff, and eco.compareBuff worker functions. 
 # Given a genetic matrix (rows are samples, columns are alleles) and a data.frame of coordinates 
 # (3 columns: sample names, latitudes, and longitudes), it calculates the genetic,
 # geographic (if flagged), and ecologcial (if flagged) coverage from a random draw of some amount of 
 # samples (numSamples). The sample names between the genind object and the coordinate data.frame need
-# to match (in order to properly subset across genetic, geographic, and ecological datasets). This is
-# the core function of the gen-geo-eco resampling workflow.
-calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff=50000, 
+# to match (in order to properly subset across genetic, geographic, and ecological datasets). 
+calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, 
                               ptProj='+proj=longlat +datum=WGS84',
                               buffProj='+proj=eqearth +datum=WGS84', boundary,
-                              ecoFlag=TRUE, ecoBuff=50000, ecoRegions, ecoLayer=c('US','NA','GL'),
+                              ecoFlag=TRUE, ecoBuff, ecoRegions, ecoLayer=c('US','NA','GL'),
                               parFlag=FALSE, numSamples){
   
   # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
@@ -231,9 +242,9 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff=50000,
 # 1. Move calculation of ecoregions for all sample points out of the innermost function
 # 2. Move calculation of all allele frequencies out of the innermost function
 
-# Wrapper of exSitu_Sample: iterates calculateCoverage over the entire matrix of samples
-exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj='+proj=longlat +datum=WGS84', 
-                           buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=TRUE, ecoBuff=1000,
+# WRAPPER FUNCTION: iterates calculateCoverage over the entire matrix of samples
+exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, ptProj='+proj=longlat +datum=WGS84', 
+                           buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=TRUE, ecoBuff=50000,
                            ecoRegions, ecoLayer='US', parFlag){
   # Check populations of samples: if NULL, provide all samples with the popname 'wild' 
   # This means that if no populations are specified in the genind object, all samples will be used!
@@ -255,10 +266,10 @@ exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj
   return(cov_matrix)
 }
 
-# Wrapper of exSituResample: runs resampling in parallel over a specified cluster
+# WRAPPER FUNCTION: runs resampling in parallel over a specified cluster by iterating exSituResample
 # Results are saved to a specified file path.
-geo.gen.Resample.Parallel <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj='+proj=longlat +datum=WGS84',
-                                      buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=TRUE, ecoBuff=1000, 
+geo.gen.Resample.Parallel <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, ptProj='+proj=longlat +datum=WGS84',
+                                      buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=TRUE, ecoBuff=50000, 
                                       ecoRegions, ecoLayer=c('US','NA','GL'), reps=5,
                                       arrayFilepath='~/resamplingArray.Rdata', cluster){
   # Print starting time
@@ -281,10 +292,10 @@ geo.gen.Resample.Parallel <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1
   return(resamplingArray)
 }
 
-# Wrapper for exSituResample, which will generate an array of values from a single genind object
+# WRAPPER FUNCTION: Wrapper for exSituResample, which will generate an array of values from a single genind object
 # This function doesn't run in parallel, so it's primarily used for testing/demonstration purposes
-geo.gen.Resample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=1000, ptProj='+proj=longlat +datum=WGS84', 
-                             buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=TRUE, ecoBuff=1000, 
+geo.gen.Resample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, ptProj='+proj=longlat +datum=WGS84', 
+                             buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=TRUE, ecoBuff=50000, 
                              ecoRegions, ecoLayer=c('US','NA','GL'), reps=5){
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- sapply(1:reps, 
