@@ -23,10 +23,8 @@ source('Code/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-# geo_buffSize <- 1000
 geo_buffSize <- 50000
 # Specify ecological buffer size in meters 
-# eco_buffSize <- 1000
 eco_buffSize <- 50000
 # ---- SHAPEFILES
 # Read in world countries layer (created as part of the gap analysis workflow)
