@@ -22,7 +22,7 @@ source('Code/functions_GeoGenCoverage.R')
 # ---- VARIABLES ----
 # Declare a directory within which to store .Rdata objects of resampling arrays
 resamplingDataDir <- paste0(GeoGenCorr_wd, 'Code/resamplingData/')
-# Specify number of resampling replicates. 
+# Specify number of resampling replicates
 num_reps <- 3
 # num_reps <- 5
 # ---- BUFFER SIZES

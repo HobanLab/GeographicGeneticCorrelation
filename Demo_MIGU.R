@@ -22,7 +22,7 @@ setwd(GeoGenCorr_wd)
 source('Code/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
-# Specify number of resampling replicates. 
+# Specify number of resampling replicates
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
@@ -92,10 +92,6 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersect
 arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_50km_GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
-
-geo.gen.Resample(gen_obj = MIGU_genind, coordPts = MIGU_coordinates, boundary = world_poly_clip,
-                 ecoRegions = ecoregion_poly, ecoLayer = 'NA', reps = 1)
-
 print("%%% BEGINNING RESAMPLING %%%")
 MIGU_demoArray_Par <- 
   geo.gen.Resample.Parallel(gen_obj = MIGU_genind, geoFlag = TRUE, coordPts = MIGU_coordinates, 

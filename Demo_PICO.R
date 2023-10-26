@@ -20,7 +20,7 @@ setwd(GeoGenCorr_wd)
 source('Code/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
-# Specify number of resampling replicates. 
+# Specify number of resampling replicates
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
