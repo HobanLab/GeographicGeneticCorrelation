@@ -23,14 +23,15 @@ In turn, `exSituResample` is a wrapper that uses `sapply` to reiterate the `calc
 starting at 2 and ranging all the way up to the total number of samples.
 
 `calculcateCoverage` is a wrapper of several different functions, and is the "core function" of the code structure. It is divided into sections that calculate the 
-coverage values of a subset of randomly selected samples (variable name `samp`) using "worker" functions. The genetic section uses the worker function `getAlleleCategories`; 
+coverage values of a subset of randomly selected samples (variable name `samp`) using "worker" functions. The genetic section uses the worker function `gen.getAlleleCategories`; 
 the geographic section uses `geo.compareBuff`; and the ecological section uses `eco.compareBuff`. Beyond these, there are a couple lower level functions, 
 which are used for the geographic/ecological coverage calculations (`eco.intersectBuff` and `createBuffers`).
 
 ## Inputs
 The most important arguments provided to resampling functions are
-1. a `data.frame` with 3 columns: sample name, latitude, and longitude. Lat/longs need to be in decimal degree format
-2. a `genind` file in which the order and the names of samples match the order/names of samples in the coordinate data.frame (#1)
+1. a `data.frame` with 3 columns: sample name, latitude, and longitude. Lat/longs need to be in decimal degree format, and need to have the column names `decimalLongitude` 
+and `decimalLatitude`
+2. a `genind` file, in which the order and the names of samples match the order/names of samples in the coordinate data.frame (#1)
 
 An error will be thrown if sample names/order do not match between these two arguments!
 
@@ -53,6 +54,7 @@ or ecological coverage values as the explanatory variable. We capture the R-squa
 the relationships between the coverage estimates:
 - "correlation plots", which plot the average genetic coverage values (y-axis) versus the average geographic/ecological coverage values (x-axis)
 - "coverage plots", where the average coverage values for all 3 measures are plotted in different colors against the number of samples in the dataset
+These plots are generated in the 2nd half of the demo scripts, for each species.
 
 # Data and Contact
 ## Datasets
@@ -61,6 +63,8 @@ the relationships between the coverage estimates:
 2. _Quercus lobata_
 	+ [Dryad link](https://datadryad.org/stash/dataset/doi:10.5061/dryad.5dv41ns4n)
 3. _Pinus contorta_
+	+ [Dryad link](https://datadryad.org/stash/dataset/doi:10.5061/dryad.ncjsxkstp)
+4. _Mimulus guttatus_
 	+ [Dryad link](https://datadryad.org/stash/dataset/doi:10.5061/dryad.ncjsxkstp)
 
 
