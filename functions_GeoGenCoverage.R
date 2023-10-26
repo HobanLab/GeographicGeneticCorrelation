@@ -40,7 +40,7 @@ geo.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, boundary
   # Create buffers
   geo_exSitu <- createBuffers(exSitu, radius, ptProj, buffProj, boundary)
   geo_inSitu <- createBuffers(inSitu, radius, ptProj, buffProj, boundary)
-  # Calculate buffer area
+  # Calculate buffer area. 1,000,000 value is to convert area to km²
   geo_exSituArea <- expanse(geo_exSitu)/1000000
   geo_inSituArea <- expanse(geo_inSitu)/1000000
   # Calculate difference between in situ and ex situ buffer areas (% coverage)
@@ -60,7 +60,7 @@ eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary,
   buffers <- createBuffers(df, radius, ptProj, buffProj, boundary)
   # Make sure ecoregions are in same projection as buffers
   ecoProj <- project(ecoRegion, buffProj)
-  # Intersect buffers with ecoregions
+  # Intersect buffers with ecoregions, and return
   ecoBuffJoin <- intersect(buffers, ecoProj)
   return(ecoBuffJoin)
 }
@@ -82,7 +82,7 @@ eco.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj,
   }
   # Build sample ex situ points by subseting complete in situ points data.frame, according to sampVect
   exSitu <- inSitu[sort(match(sampVect, inSitu[,1])),]
-  # Create data frame of ecoregion-buffer intersection
+  # Create data.frame of ecoregion-buffer intersection
   eco_exSitu <- eco.intersectBuff(exSitu, radius, ptProj, buffProj, ecoRegion, boundary)
   eco_inSitu <- eco.intersectBuff(inSitu, radius, ptProj, buffProj, ecoRegion, boundary)
   # Based on the ecoRegion shapefile and the specified layer type, count the number of ecoregions in
@@ -96,7 +96,7 @@ eco.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj,
     if(layerType=='NA'){
       eco_exSituCount <- length(unique(eco_exSitu$NA_L3CODE))
       eco_inSituCount <- length(unique(eco_inSitu$NA_L3CODE))
-    } else{
+    } else {
       # Extract the number of Nature Conservancy ('Global Terrestrial') ecoregions
       eco_exSituCount <- length(unique(eco_exSitu$ECO_ID_U))
       eco_inSituCount <- length(unique(eco_inSitu$ECO_ID_U))
@@ -152,11 +152,12 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
 # (3 columns: sample names, latitudes, and longitudes), it calculates the genetic,
 # geographic (if flagged), and ecologcial (if flagged) coverage from a random draw of some amount of 
 # samples (numSamples). The sample names between the genind object and the coordinate data.frame need
-# to match (in order to properly subset across genetic, geographic, and ecological datasets)
-calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, 
+# to match (in order to properly subset across genetic, geographic, and ecological datasets). This is
+# the core function of the gen-geo-eco resampling workflow.
+calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff=50000, 
                               ptProj='+proj=longlat +datum=WGS84',
                               buffProj='+proj=eqearth +datum=WGS84', boundary,
-                              ecoFlag=TRUE, ecoBuff, ecoRegions, ecoLayer=c('US','NA','GL'),
+                              ecoFlag=TRUE, ecoBuff=50000, ecoRegions, ecoLayer=c('US','NA','GL'),
                               parFlag=FALSE, numSamples){
   
   # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
@@ -192,7 +193,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
            decimalLatitude and decimalLongitude. Please rename your data.frame of geographic coordinates!')
     }
     # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
-    # the random subset of points (rownames(samp)) to the geo_compareBuffers function, which will calculate
+    # the random subset of points (rownames(samp)) to the geo.compareBuff worker function, which will calculate
     # the proportion of area covered in the random sample
     geoRate <- geo.compareBuff(inSitu=coordPts, sampVect=rownames(samp), radius=geoBuff, 
                                ptProj=ptProj, buffProj=buffProj, boundary=boundary, parFlag=parFlag)
@@ -210,8 +211,8 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
     if(missing(ecoBuff)) stop('For ecological coverage, an integer specifying the ecological buffer size (ecoBuff) is required')
     if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
     if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
-    # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
-    # the random subset of points (rownames(samp)) to the eco_compareBuffers function, which will calculate
+    # Ecological coverage: calculate sample's ecological representation, by passing all points (coordPts) and 
+    # the random subset of points (rownames(samp)) to the eco.compareBuff worker function, which will calculate
     # the proportion of ecoregions covered in the random sample
     ecoRate <- eco.compareBuff(inSitu=coordPts, sampVect=rownames(samp), radius=ecoBuff, 
                                ptProj=ptProj, buffProj=buffProj, ecoRegion=ecoRegions, 
