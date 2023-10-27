@@ -1,5 +1,5 @@
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%% GEO-ECO-GEN CORRELATION DEMO: QUERCUS ACERIFOLIA %%%
+# %%% GEN-GEO-ECO CORRELATION DEMO: QUERCUS ACERIFOLIA %%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Script demonstrating first draft approach for calculating the correlation 

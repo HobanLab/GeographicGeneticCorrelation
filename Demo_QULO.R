@@ -1,5 +1,5 @@
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%% GEO-ECO-GEN CORRELATION DEMO: QUERCUS LOBATA %%%
+# %%% GEN-GEO-ECO CORRELATION DEMO: QUERCUS LOBATA %%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Script demonstrating first draft approach for calculating the correlation 
@@ -155,18 +155,6 @@ title(main='Quercus lobata: Geo-Eco-Gen Coverage', line=1.5)
 mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Mark the 95% threshold line, and the genetic/geographic points
-# abline(h=95, col='black', lty=3)
-# abline(v=gen_min95Value, col='red')
-# abline(v=geo_min95Value, col='darkblue')
-# abline(v=eco_min95Value, col='purple')
-# # Add text for the minimum sampling size lines
-# mtext(text=paste0('Gen 95% MSSE = ', gen_min95Value),
-#       side=1, line=-1.5, at=95, cex=1.3)
-# mtext(text=paste0('Geo 95% MSSE = ', geo_min95Value),
-#       side=1, line=-1.5, at=200, cex=1.3)
-# mtext(text=paste0('Eco 95% MSSE = ', eco_min95Value),
-#       side=1, line=-3.5, at=111, cex=1.3)
 # Add legend
 legend(x=205, y=60, inset = 0.05,
        legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level IV)'),

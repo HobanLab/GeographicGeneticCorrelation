@@ -1,5 +1,5 @@
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%% GEO-ECO-GEN CORRELATION DEMO: PINUS CONTORTA %%%
+# %%% GEN-GEO-ECO CORRELATION DEMO: PINUS CONTORTA %%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Script calculating the correlation between genetic, geographic, and ecological coverage
@@ -168,18 +168,6 @@ title(main='Pinus contorta: Gen-Geo-Eco Coverage', line=1.5)
 mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Mark the 95% threshold line, and the genetic/geographic points
-# abline(h=95, col='black', lty=3)
-# abline(v=gen_min95Value, col='red')
-# abline(v=geo_min95Value, col='darkblue')
-# abline(v=eco_min95Value, col='purple')
-# # Add text for the minimum sampling size lines
-# mtext(text=paste0('genMSSE: ', gen_min95Value),
-#       side=1, line=-1.5, at=130, cex=1.3)
-# mtext(text=paste0('geoMSSE: ', geo_min95Value),
-#       side=1, line=-3.5, at=270, cex=1.3)
-# mtext(text=paste0('ecoMSSE: ', eco_min95Value),
-#       side=1, line=-3.5, at=70, cex=1.3)
 # Add legend
 legend(x=405, y=60, inset = 0.05,
        legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level III)'),
