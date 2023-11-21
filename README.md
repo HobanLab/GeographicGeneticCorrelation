@@ -18,22 +18,22 @@ scripts are organized by species, but this layout might change as the project de
 ## Code structure
 Resampling arrays (see [Outputs](https://github.com/HobanLab/GeographicGeneticCorrelation#outputs) below) are generated using a series of nested functions 
 iterated using `sapply`. The functions at the uppermost level (`geo.gen.Resample` and its parallelized version, `geo.gen.Resample.Parallel`) are called in 
-the demo scripts for each species. These functions are wrappers: they `sapply` the `exSituResample` function over the specified number of resampling replicates. 
+the scripts for each species. These functions are wrappers: they `sapply` the `exSituResample` function over the specified number of resampling replicates. 
 In turn, `exSituResample` is a wrapper that uses `sapply` to reiterate the `calculateCoverage` function for every number of samples included in a wild dataset, 
 starting at 2 and ranging all the way up to the total number of samples.
 
-`calculcateCoverage` is a wrapper of several different functions, and is the "core function" of the code structure. It is divided into sections that calculate the 
-coverage values of a subset of randomly selected samples (variable name `samp`) using "worker" functions. The genetic section uses the worker function `gen.getAlleleCategories`; 
-the geographic section uses `geo.compareBuff`; and the ecological section uses `eco.compareBuff`. Beyond these, there are a couple lower level functions, 
+`calculcateCoverage` is the "core function" of the code structure. It is divided into sections that calculate the 
+coverage values (genetic, geographic, and/or ecological) of a subset of randomly selected samples (variable name `samp`) using "worker" functions. 
+The genetic section uses the worker function `gen.getAlleleCategories`; the geographic section uses `geo.compareBuff`; and the ecological section uses `eco.compareBuff`. Beyond these, there are a couple lower level functions, 
 which are used for the geographic/ecological coverage calculations (`eco.intersectBuff` and `createBuffers`).
 
 ## Inputs
-The most important arguments provided to resampling functions are
+The most important arguments provided to the resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Parallel`) are:
 1. a `data.frame` with 3 columns: sample name, latitude, and longitude. Lat/longs need to be in decimal degree format, and need to have the column names `decimalLatitude` and
 `decimalLongitude`
-2. a `genind` file, in which the order and the names of samples match the order/names of samples in the coordinate data.frame (#1)
+2. a `genind` file, in which the order and the names of samples must match the order/names of samples in the coordinate data.frame (#1)
 
-An error will be thrown if sample names/order do not match between these two arguments!
+An error will be (intentionally) thrown if sample names/order do not match exactly between these two arguments!
 
 Additionally, the functions require the specification of geographic/ecological buffer sizes, the Spatial Vectors representing the .shp files of polygons
 representing both national borders and ecoregion data (if available), and the number of resampling replicates. 
@@ -68,4 +68,4 @@ These plots are generated in the 2nd half of the demo scripts, for each species.
 	+ [Dryad link](https://datadryad.org/stash/dataset/doi:10.5061/dryad.ncjsxkstp)
 
 
-For questions about this datasets or the scripts included here, contact [Austin Koontz](https://akoontz11.netlify.app/).
+For questions about this datasets or the scripts included here, open an Issue or contact [Austin Koontz](https://akoontz11.netlify.app/).
