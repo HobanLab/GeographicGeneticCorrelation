@@ -85,9 +85,9 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersect
                               'getAlleleCategories','calculateCoverage', 'exSituResample', 
                               'geo.gen.Resample.Parallel'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(QUAC.filePath, 'resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata')
-# arrayDir <- paste0(QUAC.filePath, 'resamplingData/QUAC_1kmIND_GE_5r_resampArr.Rdata')
-# Run resampling
+arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata')
+# arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_5r_resampArr.Rdata')
+# Run resampling in parallel
 QUAC_demoArray_IND_Par <- 
   geo.gen.Resample.Parallel(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, 
                             geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
@@ -95,6 +95,12 @@ QUAC_demoArray_IND_Par <-
                             reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
+
+# Run resampling not in parallel (for function testing purposes)
+QUAC_demoArray_IND <-
+  geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, geoBuff = geo_buffSize, 
+                   boundary = world_poly_clip, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
+                   ecoRegions = ecoregion_poly, ecoLayer = 'US', reps = num_reps)
 
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
