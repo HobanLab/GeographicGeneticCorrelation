@@ -8,7 +8,14 @@
 # slices are different resampling replicates. In general, these resampling replicates are built using a 
 # genetic matrix (part of a genind file) and a data.frame of decimal latitude and longitude values.
 
-# The functions in this script are divided into sections based on their role in the workflow. The majority
+# Many of the functions here are wrappers, which sapply other, lower-level functions here. The advantage of this 
+# nested function approach is that it allows for a single function to be called at the "upper-most" level of the code
+# (i.e. the level at which data is read in). For instance, the geo.gen.Resample function (and its parallelized version,
+# geo.gen.Resample.Parallel) is the only resampling function called in scripts analyzing species. These functions are 
+# wrappers of exSituResample (sapplied over resamping replicates), which itself is a wrapper of calculateCoverage 
+# (sapplied over different sample sizes).
+
+# The functions in this script are divided into sections based on their role in the workflow: the majority
 # of the most relevant functions are within the 'BUILDING THE RESAMPLING ARRAY" section. 
 
 # Note: the following functions were derived from the gap analysis code, developed by Emily Bruns, Colin Khoury,
@@ -23,40 +30,47 @@ library(terra)
 library(parallel)
 
 # ---- BUILDING THE RESAMPLING ARRAY ----
-# Create buffers around points, using specified projection
+# Create buffers around points, using specified projection. This function is used for calculations of both
+# geographic and ecological buffers; it does not include any area calculations. The default point and buffer 
+# projections are Web Mercator 84 (WGS84), also used in many gap analysis workflows. 
 createBuffers <- function(df, radius=1000, ptProj='+proj=longlat +datum=WGS84', 
                           buffProj='+proj=eqearth +datum=WGS84', boundary){
   # Turn occurrence point data into a SpatVector
   spat_pts <- vect(df, geom=c('decimalLongitude', 'decimalLatitude'), crs=ptProj)
-  # Reproject to specified projection
+  # Reproject spatial vector to the specified projection
   proj_df <- project(spat_pts, buffProj)
   # Place buffer around each point, then dissolve into one polygon
-  buffers <- buffer(proj_df,width=radius)
-  buffers <- aggregate(buffers,dissolve = TRUE)
-  # Clip by boundary so they don't extend into the water
-  boundary <- project(boundary,buffProj)
-  buffers_clip <- crop(buffers,boundary)
+  buffers <- buffer(proj_df, width=radius)
+  buffers <- aggregate(buffers, dissolve = TRUE)
+  # Clip by boundary, so buffers don't extend into the water
+  boundary <- project(boundary, buffProj)
+  buffers_clip <- crop(buffers, boundary)
   # Return buffer polygons
   return(buffers_clip)
 }
 
-# WORKER FUNCTION: Given coordinate points and vector of sample names, calculate geographic coverage
-geo.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
+# WORKER FUNCTION: Given a data.frame of geographic coordinates, a vector of sample names, a specified
+# buffer radius, and projections for the coordinate points and the buffers, calculate geographic coverage.
+# The sampVect argument represents a vector of sample names, which is used to subset the totalWildPoints
+# data.frame to create a separate "ex situ" spatial object. Then, the createBuffers function is used to 
+# place buffers around all wild points and the sample, and then the proportion of the total area covered 
+# is calculated
+geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
   # If running in parallel: world polygon shapefile needs to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
   }
-  # Build ex situ points by subseting complete in situ points data.frame, according to sampVect
-  exSitu <- inSitu[sort(match(sampVect, inSitu[,1])),]
-  # Create buffers
+  # Select "ex situ" coordinates by subsetting totalWildPoints data.frame, according to sampVect
+  exSitu <- totalWildPoints[sort(match(sampVect, totalWildPoints[,1])),]
+  # Create buffers around selected (exSitu) wild points and around all (total) occurrences 
   geo_exSitu <- createBuffers(exSitu, radius, ptProj, buffProj, boundary)
-  geo_inSitu <- createBuffers(inSitu, radius, ptProj, buffProj, boundary)
-  # Calculate buffer area. 1,000,000 value is to convert area to km²
+  geo_total <- createBuffers(totalWildPoints, radius, ptProj, buffProj, boundary)
+  # Calculate the area under both buffers. The 1,000,000 value converts values to km²
   geo_exSituArea <- expanse(geo_exSitu)/1000000
-  geo_inSituArea <- expanse(geo_inSitu)/1000000
-  # Calculate difference between in situ and ex situ buffer areas (% coverage)
-  geo_Coverage <- (geo_exSituArea/geo_inSituArea)*100
+  geo_totalArea <- expanse(geo_total)/1000000
+  # Calculate the proportion of the ex situ buffer areas to the total buffer area (percent geographic coverage)
+  geo_Coverage <- (geo_exSituArea/geo_totalArea)*100
   return(geo_Coverage)
 }
 
@@ -78,11 +92,11 @@ eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary,
 }
 
 # WORKER FUNCTION: Create a data.frame with ecoregion data extracted for area covered by buffers
-# surrounding all points and sample points. Then, compare the ecoregions count of the
+# surrounding all points and sample ("exSitu") points. Then, compare the ecoregions count of the
 # sample to the total. The layerType argument allows for 3 possible values: US (EPA Level 4),
 # NA (EPA Level 3), and GL (TNC Global Terrestrial) ecoregions. These should correspond with 
 # the ecoRegion argument (which specifies the ecoregion shapefile).
-eco.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj, 
+eco.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj, 
                             ecoRegion, layerType=c('US','NA','GL'), boundary, parFlag=FALSE){
   # Match layerType argument, which specifies which ecoregion data type to extract (below)
   layerType <- match.arg(layerType)
@@ -92,70 +106,69 @@ eco.compareBuff <- function(inSitu, sampVect, radius, ptProj, buffProj,
     ecoRegion <- unwrap(ecoRegion)
     boundary <- unwrap(boundary)
   }
-  # Build sample ex situ points by subseting complete in situ points data.frame, according to sampVect
-  exSitu <- inSitu[sort(match(sampVect, inSitu[,1])),]
-  # Create data.frame of ecoregion-buffer intersection
+  # Build sample ex situ points by subseting totalWildPoints data.frame, according to sampVect
+  exSitu <- totalWildPoints[sort(match(sampVect, totalWildPoints[,1])),]
+  # Create data.frame of ecoregion-buffer intersections, for both ex situ and all points
   eco_exSitu <- eco.intersectBuff(exSitu, radius, ptProj, buffProj, ecoRegion, boundary)
-  eco_inSitu <- eco.intersectBuff(inSitu, radius, ptProj, buffProj, ecoRegion, boundary)
+  eco_total <- eco.intersectBuff(totalWildPoints, radius, ptProj, buffProj, ecoRegion, boundary)
   # Based on the ecoRegion shapefile and the specified layer type, count the number of ecoregions in
-  # the random sample (exSitu) and all of the data points (inSitu)
+  # the random sample (exSitu) and all of the data points (total)
   if(layerType=='US'){
     # Extract the number of EPA Level IV ('U.S. Only') ecoregions
     eco_exSituCount <- length(unique(eco_exSitu$US_L4CODE))
-    eco_inSituCount <- length(unique(eco_inSitu$US_L4CODE))
+    eco_totalCount <- length(unique(eco_total$US_L4CODE))
   } else {
     # Extract the number of EPA Level III ('North America') ecoregions 
     if(layerType=='NA'){
       eco_exSituCount <- length(unique(eco_exSitu$NA_L3CODE))
-      eco_inSituCount <- length(unique(eco_inSitu$NA_L3CODE))
+      eco_totalCount <- length(unique(eco_total$NA_L3CODE))
     } else {
       # Extract the number of Nature Conservancy ('Global Terrestrial') ecoregions
       eco_exSituCount <- length(unique(eco_exSitu$ECO_ID_U))
-      eco_inSituCount <- length(unique(eco_inSitu$ECO_ID_U))
+      eco_totalCount <- length(unique(eco_total$ECO_ID_U))
     }
   }
   # Calculate difference in number of ecoregions between the sample and all data points, and return
-  eco_Coverage <- (eco_exSituCount/eco_inSituCount)*100
+  eco_Coverage <- (eco_exSituCount/eco_totalCount)*100
   return(eco_Coverage)
 }
 
 # WORKER FUNCTION: Function for reporting representation rates, using a vector of allele frequencies 
 # and a sample matrix. Assumes that freqVector represents the absolute allele frequencies 
-# for the population of interest (typically, entire wild population). Allele names between 
-# frequency vector and sample matrix must match! 
+# for the population of interest (the entire wild population). 
 # 1. The length of matches between garden and wild alleles is calculated (numerator). 
 # 2. The complete number of wild alleles of that category (denominator) is calculated. 
 # 3. From these 2 values, a percentage is calculated. 
 # This function returns the numerators, denominators, and the proportion (representation rates) in a matrix.
 gen.getAlleleCategories <- function(freqVector, sampleMat){
   # Determine how many Total alleles in the sample matrix are found in the frequency vector 
-  exSitu_totalAlleles <- length(which(names(freqVector) %in% colnames(sampleMat)))
-  inSitu_totalAlleles <- length(freqVector)
-  totalPercentage <- (exSitu_totalAlleles/inSitu_totalAlleles)*100
+  exSitu_allAlleles <- length(which(names(freqVector) %in% colnames(sampleMat)))
+  total_allAlleles <- length(freqVector)
+  allPercentage <- (exSitu_allAlleles/total_allAlleles)*100
   # Very common alleles (greater than 10%)
   exSitu_vComAlleles <- length(which(names(which(freqVector > 10)) %in% colnames(sampleMat)))
-  inSitu_vComAlleles <- length(which(freqVector > 10))
-  vComPercentage <- (exSitu_vComAlleles/inSitu_vComAlleles)*100
+  total_vComAlleles <- length(which(freqVector > 10))
+  vComPercentage <- (exSitu_vComAlleles/total_vComAlleles)*100
   # Common alleles (greater than 5%)
   exSitu_comAlleles <- length(which(names(which(freqVector > 5)) %in% colnames(sampleMat)))
-  inSitu_comAlleles <- length(which(freqVector > 5))
-  comPercentage <- (exSitu_comAlleles/inSitu_comAlleles)*100
+  total_comAlleles <- length(which(freqVector > 5))
+  comPercentage <- (exSitu_comAlleles/total_comAlleles)*100
   # Low frequency alleles (between 1% and 10%)
   exSitu_lowFrAlleles <- length(which(names(which(freqVector < 10 & freqVector > 1)) %in% colnames(sampleMat)))
-  inSitu_lowFrAlleles <- length(which(freqVector < 10 & freqVector > 1))
-  lowFrPercentage <- (exSitu_lowFrAlleles/inSitu_lowFrAlleles)*100
+  total_lowFrAlleles <- length(which(freqVector < 10 & freqVector > 1))
+  lowFrPercentage <- (exSitu_lowFrAlleles/total_lowFrAlleles)*100
   # Rare alleles (less than 1%)
   exSitu_rareAlleles <- length(which(names(which(freqVector < 1)) %in% colnames(sampleMat)))
-  inSitu_rareAlleles <- length(which(freqVector < 1))
-  rarePercentage <- (exSitu_rareAlleles/inSitu_rareAlleles)*100
+  total_rareAlleles <- length(which(freqVector < 1))
+  rarePercentage <- (exSitu_rareAlleles/total_rareAlleles)*100
   # Concatenate values to vectors
-  exSituAlleles <- c(exSitu_totalAlleles, exSitu_vComAlleles, exSitu_comAlleles, exSitu_lowFrAlleles, exSitu_rareAlleles)
-  inSituAlleles <- c(inSitu_totalAlleles, inSitu_vComAlleles, inSitu_comAlleles, inSitu_lowFrAlleles, inSitu_rareAlleles)
-  repRates <- c(totalPercentage,vComPercentage,comPercentage,lowFrPercentage,rarePercentage) 
+  exSituAlleles <- c(exSitu_allAlleles, exSitu_vComAlleles, exSitu_comAlleles, exSitu_lowFrAlleles, exSitu_rareAlleles)
+  totalWildAlleles <- c(total_allAlleles, total_vComAlleles, total_comAlleles, total_lowFrAlleles, total_rareAlleles)
+  repRates <- c(allPercentage,vComPercentage,comPercentage,lowFrPercentage,rarePercentage) 
   # Bind vectors to a matrix, name dimensions, and return
-  exSituValues <- cbind(exSituAlleles, inSituAlleles, repRates)
+  exSituValues <- cbind(exSituAlleles, totalWildAlleles, repRates)
   rownames(exSituValues) <- c('Total','V. common','Common', 'Low freq.','Rare')
-  colnames(exSituValues) <- c('Ex situ', 'In situ', 'Rate (%)')
+  colnames(exSituValues) <- c('Ex situ', 'Total', 'Rate (%)')
   return(exSituValues)
 }
 
@@ -206,7 +219,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
     # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
     # the random subset of points (rownames(samp)) to the geo.compareBuff worker function, which will calculate
     # the proportion of area covered in the random sample
-    geoRate <- geo.compareBuff(inSitu=coordPts, sampVect=rownames(samp), radius=geoBuff, 
+    geoRate <- geo.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp), radius=geoBuff, 
                                ptProj=ptProj, buffProj=buffProj, boundary=boundary, parFlag=parFlag)
   } else {
     geoRate <- NA
@@ -225,7 +238,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff,
     # Ecological coverage: calculate sample's ecological representation, by passing all points (coordPts) and 
     # the random subset of points (rownames(samp)) to the eco.compareBuff worker function, which will calculate
     # the proportion of ecoregions covered in the random sample
-    ecoRate <- eco.compareBuff(inSitu=coordPts, sampVect=rownames(samp), radius=ecoBuff, 
+    ecoRate <- eco.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp), radius=ecoBuff, 
                                ptProj=ptProj, buffProj=buffProj, ecoRegion=ecoRegions, 
                                layerType=ecoLayer, boundary=boundary, parFlag=parFlag)
   } else{
