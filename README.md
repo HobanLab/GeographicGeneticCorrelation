@@ -1,11 +1,11 @@
 # Overview
 This repository contains the code used for Goal #1 of the Hoban [IMLS 2022 National Leadership Grant (NLG)](https://www.imls.gov/grants/awarded/mg-251613-oms-22), 
-which seeks to determine if, and in what circumstances, measures of geographic and ecological coverage _ex situ_ are predictive of genetic coverage.
+which seeks to determine if, and in what circumstances, measures of geographic and ecological coverage predict genetic coverage.
 
-To do this, we utilize datasets for which genetic and geographic data exists for individuals (or populations), and 
+To do this, we utilize datasets for which genetic and geographic data exists for **wild** individuals (or populations) of different plant species, and 
 we utilize resampling approaches to randomly generate subsets of individuals and measure how well those subsets reflect the total genetic, geographic, 
-or ecological diversity of the complete sample set (what we term "coverage"). We iterate this process for subsets of increasing sizes, and repeat this resampling approach
-multiple times to account for the stochasticity of random sampleing. Summary statistics of coverage metrics across resampling replicates are then calculated.
+or ecological diversity of the complete sample set (what we term "coverage"). We repeat this process for subsets of increasing sizes, and also generate multiple resampling replicates
+to account for the stochasticity of random sampling. Summary statistics of coverage metrics across resampling replicates are then calculated.
 
 The methodology for this project is very much in development. Several functions (specifically the underlying functions used to calculate geographic
 and ecological coverage) were adapted from gap analysis approaches (for instance, see the repository [here](https://github.com/eb-bruns/conservation-gap-analysis)).
