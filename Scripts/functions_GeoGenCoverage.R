@@ -181,7 +181,7 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
 calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, 
                               ptProj='+proj=longlat +datum=WGS84',
                               buffProj='+proj=eqearth +datum=WGS84', boundary,
-                              ecoFlag=TRUE, ecoBuff, ecoRegions, ecoLayer=c('US','NA','GL'),
+                              ecoFlag=FALSE, ecoBuff, ecoRegions, ecoLayer=c('US','NA','GL'),
                               parFlag=FALSE, numSamples){
   
   # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
