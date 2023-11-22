@@ -22,7 +22,7 @@ analyses build off of one another and are intended to provide a simplified inter
 input files required for each species. The subfolders within this folder are organized by species: for each species, there's
 a `Genetic` folder, a `Geographic` folder, and a `resamplingData` folder, where resampling arrays are saved. Note that in 
 some instances, the input files used for analyses cannot be included on the GitHub repo, due to surpassing file size limits
-(50 MB); in these cases, the original file cannot be shared on this repository.
+(50 MB); in these cases, the filepaths to the input files refer to locations outside of the repository.
 
 ## Code structure
 Resampling arrays (see [Outputs](https://github.com/HobanLab/GeographicGeneticCorrelation#outputs) below) are generated using a series of nested functions 
@@ -78,4 +78,4 @@ These plots are generated in the 2nd half of the demo scripts, for each species.
 	+ [Dryad link](https://datadryad.org/stash/dataset/doi:10.5061/dryad.ncjsxkstp)
 
 
-For questions about this datasets or the scripts included here, open an Issue or contact [Austin Koontz](https://akoontz11.netlify.app/).
+For questions about these datasets or the scripts included here, open an Issue or contact [Austin Koontz](https://akoontz11.netlify.app/).
