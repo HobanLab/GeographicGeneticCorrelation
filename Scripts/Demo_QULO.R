@@ -30,10 +30,10 @@ eco_buffSize <- 50000
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, '../GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
 ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, '../GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
 world_poly_clip_W <- wrap(world_poly_clip)
