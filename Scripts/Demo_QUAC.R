@@ -102,8 +102,7 @@ if(parFlag==TRUE){
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
     geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, geoBuff = geo_buffSize, 
-                     boundary = world_poly_clip, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
-                     ecoRegions = ecoregion_poly, ecoLayer = 'US', reps = num_reps)
+                     boundary = world_poly_clip, ecoFlag = FALSE, reps = num_reps)
 }
 
 # ---- CORRELATION ----
