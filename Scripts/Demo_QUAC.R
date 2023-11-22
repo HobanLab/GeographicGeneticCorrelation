@@ -21,15 +21,12 @@ source('Scripts/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
-num_reps <- 3
-# num_reps <- 5
+num_reps <- 1
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
 geo_buffSize <- 1000
-# geo_buffSize <- 50000
 # Specify ecological buffer size in meters 
 eco_buffSize <- 1000
-# eco_buffSize <- 50000
 # ---- SHAPEFILES
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
@@ -38,19 +35,26 @@ world_poly_clip <-
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
-# Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
-# exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
-world_poly_clip_W <- wrap(world_poly_clip)
-ecoregion_poly_W <- wrap(ecoregion_poly)
 
 # ---- PARALLELIZATION
-# Set up relevant cores 
-num_cores <- detectCores() - 8 
-cl <- makeCluster(num_cores)
-# Make sure libraries (adegenet, terra, and parallel) are on cluster
-clusterEvalQ(cl, library('adegenet'))
-clusterEvalQ(cl, library('terra'))
-clusterEvalQ(cl, library('parallel'))
+# Flag for running resampling steps in parallel
+parFlag <- FALSE
+
+# If running in parallel, set up cores and export required libraries
+if(parFlag==TRUE){
+  # Set up relevant cores 
+  num_cores <- detectCores() - 8 
+  cl <- makeCluster(num_cores)
+  # Make sure libraries (adegenet, terra, and parallel) are on cluster
+  clusterEvalQ(cl, library('adegenet'))
+  clusterEvalQ(cl, library('terra'))
+  clusterEvalQ(cl, library('parallel'))
+  
+  # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
+  # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
+  world_poly_clip_W <- wrap(world_poly_clip)
+  ecoregion_poly_W <- wrap(ecoregion_poly)
+}
 
 # %%%% INDIVIDUAL-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that specify the location of each individual
@@ -75,30 +79,32 @@ pop(QUAC_genind) <-
 wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coord_ind.csv'), header=TRUE)
 
 # ---- RESAMPLING ----
-# Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
-clusterExport(cl, varlist = c('wildPoints','QUAC_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                              'world_poly_clip_W', 'ecoregion_poly_W'))
-# Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
-                              'getAlleleCategories','calculateCoverage', 'exSituResample', 
-                              'geo.gen.Resample.Parallel'))
-# Specify file path, for saving resampling array
-arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata')
-# arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_5r_resampArr.Rdata')
-# Run resampling in parallel
-QUAC_demoArray_IND_Par <- 
-  geo.gen.Resample.Parallel(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, 
-                            geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                            ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
-                            reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
-# Close cores
-stopCluster(cl)
-
-# Run resampling not in parallel (for function testing purposes)
-QUAC_demoArray_IND <-
-  geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, geoBuff = geo_buffSize, 
-                   boundary = world_poly_clip, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
-                   ecoRegions = ecoregion_poly, ecoLayer = 'US', reps = num_reps)
+if(parFlag==TRUE){
+  # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
+  clusterExport(cl, varlist = c('wildPoints','QUAC_genind','num_reps','geo_buffSize', 'eco_buffSize',
+                                'world_poly_clip_W', 'ecoregion_poly_W'))
+  # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
+  clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
+                                'getAlleleCategories','calculateCoverage', 'exSituResample', 
+                                'geo.gen.Resample.Parallel'))
+  # Specify file path, for saving resampling array
+  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata')
+  # arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_5r_resampArr.Rdata')
+  # Run resampling in parallel
+  QUAC_demoArray_IND_Par <- 
+    geo.gen.Resample.Parallel(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, 
+                              geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
+                              ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
+                              reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
+  # Close cores
+  stopCluster(cl)
+} else{
+  # Run resampling not in parallel (for function testing purposes)
+  QUAC_demoArray_IND <-
+    geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, geoBuff = geo_buffSize, 
+                     boundary = world_poly_clip, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
+                     ecoRegions = ecoregion_poly, ecoLayer = 'US', reps = num_reps)
+}
 
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
