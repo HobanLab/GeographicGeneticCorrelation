@@ -10,12 +10,19 @@ to account for the stochasticity of random sampling. Summary statistics of cover
 The methodology for this project is very much in development. Several functions (specifically the underlying functions used to calculate geographic
 and ecological coverage) were adapted from gap analysis approaches (for instance, see the repository [here](https://github.com/eb-bruns/conservation-gap-analysis)).
 
-# Repository layout
-The functions used for this project build off of one another and are inteded to provide a simplified interface at the "uppermost" level of the code 
-(i.e. the level at which data is read in). All functions are declared in the [`functions_GeoGenCoverage.R`](https://github.com/HobanLab/GeographicGeneticCorrelation/blob/main/functions_GeoGenCoverage.R)
-script. 
+## Repository layout
+There are two primary folders in this repository.
 
-There's currently a single analysis script for each species analyzed, but this layout might change as the project develops and more datasets are processed.
+[`Scripts`](https://github.com/HobanLab/GeographicGeneticCorrelation/tree/main/Scripts) 
+contains all of the R and BASH scripts used to analyze datasets. Included in this folder is the [`functions_GeoGenCoverage.R`](https://github.com/HobanLab/GeographicGeneticCorrelation/blob/main/Scripts/functions_GeoGenCoverage.R) script, which declares all of the R functions used in all the other scripts. The functions used for these 
+analyses build off of one another and are intended to provide a simplified interface at the "uppermost" level of the code 
+(i.e. the level at which data is read in). Additionally, there's a single analysis R script for each species analyzed. This layout may change as the project develops and more datasets are processed. Any other required scripts are also included in this folder.
+
+[`Datasets`](https://github.com/HobanLab/GeographicGeneticCorrelation/tree/main/Datasets) contains the genetic and geographic
+input files required for each species. The subfolders within this folder are organized by species: for each species, there's
+a `Genetic` folder, a `Geographic` folder, and a `resamplingData` folder, where resampling arrays are saved. Note that in 
+some instances, the input files used for analyses cannot be included on the GitHub repo, due to surpassing file size limits
+(50 MB); in these cases, the original file cannot be shared on this repository.
 
 ## Code structure
 Resampling arrays (see [Outputs](https://github.com/HobanLab/GeographicGeneticCorrelation#outputs) below) are generated using a series of nested functions 
