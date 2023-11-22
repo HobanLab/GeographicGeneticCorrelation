@@ -15,9 +15,9 @@ library(RColorBrewer)
 library(scales)
 
 # Read in relevant functions
-GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/'
+GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
-source('Code/functions_GeoGenCoverage.R')
+source('Scripts/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
@@ -31,10 +31,10 @@ eco_buffSize <- 50000
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, '../GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
 # Read in the EPA Level III ecoregion shapefile, which is used for calculating ecological coverage (in North America)
 ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level3/NA_CEC_Eco_Level3.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, '../GIS_shpFiles/ecoregions_EPA_level3/NA_CEC_Eco_Level3.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
 world_poly_clip_W <- wrap(world_poly_clip)
@@ -51,26 +51,28 @@ clusterEvalQ(cl, library('parallel'))
 
 # %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
-# Specify filepath for PICO geographic and genetic data
-PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
+# Specify filepath for PICO geographic and genetic data. Because genetic data file is >50 MB, it is stored
+# outside of the GitHub directory (hence the different filepaths, for geographic and genetic data)
+PICO_filePath_gen <- paste0(GeoGenCorr_wd, '../Datasets/PICO/')
+PICO_filePath_geo <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
 
 # ---- GENETIC MATRIX
 # The 1st script in the MacLachlan et al. 2021 supplement (1_MacLachlan_etal_Pine_GPA_ped&mapfile_formatting_Jan10th2021.R)
 # generates a .ped and .map file. This is for 929 individuals (control individuals are not included), and it includes
 # 32,449 loci, after filtering for minor alleles and missing data. The .ped file was then are passed into PLINK 
 # in order to generate a STRUCTURE input file, which is converted into a genind object in the call below.
-PICO_genind <- read.structure(file=paste0(PICO_filePath, 'Genetic/Pine_NaturalComp_85SNPfilter.stru'), 
+PICO_genind <- read.structure(file=paste0(PICO_filePath_gen, 'Genetic/Pine_NaturalComp_85SNPfilter.stru'), 
                               n.ind = 929, n.loc = 32449, onerowperind = TRUE, col.lab = 1, 
                               col.pop = 0, row.marknames = 0, sep = ' ', ask = FALSE)
 # Capture the names of samples as they're ordered in the genind object. This is for the steps below.
 PICO_sampleNames <- indNames(PICO_genind)
 
-# ---- COORDINATE POINTS
+# ---- GEOGRAPHIC COORDINATES
 # The supplement of MacLachlan et al. 2021 includes a csv that contains climate data for all of the seedlings in the study,
 # as well as coordinate information. This dataset needs to first be subset just to the 929 samples included in the
 # genind object (above), and then ordered to match the order of samples in that genind object. These steps are taken below.
 PICO_coordinates <- 
-  read.csv(file=paste0(PICO_filePath, 'Geographic/Pine_NaturalOrchard_ClimateData_Sept7th2015.csv'), header = TRUE)
+  read.csv(file=paste0(PICO_filePath_geo, 'Geographic/Pine_NaturalOrchard_ClimateData_Sept7th2015.csv'), header = TRUE)
 # Start by subsetting the CSV to just the variables we need: sample names, latitude, and longitude
 PICO_coordinates <- 
   PICO_coordinates[which(PICO_coordinates$Internal_ID %in% PICO_sampleNames),c('Internal_ID','Latitude','Longitude')]
@@ -88,7 +90,7 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersect
                               'gen.getAlleleCategories','calculateCoverage', 'exSituResample', 
                               'geo.gen.Resample.Parallel'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_50km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(PICO_filePath_geo, 'resamplingData/PICO_50km_GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 print("%%% BEGINNING RESAMPLING %%%")

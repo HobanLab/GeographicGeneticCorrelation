@@ -15,13 +15,11 @@ library(RColorBrewer)
 library(scales)
 
 # Read in relevant functions
-GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/'
+GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
-source('Code/functions_GeoGenCoverage.R')
+source('Scripts/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
-# Declare a directory within which to store .Rdata objects of resampling arrays
-resamplingDataDir <- paste0(GeoGenCorr_wd, 'Code/resamplingData/')
 # Specify number of resampling replicates
 num_reps <- 3
 # num_reps <- 5
@@ -36,10 +34,10 @@ eco_buffSize <- 1000
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, '../GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
 ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, '../GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
 world_poly_clip_W <- wrap(world_poly_clip)
@@ -61,20 +59,20 @@ clusterEvalQ(cl, library('parallel'))
 # Specify filepath for QUAC geographic and genetic data
 QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
 
-# ---- COORDINATE POINTS
-# Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
-# The sample names (and order) have to match the sample names/order of the genind object 
-# (rownams of the genetic matrix) read in below.
-wildPoints <- read.csv(paste0(QUAC_filePath, 'QUAC_coord_ind.csv'), header=TRUE)
-
 # ---- GENETIC MATRIX
 # Read in genind file: Optimized de novo assembly; R80, min-maf=0, 
 # first SNP/locus, 2 populations (garden and wild), no Kessler individuals.
 # Wild sample names/order must match those in the sample name column of the CSV (above)
-QUAC_genind <- read.genepop(paste0(QUAC_filePath,'QUAC_DNFA_populations_R80_NOMAF_1SNP_2Pops_NoK.gen'))
+QUAC_genind <- read.genepop(paste0(QUAC_filePath,'Genetic/QUAC_DNFA_populations_R80_NOMAF_1SNP_2Pops_NoK.gen'))
 # Correct popNames of genind. For this analysis, we'll only utilize wild samples (i.e. those in pop 'wild')
 pop(QUAC_genind) <- 
-  factor(read.table(paste0(QUAC_filePath, 'QUAC_popmap_GardenWild_NoK'), header=FALSE)[,2])
+  factor(read.table(paste0(QUAC_filePath, 'Genetic/QUAC_popmap_GardenWild_NoK'), header=FALSE)[,2])
+
+# ---- GEOGRAPHIC COORDINATES
+# Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
+# The sample names (and order) have to match the sample names/order of the genind object 
+# (rownams of the genetic matrix) read in below.
+wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coord_ind.csv'), header=TRUE)
 
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
@@ -237,22 +235,22 @@ legend(x=58, y=70, inset = 0.05,
 
 # ---- READ IN DATA ----
 # Specify filepath for QUAC geographic and genetic data
-QUAC.filePath <- paste0(GeoGenCorr.wd, 'Datasets/QUAC/')
-
-# ---- COORDINATE POINTS
-# Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
-# The sample names (and order) have to match the sample names/order of the genind object 
-# (rownams of the genetic matrix) read in below.
-wildPoints <- read.csv(paste0(QUAC.filePath, 'QUAC_coord_pop.csv'), header=TRUE)
+QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
 
 # ---- GENETIC MATRIX
 # Read in genind file: Optimized de novo assembly; R80, min-maf=0, 
 # first SNP/locus, 2 populations (garden and wild), no Kessler individuals.
 # Wild sample names/order must match those in the sample name column of the CSV (above)
-QUAC.genind <- read.genepop(paste0(QUAC.filePath,'QUAC_DNFA_populations_R80_NOMAF_1SNP_2Pops_NoK.gen'))
+QUAC.genind <- read.genepop(paste0(QUAC.filePath,'Genetic/QUAC_DNFA_populations_R80_NOMAF_1SNP_2Pops_NoK.gen'))
 # Correct popNames of genind. For this analysis, we'll only utilize wild samples (i.e. those in pop 'wild')
 pop(QUAC.genind) <- 
-  factor(read.table(paste0(QUAC.filePath, 'QUAC_popmap_GardenWild_NoK'), header=FALSE)[,2])
+  factor(read.table(paste0(QUAC.filePath, 'Genetic/QUAC_popmap_GardenWild_NoK'), header=FALSE)[,2])
+
+# ---- GEOGRAPHIC COORDINATES
+# Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
+# The sample names (and order) have to match the sample names/order of the genind object 
+# (rownams of the genetic matrix) read in below.
+wildPoints <- read.csv(paste0(QUAC.filePath, 'Geographic/QUAC_coord_pop.csv'), header=TRUE)
 
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster

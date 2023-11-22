@@ -14,9 +14,9 @@ library(RColorBrewer)
 library(scales)
 
 # Read in relevant functions
-GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/'
+GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
-source('Code/functions_GeoGenCoverage.R')
+source('Scripts/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
@@ -30,10 +30,10 @@ eco_buffSize <- 50000
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, '../GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
 ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, '../GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
 world_poly_clip_W <- wrap(world_poly_clip)
@@ -54,12 +54,6 @@ clusterEvalQ(cl, library('parallel'))
 # Specify filepath for QULO geographic and genetic data
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
 
-# ---- COORDINATE POINTS
-# Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
-# The sample names (and order) have to match the sample names/order of the genind object 
-# (rownams of the genetic matrix) read in below.
-wildPoints <- read.csv(paste0(QULO_filePath, 'Geographic/Quercus_lobata.csv'), header=TRUE)
-
 # ---- GENETIC MATRIX
 # Processing input file
 QULO_tab <- read.table(paste0(QULO_filePath, 'Genetic/SNPs80.forR'), header = TRUE)
@@ -67,6 +61,12 @@ QULO_tab <- read.table(paste0(QULO_filePath, 'Genetic/SNPs80.forR'), header = TR
 rownames(QULO_tab) <- QULO_tab[,1] ; QULO_tab <- QULO_tab[,-1]
 # Convert to genind. ncode based off similar practice for other geninds (values of 1, 2, and 3 generate identical results)
 QULO_genind <- df2genind(QULO_tab, ncode = 3, ploidy = 2)
+
+# ---- GEOGRAPHIC COORDINATES
+# Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
+# The sample names (and order) have to match the sample names/order of the genind object 
+# (rownams of the genetic matrix) read in below.
+wildPoints <- read.csv(paste0(QULO_filePath, 'Geographic/Quercus_lobata.csv'), header=TRUE)
 
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
