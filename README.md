@@ -22,7 +22,9 @@ analyses build off of one another and are intended to provide a simplified inter
 input files required for each species. The subfolders within this folder are organized by species: for each species, there's
 a `Genetic` folder, a `Geographic` folder, and a `resamplingData` folder, where resampling arrays are saved. Note that in 
 some instances, the input files used for analyses cannot be included on the GitHub repo, due to surpassing file size limits
-(50 MB); in these cases, the filepaths to the input files refer to locations outside of the repository.
+(50 MB); in these cases, the files are included in the [`.gitignore`]()file, to avoid there being tracked on GitHub. Shapefiles
+for geographic (global country borders) and ecological (ecoregion data layers) analyses are also not tracked in the repository,
+because of file size limitations.
 
 ## Code structure
 Resampling arrays (see [Outputs](https://github.com/HobanLab/GeographicGeneticCorrelation#outputs) below) are generated using a series of nested functions 
