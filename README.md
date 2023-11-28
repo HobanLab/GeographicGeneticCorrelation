@@ -23,34 +23,29 @@ input files required for each species. The subfolders within this folder are org
 a `Genetic` folder, a `Geographic` folder, and a `resamplingData` folder, where resampling arrays are saved. Note that in 
 some instances, the input files used for analyses cannot be included on the GitHub repo, due to surpassing file size limits
 (50 MB); in these cases, the files are included in the [`.gitignore`](https://github.com/HobanLab/GeographicGeneticCorrelation/blob/main/.gitignore) file, 
-to avoid there being tracked on GitHub. Shapefiles for geographic (global country borders) and ecological 
+to avoid being tracked on GitHub. Shapefiles for geographic (global country borders) and ecological 
 (ecoregion data layers) analyses are also not tracked in the repository, because of file size limitations.
 
 ## Code structure
-Resampling arrays (see [Outputs](https://github.com/HobanLab/GeographicGeneticCorrelation#outputs) below) are generated using a series of nested functions 
-iterated using `sapply`. The functions at the uppermost level (`geo.gen.Resample` and its parallelized version, `geo.gen.Resample.Parallel`) are called in 
-the scripts for each species. These functions are wrappers: they `sapply` the `exSituResample` function over the specified number of resampling replicates. 
-In turn, `exSituResample` is a wrapper that uses `sapply` to reiterate the `calculateCoverage` function for every number of samples included in a wild dataset, 
-starting at 2 and ranging all the way up to the total number of samples.
+Resampling arrays (see [Outputs](https://github.com/HobanLab/GeographicGeneticCorrelation#outputs) below) are generated using a series of nested functions iterated using `sapply`. The functions at the uppermost level (`geo.gen.Resample` and its parallelized version, `geo.gen.Resample.Par`) are called in the scripts for each species. These functions are wrappers: they `sapply` the `exSituResample` function (or `exSituResample.Par`, the parallelized version) over the specified number of resampling replicates. 
+In turn, `exSituResample` and `exSituResample.Par` are wrappers that use `sapply` (or `parSapply`) to reiterate the `calculateCoverage` function for every number of samples included in a wild dataset, starting at 2 and ranging all the way up to the total number of samples.
 
 `calculcateCoverage` is the "core function" of the code structure. It is divided into sections that calculate the 
-coverage values (genetic, geographic, and/or ecological) of a subset of randomly selected samples (variable name `samp`) using "worker" functions. 
-The genetic section uses the worker function `gen.getAlleleCategories`; the geographic section uses `geo.compareBuff`; and the ecological section uses `eco.compareBuff`. Beyond these, there are a couple lower level functions, 
+coverage values (genetic, geographic, and/or ecological) of a randomly selected subset of samples (variable name `samp`) using "worker" functions. The genetic section uses the worker function `gen.getAlleleCategories`; the geographic section uses `geo.compareBuff`; and the ecological section uses `eco.compareBuff`. Beyond these, there are a couple lower level functions, 
 which are used for the geographic/ecological coverage calculations (`eco.intersectBuff` and `createBuffers`).
 
 ## Inputs
-The most important arguments provided to the resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Parallel`) are:
+The most important arguments provided to the resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Par`) are:
 1. a `data.frame` with 3 columns: sample name, latitude, and longitude. Lat/longs need to be in decimal degree format, and need to have the column names `decimalLatitude` and
 `decimalLongitude`
 2. a `genind` file, in which the order and the names of samples must match the order/names of samples in the coordinate data.frame (#1)
 
 An error will be (intentionally) thrown if sample names/order do not match exactly between these two arguments!
 
-Additionally, the functions require the specification of geographic/ecological buffer sizes, the Spatial Vectors representing the .shp files of polygons
-representing both national borders and ecoregion data (if available), and the number of resampling replicates. 
+Additionally, the functions require the specification of geographic/ecological buffer sizes, the Spatial Vectors representing the .shp files of polygons representing both national borders and ecoregion data (if available), and the number of resampling replicates. 
 
 ## Outputs
-The uppermost resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Parallel`) generate a single 3 dimensional array, with the dimensions as follows:
+The uppermost resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Par`) generate a single 3 dimensional array, with the dimensions as follows:
 - **rows**: number of randomly selected samples, for which genetic, geographic, and ecological coverage is calculated. The first row corresponds to 2 samples, and the last row to the total number of samples.
 - **columns**: coverage values of different metrics: 
 	- **Column 1**: the Total allelic representation (all categories of alleles)
@@ -60,9 +55,7 @@ The uppermost resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Par
 - **slices**: each array slice (3rd dimension) represents a different, independent resampling replicate. Averaging results across resampling replicates allows us to calculate summary statistics.
 
 ## Analysis
-After building resampling arrays, we pass the results into linear models which specify allelic representation values as the response variable, and either geographic
-or ecological coverage values as the explanatory variable. We capture the R-squared values generated from linear models, and create 2 different types of plots to illustrate
-the relationships between the coverage estimates:
+After building resampling arrays, we pass the results into linear models which specify allelic representation values as the response variable, and either geographic or ecological coverage values as the explanatory variable. We capture the R-squared values generated from linear models, and create 2 different types of plots to illustrate the relationships between the coverage estimates:
 - "correlation plots", which plot the average genetic coverage values (y-axis) versus the average geographic/ecological coverage values (x-axis)
 - "coverage plots", where the average coverage values for all 3 measures are plotted in different colors against the number of samples in the dataset
 
