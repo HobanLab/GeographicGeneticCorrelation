@@ -13,12 +13,12 @@ and ecological coverage) were adapted from gap analysis approaches (for instance
 ## Repository layout
 There are two primary folders in this repository.
 
-[`Scripts`](https://github.com/HobanLab/GeographicGeneticCorrelation/tree/main/Scripts) 
+1. [`Scripts`](https://github.com/HobanLab/GeographicGeneticCorrelation/tree/main/Scripts) 
 contains all of the R and BASH scripts used to analyze datasets. Included in this folder is the [`functions_GeoGenCoverage.R`](https://github.com/HobanLab/GeographicGeneticCorrelation/blob/main/Scripts/functions_GeoGenCoverage.R) script, which declares all of the R functions used in all the other scripts. The functions used for these 
 analyses build off of one another and are intended to provide a simplified interface at the "uppermost" level of the code 
 (i.e. the level at which data is read in). Additionally, there's a single analysis R script for each species analyzed. This layout may change as the project develops and more datasets are processed. Any other required scripts are also included in this folder.
 
-[`Datasets`](https://github.com/HobanLab/GeographicGeneticCorrelation/tree/main/Datasets) contains the genetic and geographic
+2. [`Datasets`](https://github.com/HobanLab/GeographicGeneticCorrelation/tree/main/Datasets) contains the genetic and geographic
 input files required for each species. The subfolders within this folder are organized by species: for each species, there's
 a `Genetic` folder, a `Geographic` folder, and a `resamplingData` folder, where resampling arrays are saved. Note that in 
 some instances, the input files used for analyses cannot be included on the GitHub repo, due to surpassing file size limits
@@ -34,7 +34,7 @@ In turn, `exSituResample` and `exSituResample.Par` are wrappers that use `sapply
 coverage values (genetic, geographic, and/or ecological) of a randomly selected subset of samples (variable name `samp`) using "worker" functions. The genetic section uses the worker function `gen.getAlleleCategories`; the geographic section uses `geo.compareBuff`; and the ecological section uses `eco.compareBuff`. Beyond these, there are a couple lower level functions, 
 which are used for the geographic/ecological coverage calculations (`eco.intersectBuff` and `createBuffers`).
 
-## Inputs
+### Inputs
 The most important arguments provided to the resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Par`) are:
 1. a `data.frame` with 3 columns: sample name, latitude, and longitude. Lat/longs need to be in decimal degree format, and need to have the column names `decimalLatitude` and
 `decimalLongitude`
@@ -44,7 +44,7 @@ An error will be (intentionally) thrown if sample names/order do not match exact
 
 Additionally, the functions require the specification of geographic/ecological buffer sizes, the Spatial Vectors representing the .shp files of polygons representing both national borders and ecoregion data (if available), and the number of resampling replicates. 
 
-## Outputs
+### Outputs
 The uppermost resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Par`) generate a single 3 dimensional array, with the dimensions as follows:
 - **rows**: number of randomly selected samples, for which genetic, geographic, and ecological coverage is calculated. The first row corresponds to 2 samples, and the last row to the total number of samples.
 - **columns**: coverage values of different metrics: 
