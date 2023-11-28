@@ -11,9 +11,9 @@
 # Many of the functions here are wrappers, which sapply other, lower-level functions here. The advantage of this 
 # nested function approach is that it allows for a single function to be called at the "upper-most" level of the code
 # (i.e. the level at which data is read in). For instance, the geo.gen.Resample function (and its parallelized version,
-# geo.gen.Resample.Parallel) is the only resampling function called in scripts analyzing species. These functions are 
-# wrappers of exSituResample (sapplied over resamping replicates), which itself is a wrapper of calculateCoverage 
-# (sapplied over different sample sizes).
+# geo.gen.Resample.Par) is the only resampling function called in scripts analyzing species. These functions are 
+# wrappers of exSituResample (or exSituResample.Par) sapplied over resamping replicates; these functiosn, in turn,
+# are wrappers of calculateCoverage (sapplied over different sample sizes).
 
 # The functions in this script are divided into sections based on their role in the workflow: the majority
 # of the most relevant functions are within the 'BUILDING THE RESAMPLING ARRAY" section. 
