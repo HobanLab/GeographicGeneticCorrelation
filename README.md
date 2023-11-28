@@ -1,5 +1,5 @@
 # Overview
-This repository contains the code used for Goal #1 of the Hoban [IMLS 2022 National Leadership Grant (NLG)](https://www.imls.gov/grants/awarded/mg-251613-oms-22), 
+This repository contains the code used for Goal #1 of the Morton Arboretum [IMLS 2022 National Leadership Grant (NLG)](https://www.imls.gov/grants/awarded/mg-251613-oms-22), 
 which seeks to determine if, and in what circumstances, measures of geographic and ecological coverage predict genetic coverage.
 
 To do this, we utilize datasets for which genetic and geographic data exists for **wild** individuals (or populations) of different plant species, and 
