@@ -2,11 +2,11 @@
 # %%% GEN-GEO-ECO CORRELATION DEMO: QUERCUS ACERIFOLIA %%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Script demonstrating first draft approach for calculating the correlation 
-# between genetic, geographic, and ecological coverage. Uses a genind file from Quercus
-# acerifolia (SNP loci, complete dataset), as well as a CSV containing sample 
-# names, latitudes and longitudes, to iteratively resample wild points and measure
-# coverage.
+# Script demonstrating approach for calculating the correlation between genetic, geographic, 
+# and ecological coverage. Uses a genind file from Quercus acerifolia (SNP loci, Complete dataset), 
+# as well as a CSV containing sample names, latitudes and longitudes, to iteratively resample 
+# wild points and measure coverage. Based on the parFlag value, the code is branched to 
+# allow for procesing in parallel or not in parallel.
 
 library(adegenet)
 library(terra)
@@ -21,7 +21,7 @@ source('Scripts/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
-num_reps <- 1
+num_reps <- 3
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
 geo_buffSize <- 1000
@@ -38,12 +38,12 @@ ecoregion_poly <-
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel
-parFlag <- FALSE
+parFlag <- TRUE
 
 # If running in parallel, set up cores and export required libraries
 if(parFlag==TRUE){
   # Set up relevant cores 
-  num_cores <- detectCores() - 8 
+  num_cores <- detectCores() - 4 
   cl <- makeCluster(num_cores)
   # Make sure libraries (adegenet, terra, and parallel) are on cluster
   clusterEvalQ(cl, library('adegenet'))
@@ -85,17 +85,21 @@ if(parFlag==TRUE){
                                 'world_poly_clip_W', 'ecoregion_poly_W'))
   # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
   clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
-                                'getAlleleCategories','calculateCoverage', 'exSituResample', 
-                                'geo.gen.Resample.Parallel'))
+                                'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
+                                'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata')
-  # arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_5r_resampArr.Rdata')
   # Run resampling in parallel
+  # QUAC_demoArray_IND_Par <- 
+  #   geo.gen.Resample.Parallel(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, 
+  #                             geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
+  #                             ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
+  #                             reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
   QUAC_demoArray_IND_Par <- 
-    geo.gen.Resample.Parallel(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, 
-                              geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                              ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
-                              reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
+    geo.gen.Resample.Par(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, 
+                         geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
+                         ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
+                         reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
   # Close cores
   stopCluster(cl)
 } else{
