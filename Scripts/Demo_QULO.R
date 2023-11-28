@@ -2,7 +2,7 @@
 # %%% GEN-GEO-ECO CORRELATION DEMO: QUERCUS LOBATA %%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Script demonstrating first draft approach for calculating the correlation 
+# Script demonstrating approach for calculating the correlation 
 # between genetic, geographic, and ecological coverage. 
 # Uses data files from Gugger et al. 2021 to pull in genetic data 
 # (as a table) and geographic coordinates (in a CSV) to conduct correlation analyses.
@@ -74,8 +74,8 @@ clusterExport(cl, varlist = c('wildPoints','QULO_genind','num_reps','geo_buffSiz
                               'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
-                              'gen.getAlleleCategories','calculateCoverage', 'exSituResample', 
-                              'geo.gen.Resample.Parallel'))
+                              'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
+                              'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
 # arrayDir <- paste0(QUAC.filePath, 'resamplingData/QULO_1km_GE_5r_resampArr.Rdata')
 arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_GE_5r_resampArr.Rdata')
