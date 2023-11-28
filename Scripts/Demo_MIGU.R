@@ -86,8 +86,8 @@ clusterExport(cl, varlist = c('MIGU_coordinates','MIGU_genind','num_reps','geo_b
                               'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
-                              'gen.getAlleleCategories','calculateCoverage', 'exSituResample', 
-                              'geo.gen.Resample.Parallel'))
+                              'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
+                              'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
 arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_50km_GE_5r_resampArr.Rdata')
 
