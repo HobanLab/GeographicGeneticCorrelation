@@ -62,7 +62,6 @@ After building resampling arrays, we pass the results into linear models which s
 These plots are generated in the 2nd half of the demo scripts, for each species.
 
 # Data and Contact
-## Datasets
 The links below direct to the repositories for the raw genetic/geographic data utilized for each species. Certain files within each of these repositories were processed to provide the input files available in the [`Datasets`](https://github.com/HobanLab/GeographicGeneticCorrelation/tree/main/Datasets) folder.
 
 1. _Quercus acerifolia_
