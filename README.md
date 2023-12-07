@@ -63,6 +63,8 @@ These plots are generated in the 2nd half of the demo scripts, for each species.
 
 # Data and Contact
 ## Datasets
+The links below direct to the repositories for the raw genetic/geographic data utilized for each species. Certain files within each of these repositories were processed to provide the input files available in the [`Datasets`](https://github.com/HobanLab/GeographicGeneticCorrelation/tree/main/Datasets) folder.
+
 1. _Quercus acerifolia_
 	+ [SRA link](https://submit.ncbi.nlm.nih.gov/subs/sra/SUB10415299/overview)
 2. _Quercus lobata_
@@ -73,4 +75,4 @@ These plots are generated in the 2nd half of the demo scripts, for each species.
 	+ [Dryad link](https://datadryad.org/stash/dataset/doi:10.5061/dryad.ncjsxkstp)
 
 
-For questions about these datasets or the scripts included here, open an Issue or contact [Austin Koontz](https://akoontz11.netlify.app/).
+For questions about these datasets, how they were processed, or the scripts included here, open an Issue or contact [Austin Koontz](https://akoontz11.netlify.app/).
