@@ -267,10 +267,6 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
   return(covRates)
 }
 
-# !!! WAYS FOR CALCULATECOVERAGE TO IMPROVE !!!
-# 1. Move calculation of ecoregions for all sample points out of the innermost function
-# 2. Move calculation of all allele frequencies out of the innermost function
-
 # WRAPPER FUNCTION: iterates calculateCoverage over the entire matrix of samples
 exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
                            buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=FALSE, ecoBuff=50000,
