@@ -15,7 +15,7 @@ library(RColorBrewer)
 library(scales)
 
 # Read in relevant functions
-GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
+GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
 
@@ -52,9 +52,19 @@ if(parFlag==TRUE){
   
   # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
   # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
-  world_poly_clip_W <- wrap(world_poly_clip)
-  ecoregion_poly_W <- wrap(ecoregion_poly)
+  
+  ##! commenting out for now as I'll need to download these reference layers  
+  # world_poly_clip_W <- wrap(world_poly_clip)
+  # ecoregion_poly_W <- wrap(ecoregion_poly)
 }
+
+###
+# I wonder if these parameters above are going to be consistent across species. Maybe best to move it into a 
+# config files that source across the inputs. Also might not be such a big deal to duplicate between species. 
+#
+###
+
+
 
 # %%%% INDIVIDUAL-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that specify the location of each individual
