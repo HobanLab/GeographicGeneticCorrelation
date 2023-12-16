@@ -55,7 +55,7 @@ createBuffers <- function(df, radius=1000, ptProj='+proj=longlat +datum=WGS84',
 # data.frame to create a separate "ex situ" spatial object. Then, the createBuffers function is used to 
 # place buffers around all wild points and the sample, and then the proportion of the total area covered 
 # is calculated
-geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
+geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE , ){
   # If running in parallel: world polygon shapefile needs to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
@@ -71,8 +71,53 @@ geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj,
   geo_totalArea <- expanse(geo_total)/1000000
   # Calculate the proportion of the ex situ buffer areas to the total buffer area (percent geographic coverage)
   geo_Coverage <- (geo_exSituArea/geo_totalArea)*100
+
   return(geo_Coverage)
 }
+
+
+geo.compareBuffSDM(totalWildPoints=coordPts,sampVect=rownames(samp), radius=geoBuff, 
+                    model=SDMrast, ptProj=ptProj, buffProj=buffProj, boundary=boundary,parFlag=parFlag){
+  # unwrap spatial features 
+  if(parFlag==TRUE){
+    boundary <- unwrap(boundary)
+    model <- unwrap(model)
+  }
+  
+  # generate a mask of the model layer by converting all 0 values to NA  
+  m <- c(0, 0, NA)
+  mask <- model |>
+    classify(m)
+  
+  # Select "ex situ" coordinates by subsetting totalWildPoints data.frame, according to sampVect
+  exSitu <- totalWildPoints[sort(match(sampVect, totalWildPoints[,1])),]
+  # Create buffers around selected (exSitu) wild points and around all (total) occurrences 
+  geo_exSitu <- createBuffers(exSitu, radius, ptProj, buffProj, boundary) |>
+    # reproject to match crs of smd object 
+      terra::project(mask)
+  # rasterize 
+  buffRast <- geo_exSitu |>
+    terra::rasterize(mask)
+  # apply mask
+  buffMask <- buffRast * mask
+
+  # Calculate the area under both rasters in km²
+  geo_exSituArea <- terra::cellSize(buffMask, mask= TRUE, unit = "km") |>
+    terra::values()|>
+    sum(na.rm = TRUE)
+  geo_totalArea <- terra::cellSize(mask, mask= TRUE, unit = "km") |>
+    terra::values()|>
+    sum(na.rm = TRUE)
+  # Calculate the proportion of the ex situ buffer areas to the total buffer area (percent geographic coverage)
+  geo_Coverage <- (geo_exSituArea/geo_totalArea)*100
+  
+  return(geo_Coverage)
+}
+
+
+
+
+
 
 # Create a data.frame with ecoregion data extracted for area covered by buffers
 eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary, parFlag=FALSE){

@@ -52,10 +52,8 @@ if(parFlag==TRUE){
   
   # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
   # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
-  
-  ##! commenting out for now as I'll need to download these reference layers  
-  # world_poly_clip_W <- wrap(world_poly_clip)
-  # ecoregion_poly_W <- wrap(ecoregion_poly)
+  world_poly_clip_W <- wrap(world_poly_clip)
+  ecoregion_poly_W <- wrap(ecoregion_poly)
 }
 
 ###
@@ -106,10 +104,20 @@ if(parFlag==TRUE){
   #                             ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
   #                             reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
   QUAC_demoArray_IND_Par <- 
-    geo.gen.Resample.Par(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, 
-                         geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                         ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
-                         reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
+    geo.gen.Resample.Par(
+      gen_obj = QUAC_genind,
+      geoFlag = TRUE,
+      coordPts = wildPoints,
+      geoBuff = geo_buffSize,
+      boundary = world_poly_clip_W,
+      ecoFlag = TRUE,
+      ecoBuff = eco_buffSize,
+      ecoRegions = ecoregion_poly_W,
+      ecoLayer = 'US',
+      reps = num_reps,
+      arrayFilepath = arrayDir,
+      cluster = cl
+    )
   # Close cores
   stopCluster(cl)
 } else{
