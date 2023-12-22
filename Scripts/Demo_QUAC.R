@@ -13,11 +13,13 @@ library(terra)
 library(parallel)
 library(RColorBrewer)
 library(scales)
+library(rnaturalearth)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
+source('Scripts/worldAdmin.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
@@ -30,11 +32,32 @@ eco_buffSize <- 1000
 # ---- SHAPEFILES
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
-world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd,
+                                  fileExtentsion = ".gpkg",
+                                  overwrite = FALSE)
+
+
+wildPoints <- read.csv(paste0(GeoGenCorr_wd,
+                              '/Datasets/QUAC/Geographic/QUAC_coord_ind.csv'),
+                       header=TRUE)
+
+# perfor geographic filter on the admin layer
+world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip,
+                        wildPoints = wildPoints) 
+
+# defined again in the primary workflow. 
+rm(wildPoints)
+
+
+
+
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
+## no direct way to download so these need to be grad from epa website https://www.epa.gov/eco-research/level-iii-and-iv-ecoregions-continental-united-states
+## seems like the data with states was used originally, I don't that that reference is utialize so it might be 
+## better to use the smaller file. 
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
+
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel

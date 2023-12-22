@@ -55,7 +55,7 @@ createBuffers <- function(df, radius=1000, ptProj='+proj=longlat +datum=WGS84',
 # data.frame to create a separate "ex situ" spatial object. Then, the createBuffers function is used to 
 # place buffers around all wild points and the sample, and then the proportion of the total area covered 
 # is calculated
-geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE , ){
+geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
   # If running in parallel: world polygon shapefile needs to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
