@@ -137,7 +137,7 @@ averageValueMat <- meanArrayValues(PICO_demoArray_Par, allValues = TRUE)
 # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
 averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
 
-# Specify plot colors ()
+# Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
 plotColors <- alpha(plotColors, 0.45)
 plotColors_Sub <- plotColors[-(2:5)]
