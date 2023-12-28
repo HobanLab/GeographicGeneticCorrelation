@@ -79,8 +79,7 @@ eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary,
   # If running in parallel: world polygon and ecoregions shapefiles need to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
-    ecoRegion <- unwrap(ecoRegion)
-    boundary <- unwrap(boundary)
+    ecoRegion <- unwrap(ecoRegion) ; boundary <- unwrap(boundary)
   }
   # Create buffers
   buffers <- createBuffers(df, radius, ptProj, buffProj, boundary)
@@ -103,8 +102,7 @@ eco.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj,
   # If running in parallel: world polygon and ecoregions shapefiles need to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
-    ecoRegion <- unwrap(ecoRegion)
-    boundary <- unwrap(boundary)
+    ecoRegion <- unwrap(ecoRegion) ; boundary <- unwrap(boundary)
   }
   # Build sample ex situ points by subseting totalWildPoints data.frame, according to sampVect
   exSitu <- totalWildPoints[sort(match(sampVect, totalWildPoints[,1])),]
