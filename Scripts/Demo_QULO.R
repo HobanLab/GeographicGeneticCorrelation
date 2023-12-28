@@ -55,11 +55,12 @@ clusterEvalQ(cl, library('parallel'))
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
 
 # ---- GENETIC MATRIX
-# Processing input file
+# Read in the SNPs genetic matrix file
 QULO_tab <- read.table(paste0(QULO_filePath, 'Genetic/SNPs80.forR'), header = TRUE)
 # Make sample names the row names
 rownames(QULO_tab) <- QULO_tab[,1] ; QULO_tab <- QULO_tab[,-1]
-# Convert to genind. ncode based off similar practice for other geninds (values of 1, 2, and 3 generate identical results)
+# Convert to genind. ncode based off similar practice for other geninds 
+# (values of 1, 2, and 3 generate identical results)
 QULO_genind <- df2genind(QULO_tab, ncode = 3, ploidy = 2)
 
 # ---- GEOGRAPHIC COORDINATES
@@ -123,7 +124,7 @@ averageValueMat <- meanArrayValues(QULO_demoArray_Par, allValues = TRUE)
 # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
 averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
 
-# Specify plot colors ()
+# Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
 plotColors <- alpha(plotColors, 0.45)
 plotColors_Sub <- plotColors[-(2:5)]
