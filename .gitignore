@@ -16,7 +16,3 @@ GIS_shpFiles/
 # STRUCTURE input file for Pinus contorta dataset. This file is referenced in the PICO_demo.R script, but is too large
 # (> 50MB) to be included on the repository.
 Datasets/PICO/Genetic/Pine_NaturalComp_85SNPfilter.stru
-
-# Ignore the files being used for Yucca brevifolia, from Royer et al. 2016 (currently in development)
-Datasets/YUBR/
-Scripts/Demo_YUBR.R
