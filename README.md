@@ -72,6 +72,7 @@ The links below direct to the repositories for the raw genetic/geographic data u
 	+ [Dryad link](https://datadryad.org/stash/dataset/doi:10.5061/dryad.ncjsxkstp)
 4. _Mimulus guttatus_
 	+ [Dryad link](https://datadryad.org/stash/dataset/doi:10.5061/dryad.ncjsxkstp)
-
+5. _Yucca brevifolia_
+	+ [Dryad link](https://datadryad.org/stash/dataset/doi:10.5061/dryad.7pj4t)
 
 For questions about these datasets, how they were processed, or the scripts included here, open an Issue or contact [Austin Koontz](https://akoontz11.netlify.app/).
