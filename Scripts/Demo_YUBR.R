@@ -93,9 +93,10 @@ longs <- round(YUBR_points[,5]/60 + YUBR_points[,4], 4)
 # Reformat coordinate values based on conversions, and rename
 YUBR_coordinates <- cbind.data.frame(YUBR_points[,1], lats, longs)
 colnames(YUBR_coordinates) <- c('Sample', 'decimalLatitude', 'decimalLongitude')
+# Subset the coordinates data.frame to strictly the samples included in the genetic matrix
+YUBR_coordinates <- YUBR_coordinates[which(YUBR_coordinates$Sample %in% indNames(YUBR_genind)),]
 # Reorder the coordinate values to match the order of samples in the genind file
-YUBR_coordinates <- YUBR_coordinates[order(match(YUBR_coordinates$Sample, 
-                                                 indNames(YUBR_genind))),]
+YUBR_coordinates <- YUBR_coordinates[match(indNames(YUBR_genind), YUBR_coordinates$Sample),]
 
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) 
