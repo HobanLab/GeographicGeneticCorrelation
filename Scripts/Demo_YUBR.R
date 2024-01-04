@@ -89,12 +89,13 @@ YUBR_points <- read.csv(
 # Convert decimal minutes to decimal degrees by dividing the 3rd and 5th columns by
 # 60, then adding them to the degrees columns (2nd and 4th)
 lats <- round(YUBR_points[,3]/60 + YUBR_points[,2], 4)
-longs <- round(YUBR_points[,5]/60 + YUBR_points[,4], 4)
+# For longitudes, multiply by -1 to properly locate coordinates
+longs <- -1*(round(YUBR_points[,5]/60 + YUBR_points[,4], 4))
 # Reformat coordinate values based on conversions, and rename
-YUBR_coordinates <- cbind.data.frame(YUBR_points[,1], lats, longs)
-colnames(YUBR_coordinates) <- c('Sample', 'decimalLatitude', 'decimalLongitude')
+YUBR_points <- cbind.data.frame(YUBR_points[,1], lats, longs)
+colnames(YUBR_points) <- c('Sample', 'decimalLatitude', 'decimalLongitude')
 # Subset the coordinates data.frame to strictly the samples included in the genetic matrix
-YUBR_coordinates <- YUBR_coordinates[which(YUBR_coordinates$Sample %in% indNames(YUBR_genind)),]
+YUBR_coordinates <- YUBR_points[which(YUBR_points$Sample %in% indNames(YUBR_genind)),]
 # Reorder the coordinate values to match the order of samples in the genind file
 YUBR_coordinates <- YUBR_coordinates[match(indNames(YUBR_genind), YUBR_coordinates$Sample),]
 
@@ -118,6 +119,12 @@ YUBR_demoArray_Par <-
                        reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
+
+# Run resampling not in parallel (for function testing purposes)
+# YUBR_demoArray_IND <-
+#   geo.gen.Resample(gen_obj = YUBR_genind, geoFlag = TRUE, coordPts = YUBR_coordinates, geoBuff = geo_buffSize, 
+#                    boundary = world_poly_clip, ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly,
+#                    ecoLayer = "US", reps = 1)
 
 # %%% ANALYZE DATA %%% ----
 # Read in the resampling array .Rdata object, saved to disk
@@ -189,7 +196,7 @@ stopCluster(cl)
 # # Add legend
 # legend(x=205, y=60, inset = 0.05,
 #        legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level IV)'),
-#        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n', 
+#        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n',
 #        y.intersp = 0.8)
 # 
 # # ---- BOTH PLOTS (For IMLS NLG subgroup presentation, 2023-08-17) ----
