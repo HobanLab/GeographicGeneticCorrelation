@@ -45,6 +45,10 @@ wildPoints <- read.csv(paste0(GeoGenCorr_wd,
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip,
                         wildPoints = wildPoints) 
 
+# ---- rasters 
+sdm <- terra::rast(paste0(GeoGenCorr_wd,
+                          '/Datasets/QUAC/Geographic/prj_threshold.tif'))
+
 # defined again in the primary workflow. 
 rm(wildPoints)
 
@@ -77,6 +81,7 @@ if(parFlag==TRUE){
   # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
   world_poly_clip_W <- wrap(world_poly_clip)
   ecoregion_poly_W <- wrap(ecoregion_poly)
+  sdm_W <- wrap(sdm)
 }
 
 ###
@@ -113,9 +118,10 @@ wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coord_ind.csv'), h
 if(parFlag==TRUE){
   # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
   clusterExport(cl, varlist = c('wildPoints','QUAC_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                                'world_poly_clip_W', 'ecoregion_poly_W'))
+                                'world_poly_clip_W', 'ecoregion_poly_W', 'sdm_W'))
   # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-  clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
+  clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', "geo.compareBuffSDM",
+                                'eco.intersectBuff', 'eco.compareBuff',
                                 'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
                                 'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
@@ -131,6 +137,7 @@ if(parFlag==TRUE){
       gen_obj = QUAC_genind,
       geoFlag = TRUE,
       coordPts = wildPoints,
+      SDMrast = sdm_W,
       geoBuff = geo_buffSize,
       boundary = world_poly_clip_W,
       ecoFlag = TRUE,
@@ -146,8 +153,16 @@ if(parFlag==TRUE){
 } else{
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
-    geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, geoBuff = geo_buffSize, 
-                     boundary = world_poly_clip, ecoFlag = FALSE, reps = num_reps)
+    geo.gen.Resample(
+      gen_obj = QUAC_genind,
+      SDMrast = sdm,
+      geoFlag = TRUE,
+      coordPts = wildPoints,
+      geoBuff = geo_buffSize,
+      boundary = world_poly_clip,
+      ecoFlag = FALSE,
+      reps = num_reps
+    )
 }
 
 # ---- CORRELATION ----

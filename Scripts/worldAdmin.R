@@ -77,8 +77,11 @@ prepWorldAdmin <- function(world_poly_clip, wildPoints){
     dplyr::select(adm0_a3)|>
     dplyr::pull()
   # filter world admin to countries on overlap
+  ### this is silly... but the dplyr filter is not working on the vect object... 
   admin <- world_poly_clip |>
+    sf::st_as_sf()|>
     dplyr::filter(adm0_a3 %in% uniqueLocs)|>
+    terra::vect()|> 
     terra::aggregate()
                       
   # return the simplified object 

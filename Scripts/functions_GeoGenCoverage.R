@@ -76,8 +76,14 @@ geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj,
 }
 
 
-geo.compareBuffSDM(totalWildPoints=coordPts,sampVect=rownames(samp), radius=geoBuff, 
-                    model=SDMrast, ptProj=ptProj, buffProj=buffProj, boundary=boundary,parFlag=parFlag){
+geo.compareBuffSDM <- function(totalWildPoints=coordPts,
+                   sampVect=rownames(samp),
+                   radius=geoBuff, 
+                   model=SDMrast,
+                   ptProj=ptProj,
+                   buffProj=buffProj,
+                   boundary=boundary,
+                   parFlag=parFlag){
   # unwrap spatial features 
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
@@ -267,7 +273,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
     geoRate <- geo.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp), radius=geoBuff, 
                                ptProj=ptProj, buffProj=buffProj, boundary=boundary, parFlag=parFlag)
     # If no rasterized SDM is provided, calculate geographic coverage using just the buffer approach (default)
-    if(is.na(SDMrast)){
+    if(class(SDMrast)=="logical"){
       names(geoRate) <- 'Geo'
     } else{
       # If the rasterized SDM is provided to this function, calculate geographic coverage using the SDM-approach
@@ -276,6 +282,19 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
       # geoRate_SDM <- newFunctionForSDMCalc(totalWildPoints=coordPts, sampVect=rownames(samp), radius=geoBuff, 
       #                                      model=SDMrast, ptProj=ptProj, buffProj=buffProj, boundary=boundary, 
       #                                      parFlag=parFlag)
+      geoRate_SDM <- geo.compareBuffSDM(
+          totalWildPoints = coordPts,
+          sampVect = rownames(samp),
+          radius = geoBuff,
+          model =
+            SDMrast,
+          ptProj = ptProj,
+          buffProj = buffProj,
+          boundary = boundary,
+          parFlag =
+            parFlag
+        )
+      
       
       # Combine the two geographic coverage values (one using total buffered area, one using SDM)
       geoRate <- c(geoRate, geoRate_SDM)
@@ -366,9 +385,21 @@ exSituResample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, S
 
 # WRAPPER FUNCTION: iterates exSituResample, which will generate an array of values from a single genind object
 # This function doesn't run in parallel, so it's primarily used for testing/demonstration purposes
-geo.gen.Resample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
-                             buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=FALSE, ecoBuff=50000, 
-                             ecoRegions, ecoLayer=c('US','NA','GL'), reps=5){
+geo.gen.Resample <-
+  function(gen_obj,
+           geoFlag = TRUE,
+           coordPts,
+           geoBuff = 50000,
+           SDMrast = NA,
+           ptProj = '+proj=longlat +datum=WGS84',
+           buffProj = '+proj=eqearth +datum=WGS84',
+           boundary,
+           ecoFlag = FALSE,
+           ecoBuff = 50000,
+           ecoRegions,
+           ecoLayer = c('US', 'NA', 'GL'),
+           reps = 5) {
+    
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- sapply(1:reps, 
                             function(x) exSituResample(gen_obj=gen_obj, geoFlag=geoFlag, coordPts=coordPts, geoBuff=geoBuff,
@@ -383,10 +414,21 @@ geo.gen.Resample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDM
 # WRAPPER FUNCTION: iterates exSituResample.Par, which will generate an array of values from a single genind object
 # This function iterates the parallelized version of exSituResample, such that each different sample size for a 
 # single resampling replicate is processed on a single core. Results (resampling array) are saved to a specified file path.
-geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA,
-                                 ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
-                                 boundary, ecoFlag=FALSE, ecoBuff=50000, ecoRegions, ecoLayer=c('US','NA','GL'), reps=5,
-                                 arrayFilepath='~/resamplingArray.Rdata', cluster){
+geo.gen.Resample.Par <- function(gen_obj, 
+                                 geoFlag=TRUE, 
+                                 coordPts, 
+                                 geoBuff=50000, 
+                                 SDMrast=NA,
+                                 ptProj='+proj=longlat +datum=WGS84', 
+                                 buffProj='+proj=eqearth +datum=WGS84', 
+                                 boundary, 
+                                 ecoFlag=FALSE, 
+                                 ecoBuff=50000, 
+                                 ecoRegions,
+                                 ecoLayer=c('US','NA','GL'), 
+                                 reps=5,
+                                 arrayFilepath='~/resamplingArray.Rdata', 
+                                 cluster){
   # Print starting time
   startTime <- Sys.time() 
   print(paste0('%%% RUNTIME START: ', startTime))
