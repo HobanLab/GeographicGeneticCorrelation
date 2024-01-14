@@ -65,7 +65,7 @@ ecoregion_poly <-
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel
-parFlag <- TRUE
+parFlag <- FALSE
 
 # If running in parallel, set up cores and export required libraries
 if(parFlag==TRUE){
