@@ -8,11 +8,11 @@
 # slices are different resampling replicates. In general, these resampling replicates are built using a 
 # genetic matrix (part of a genind file) and a data.frame of decimal latitude and longitude values.
 
-# Many of the functions here are wrappers, which sapply other, lower-level functions here. The advantage of this 
+# Many of the functions here are wrappers, which sapply other lower-level functions. The advantage of this 
 # nested function approach is that it allows for a single function to be called at the "upper-most" level of the code
 # (i.e. the level at which data is read in). For instance, the geo.gen.Resample function (and its parallelized version,
 # geo.gen.Resample.Par) is the only resampling function called in scripts analyzing species. These functions are 
-# wrappers of exSituResample (or exSituResample.Par) sapplied over resamping replicates; these functiosn, in turn,
+# wrappers of exSituResample (or exSituResample.Par) sapplied over resampling replicates; these functions, in turn,
 # are wrappers of calculateCoverage (sapplied over different sample sizes).
 
 # The functions in this script are divided into sections based on their role in the workflow: the majority
@@ -84,6 +84,7 @@ geo.compareBuffSDM <- function(totalWildPoints=coordPts,
                    buffProj=buffProj,
                    boundary=boundary,
                    parFlag=parFlag){
+  
   # unwrap spatial features 
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
@@ -234,6 +235,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
                               buffProj='+proj=eqearth +datum=WGS84', boundary,
                               ecoFlag=FALSE, ecoBuff, ecoRegions, ecoLayer=c('US','NA','GL'),
                               parFlag=FALSE, numSamples){
+  
   # GENETIC PROCESSING
   # Calculate a vector of allele frequencies, based on the total sample matrix
   freqVector <- colSums(gen_mat, na.rm = TRUE)/(nrow(gen_mat)*2)*100
