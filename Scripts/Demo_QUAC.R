@@ -127,11 +127,6 @@ if(parFlag==TRUE){
   # Specify file path, for saving resampling array
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata')
   # Run resampling in parallel
-  # QUAC_demoArray_IND_Par <- 
-  #   geo.gen.Resample.Parallel(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, 
-  #                             geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-  #                             ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
-  #                             reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
   QUAC_demoArray_IND_Par <- 
     geo.gen.Resample.Par(
       gen_obj = QUAC_genind,

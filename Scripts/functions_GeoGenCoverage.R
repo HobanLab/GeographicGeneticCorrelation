@@ -130,8 +130,7 @@ eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary,
   # If running in parallel: world polygon and ecoregions shapefiles need to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
-    ecoRegion <- unwrap(ecoRegion)
-    boundary <- unwrap(boundary)
+    ecoRegion <- unwrap(ecoRegion) ; boundary <- unwrap(boundary)
   }
   # Create buffers
   buffers <- createBuffers(df, radius, ptProj, buffProj, boundary)
@@ -154,8 +153,7 @@ eco.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj,
   # If running in parallel: world polygon and ecoregions shapefiles need to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
-    ecoRegion <- unwrap(ecoRegion)
-    boundary <- unwrap(boundary)
+    ecoRegion <- unwrap(ecoRegion) ; boundary <- unwrap(boundary)
   }
   # Build sample ex situ points by subseting totalWildPoints data.frame, according to sampVect
   exSitu <- totalWildPoints[sort(match(sampVect, totalWildPoints[,1])),]
@@ -330,10 +328,6 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
   covRates <- c(genRates, geoRate, ecoRate)
   return(covRates)
 }
-
-# !!! WAYS FOR CALCULATECOVERAGE TO IMPROVE !!!
-# 1. Move calculation of ecoregions for all sample points out of the innermost function
-# 2. Move calculation of all allele frequencies out of the innermost function
 
 # WRAPPER FUNCTION: iterates calculateCoverage over the entire matrix of samples
 exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
