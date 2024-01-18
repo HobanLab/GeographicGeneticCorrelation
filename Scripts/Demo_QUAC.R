@@ -23,7 +23,7 @@ source('Scripts/worldAdmin.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
-num_reps <- 3
+num_reps <- 1
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
 geo_buffSize <- 1000
