@@ -13,11 +13,13 @@ library(terra)
 library(parallel)
 library(RColorBrewer)
 library(scales)
+library(rnaturalearth)
 
 # Read in relevant functions
-GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
+GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
+source('Scripts/worldAdmin.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
@@ -30,11 +32,36 @@ eco_buffSize <- 1000
 # ---- SHAPEFILES
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
-world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd,
+                                  fileExtentsion = ".gpkg",
+                                  overwrite = FALSE)
+
+
+wildPoints <- read.csv(paste0(GeoGenCorr_wd,
+                              '/Datasets/QUAC/Geographic/QUAC_coord_ind.csv'),
+                       header=TRUE)
+
+# perfor geographic filter on the admin layer
+world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip,
+                        wildPoints = wildPoints) 
+
+# ---- rasters 
+sdm <- terra::rast(paste0(GeoGenCorr_wd,
+                          '/Datasets/QUAC/Geographic/prj_threshold.tif'))
+
+# defined again in the primary workflow. 
+rm(wildPoints)
+
+
+
+
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
+## no direct way to download so these need to be grad from epa website https://www.epa.gov/eco-research/level-iii-and-iv-ecoregions-continental-united-states
+## seems like the data with states was used originally, I don't that that reference is utialize so it might be 
+## better to use the smaller file. 
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
+
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel
@@ -54,7 +81,16 @@ if(parFlag==TRUE){
   # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
   world_poly_clip_W <- wrap(world_poly_clip)
   ecoregion_poly_W <- wrap(ecoregion_poly)
+  sdm_W <- wrap(sdm)
 }
+
+###
+# I wonder if these parameters above are going to be consistent across species. Maybe best to move it into a 
+# config files that source across the inputs. Also might not be such a big deal to duplicate between species. 
+#
+###
+
+
 
 # %%%% INDIVIDUAL-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that specify the location of each individual
@@ -82,27 +118,46 @@ wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coord_ind.csv'), h
 if(parFlag==TRUE){
   # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
   clusterExport(cl, varlist = c('wildPoints','QUAC_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                                'world_poly_clip_W', 'ecoregion_poly_W'))
+                                'world_poly_clip_W', 'ecoregion_poly_W', 'sdm_W'))
   # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-  clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
+  clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', "geo.compareBuffSDM",
+                                'eco.intersectBuff', 'eco.compareBuff',
                                 'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
                                 'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata')
   # Run resampling in parallel
   QUAC_demoArray_IND_Par <- 
-    geo.gen.Resample.Par(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, 
-                         geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                         ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
-                         reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
+    geo.gen.Resample.Par(
+      gen_obj = QUAC_genind,
+      geoFlag = TRUE,
+      coordPts = wildPoints,
+      SDMrast = sdm_W,
+      geoBuff = geo_buffSize,
+      boundary = world_poly_clip_W,
+      ecoFlag = TRUE,
+      ecoBuff = eco_buffSize,
+      ecoRegions = ecoregion_poly_W,
+      ecoLayer = 'US',
+      reps = num_reps,
+      arrayFilepath = arrayDir,
+      cluster = cl
+    )
   # Close cores
   stopCluster(cl)
 } else{
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
-    geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, geoBuff = geo_buffSize, 
-                     boundary = world_poly_clip, ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly,
-                     ecoLayer = 'US', reps = 1)
+    geo.gen.Resample(
+      gen_obj = QUAC_genind,
+      SDMrast = sdm,
+      geoFlag = TRUE,
+      coordPts = wildPoints,
+      geoBuff = geo_buffSize,
+      boundary = world_poly_clip,
+      ecoFlag = FALSE,
+      reps = num_reps
+    )
 }
 
 # ---- CORRELATION ----
