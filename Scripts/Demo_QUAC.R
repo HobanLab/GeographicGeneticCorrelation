@@ -49,6 +49,17 @@ world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip,
 sdm <- terra::rast(paste0(GeoGenCorr_wd,
                           '/Datasets/QUAC/Geographic/prj_threshold.tif'))
 
+### test resolution of buffer against raster features 
+## assuming that 1 meter == 0.000012726903908907691 degrees 
+geoBuffDegree <- geo_buffSize * 0.000012726903908907691
+sdmDegree <- terra::res(sdm)[1]
+if(geoBuffDegree < sdmDegree){
+  # resample the raster to a smaller cell size 
+  scaleFactor <- ceiling(sdmDegree /geoBuffDegree)
+  sdm <- terra::disagg(sdm, scaleFactor) 
+}
+
+
 # defined again in the primary workflow. 
 rm(wildPoints)
 
