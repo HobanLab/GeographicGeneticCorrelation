@@ -54,6 +54,8 @@ sdm <- terra::rast(paste0(GeoGenCorr_wd,
 geoBuffDegree <- geo_buffSize * 0.000012726903908907691
 sdmDegree <- terra::res(sdm)[1]
 if(geoBuffDegree < sdmDegree){
+  warning("Your input SDM has a resolution that is larger then your suggested buffer.
+          The SDM will be resample to a smaller resolution.")
   # resample the raster to a smaller cell size 
   scaleFactor <- ceiling(sdmDegree /geoBuffDegree)
   sdm <- terra::disagg(sdm, scaleFactor) 
