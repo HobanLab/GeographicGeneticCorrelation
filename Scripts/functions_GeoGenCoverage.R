@@ -90,6 +90,7 @@ geo.compareBuffSDM <- function(totalWildPoints=coordPts,
     boundary <- unwrap(boundary)
     model <- unwrap(model)
   }
+
   
   # generate a mask of the model layer by converting all 0 values to NA  
   m <- c(0, 0, NA)
