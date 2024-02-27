@@ -366,7 +366,7 @@ exSituResample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, S
     pop(gen_obj) <- rep('wild', nInd(gen_obj))
   }
   # Create a matrix of wild individuals (those with population 'wild') from genind object
-  gen_matix <- gen_obj@tab[which(pop(gen_obj) == 'wild'),]
+  gen_mat <- gen_obj@tab[which(pop(gen_obj) == 'wild'),]
   # Apply the calculateCoverage function to all rows of the wild matrix using parSapply
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categor(parSapply(cluster, 2:nrow(gen_mat), 
