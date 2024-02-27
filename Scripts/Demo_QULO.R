@@ -102,13 +102,12 @@ QULO_DF <- resample.array2dataframe(QULO_demoArray_Par)
 # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
 QULO_geoModel <- lm (Total ~ Geo, data=QULO_DF)
 QULO_geoModel_summary <- summary(QULO_geoModel) ; QULO_geoModel_summary
-# Pull R-squared and p-value estimates from model
+# Pull R-squared estimate from model
 QULO_geoModel_rSquared <- round(QULO_geoModel_summary$adj.r.squared,2)
-QULO_geoModel_pValue <- QULO_geoModel_summary$coefficients[2, 4]
 # ECOLOGICAL COVERAGE AS PREDICTOR VARIABLE
 QULO_ecoModel <- lm (Total ~ Eco, data=QULO_DF)
 QULO_ecoModel_summary <- summary(QULO_ecoModel) ; QULO_ecoModel_summary
-# Pull R-squared and p-value estimates from model
+# Pull R-squared estimate from model
 QULO_ecoModel_rSquared <- round(QULO_ecoModel_summary$adj.r.squared, 2)
 QULO_ecoModel_pValue <- QULO_ecoModel_summary$coefficients[2, 4]
 

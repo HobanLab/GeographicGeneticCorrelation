@@ -139,15 +139,13 @@ YUBR_DF <- resample.array2dataframe(YUBR_demoArray_Par)
 # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
 YUBR_geoModel <- lm (Total ~ Geo, data=YUBR_DF)
 YUBR_geoModel_summary <- summary(YUBR_geoModel) ; YUBR_geoModel_summary
-# Pull R-squared and p-value estimates from model
+# Pull R-squared estimate from model
 YUBR_geoModel_rSquared <- round(YUBR_geoModel_summary$adj.r.squared,2)
-YUBR_geoModel_pValue <- YUBR_geoModel_summary$coefficients[2, 4]
 # ECOLOGICAL COVERAGE AS PREDICTOR VARIABLE
 YUBR_ecoModel <- lm (Total ~ Eco, data=YUBR_DF)
 YUBR_ecoModel_summary <- summary(YUBR_ecoModel) ; YUBR_ecoModel_summary
-# Pull R-squared and p-value estimates from model
+# Pull R-squared estimate from model
 YUBR_ecoModel_rSquared <- round(YUBR_ecoModel_summary$adj.r.squared, 2)
-YUBR_ecoModel_pValue <- YUBR_ecoModel_summary$coefficients[2, 4]
 
 # ---- PLOTTING ----
 # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
