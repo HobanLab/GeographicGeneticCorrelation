@@ -8,6 +8,7 @@
 # Any Rhistory/Rdata files
 *.Rhistory
 *.RData
+*.Rdata
 
 # Any output files
 *.out
