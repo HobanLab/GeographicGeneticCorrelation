@@ -34,7 +34,7 @@ grabWorldAdmin <- function(GeoGenCorr_wd, fileExtentsion, overwrite=FALSE){
     # convert to terra vect and simply 
     # world_poly_clip <- download |>
     #   terra::vect() |>
-    #   #this select is option but I don't think we need much of any attribute data on this file. 
+    #   #this select is option but I don't think we need much of any attribute data on this file.
     #   dplyr::select("admin", "adm0_a3", "name","name_long" )
     
     # ACK: the dplyr::select command errors for me 
