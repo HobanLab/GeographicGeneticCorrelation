@@ -16,7 +16,8 @@ library(scales)
 library(rnaturalearth)
 
 # Read in relevant functions
-GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/'
+# GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/'
+GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
 source('Scripts/worldAdmin.R')
@@ -138,7 +139,7 @@ if(parFlag==TRUE){
                                 'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
                                 'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
-  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata')
+  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_5km_IND_G2E_5r_resampArr.Rdata')
   # Run resampling in parallel
   QUAC_demoArray_IND_Par <- 
     geo.gen.Resample.Par(
@@ -173,7 +174,9 @@ if(parFlag==TRUE){
     )
 }
 
-# ---- CORRELATION ----
+# %%% CORRELATION ANALYSES AND PLOTTING %%% ----
+# %%% ORIGINAL ANALYSIS/PLOTTING COMMANDS ----
+# ---- CORRELATION 
 # Build a data.frame from array values, to pass to linear models
 QUAC_DF <- resample.array2dataframe(QUAC_demoArray_IND_Par)
 
@@ -186,7 +189,7 @@ QUAC_geoModel_summary <- summary(QUAC_geoModel) ; QUAC_geoModel_summary
 QUAC_geoModel_rSquared <- round(QUAC_geoModel_summary$adj.r.squared,2)
 QUAC_geoModel_pValue <- QUAC_geoModel_summary$coefficients[2, 4]
 
-# ---- PLOTTING ----
+# ---- PLOTTING 
 # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
 # Calculate minimum 95% sample size for genetic and geographic values
 gen_min95Value <- gen.min95Mean(QUAC_demoArray_Par) ; gen_min95Value
@@ -217,7 +220,7 @@ title(main='Quercus acerifolia: Geo-Gen Coverage', line=1.5)
 mtext(text='91 Individuals; 1 km buffer (individuals); 5 replicates', side=3, line=0.3)
 mtext(text='Number of individuals', side=1, line=2.4)
 # Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3) 
+abline(h=95, col='black', lty=3)
 abline(v=gen_min95Value, col='red')
 abline(v=geo_min95Value, col='darkblue')
 # Add text for the minimum sampling size lines
@@ -230,7 +233,7 @@ legend(x=65, y=80, inset = 0.05,
        legend = c('Genetic coverage (Total)', 'Geographic coverage (1 km buffer IND)'),
        col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.75)
 
-# %%%% 2023-08-17 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS
+# %%%% 2023-08-17 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS ----
 # (For IMLS NLG subgroup presentation, 2023-08-17)
 # Use the matplot function to 3 average values, with specified settings
 matplot(averageValueMat[1:3,], col=plotColors_Sub, pch=16, xlim=c(0,100), ylim=c(0,100), ylab = '')
@@ -240,8 +243,8 @@ mtext(text='91 Individuals; 1 km buffer (individuals); 5 replicates', side=3, li
 mtext(text='Number of individuals', side=1, line=3, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3) 
-abline(v=3, col='black') 
+abline(h=95, col='black', lty=3)
+abline(v=3, col='black')
 # Add text for 3 sample example
 mtext(text='COVERAGE VALUES AT 3 (RANDOM) SAMPLES', side=1, line=-4.5, at=24.8, cex=1.2)
 mtext(text='Genetic coverage: 65.68%', side=1, line=-2.5, at=15.7, cex=1.2)
@@ -259,13 +262,13 @@ mtext(text='91 Individuals; 1 km buffer (individuals); 5 replicates', side=3, li
 mtext(text='Number of individuals', side=1, line=3, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3) 
+abline(h=95, col='black', lty=3)
 # Add legend
 legend(x=58, y=70, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
        col=plotColors_Sub, pch = c(20,20,20), cex=1.1, pt.cex = 2, bty='n', y.intersp = 0.75)
 
-# %%%% 2023-09-27 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS
+# %%%% 2023-09-27 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS ----
 # (For IMLS NLG subgroup presentation, 2023-09-27)
 # Alter the values in the averageValueMat, to correspond with the presentation
 averageValueMat[1:3,1] <- c(70.2, 75.3, 80.9)
@@ -277,8 +280,8 @@ mtext(text='91 Individuals; 1 km buffer (individuals); 5 replicates', side=3, li
 mtext(text='Number of individuals', side=1, line=3, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3) 
-abline(v=3, col='black') 
+abline(h=95, col='black', lty=3)
+abline(v=3, col='black')
 # Add text for 3 sample example
 mtext(text='COVERAGE VALUES AT 3 (RANDOM) SAMPLES', side=1, line=-4.5, at=24.8, cex=1.2)
 mtext(text='Genetic coverage: 80.9%', side=1, line=-2.5, at=15.7, cex=1.2)
@@ -296,55 +299,121 @@ mtext(text='91 Individuals; 1 km buffer (individuals); 5 replicates', side=3, li
 mtext(text='Number of individuals', side=1, line=3, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3) 
+abline(h=95, col='black', lty=3)
 # Add legend
 legend(x=58, y=70, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
        col=plotColors_Sub, pch = c(20,20,20), cex=1.1, pt.cex = 2, bty='n', y.intersp = 0.75)
 
+# %%%% 2024-02-28 SDM AND TOTAL BUFFER COMPARISON ----
+# (For IMLS NLG subgroup presentation, 2024-02-02)
+# --- 1 KM BUFFER
+# Read in array and build a data.frame of values
+arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1km_IND_G2E_5r_resampArr.Rdata')
+QUAC_geoComp_1km_array <- readRDS(arrayDir)
+QUAC_geoComp_1km_DF <- resample.array2dataframe(QUAC_geoComp_1km_array)
+
+# ---- LINEAR MODELS
+# Generate linear models, using Total allelic coverage as the response variable
+# Use either the total buffer (Buff) or SDM (SDM) geographic coverage approach for the predictor variable
+# Also extract R squared values
+# Total buffer approach
+QUAC_geoComp_1km_geoModelBuff <- lm (Total ~ Geo_Buff, data=QUAC_geoComp_1km_DF)
+QUAC_geoComp_1km_geoModelBuff_summary <- summary(QUAC_geoComp_1km_geoModelBuff) ; QUAC_geoComp_1km_geoModel_summary
+QUAC_geoComp_1km_geoModelBuff_rSquared <- round(QUAC_geoComp_1km_geoModelBuff_summary$adj.r.squared,2)
+# SDM approach
+QUAC_geoComp_1km_geoModelSDM <- lm (Total ~ Geo_SDM, data=QUAC_geoComp_1km_DF)
+QUAC_geoComp_1km_geoModelSDM_summary <- summary(QUAC_geoComp_1km_geoModelSDM) ; QUAC_geoComp_1km_geoModel_summary
+QUAC_geoComp_1km_geoModelSDM_rSquared <- round(QUAC_geoComp_1km_geoModelSDM_summary$adj.r.squared,2)
+
+# ---- PLOTTING 
+# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
+# Calculate minimum 95% sample size for genetic and geographic values
+gen_min95Value <- gen.min95Mean(QUAC_geoComp_1km_demoArray_Par) ; gen_min95Value
+gen_min95SD(QUAC_geoComp_1km_demoArray_Par)
+geo_min95Value <- geo.min95Mean(QUAC_geoComp_1km_demoArray_Par) ; geo_min95Value
+geo_min95SD(QUAC_geoComp_1km_demoArray_Par)
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic and geographic proportions
+QUAC_geoComp_1km_averageValueMat <- meanArrayValues(QUAC_geoComp_1km_array)
+
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
+plotColors[2:5] <- alpha(plotColors[2:5], 0.35)
+plotColors_Sub <- plotColors[-(2:5)]
+
+# ---- CORRELATION PLOTS
+plot(QUAC_geoComp_1km_averageValueMat$Geo, QUAC_geoComp_1km_averageValueMat$Total, pch=20, 
+     main='Q. acerifolia: Geographic by genetic coverage',
+     xlab='Geographic coverage (%)', ylab='Genetic coverage (%)')
+mtext(text='91 Individuals; 1 km buffer (individuals); 5 replicates', side=3, line=0.3)
+mylabel = bquote(italic(R)^2 == .(format(QUAC_geoComp_1km_model_rSquared, digits = 3)))
+text(x = 45, y = 95, labels = mylabel)
+
+# ---- COVERAGE PLOTS
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(QUAC_geoComp_1km_averageValueMat, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='Coverage (%)')
+# Add title and x-axis labels to the graph
+title(main='Quercus acerifolia: Geo-Gen Coverage', line=1.5)
+mtext(text='91 Individuals; 1 km buffer (individuals); 5 replicates', side=3, line=0.3)
+mtext(text='Number of individuals', side=1, line=2.4)
+# Mark the 95% threshold line, and the genetic/geographic points
+abline(h=95, col='black', lty=3)
+abline(v=gen_min95Value, col='red')
+abline(v=geo_min95Value, col='darkblue')
+# Add text for the minimum sampling size lines
+mtext(text=paste0('Gen 95% MSSE = ', gen_min95Value),
+      side=1, line=-1.5, at=76, cex=1)
+mtext(text=paste0('Geo 95% MSSE = ', geo_min95Value),
+      side=1, line=-1.5, at=10, cex=1)
+# Add legend
+legend(x=65, y=80, inset = 0.05,
+       legend = c('Genetic coverage (Total)', 'Geographic coverage (1 km buffer IND)'),
+       col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.75)
+
 # %%%% POPULATION-LEVEL GEOGRAPHIC COORDINATES %%%% ----
-# In this analysis, we utilize a CSV file of lat/longs that uses the same value for each individual 
+# In this analysis, we utilize a CSV file of lat/longs that uses the same value for each individual
 # in a given population. Essentially, there are only 4 unique combinations of latitude and longitude
 
-# ---- READ IN DATA ----
+# ---- READ IN DATA 
 # Specify filepath for QUAC geographic and genetic data
 QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
 
 # ---- GENETIC MATRIX
-# Read in genind file: Optimized de novo assembly; R80, min-maf=0, 
+# Read in genind file: Optimized de novo assembly; R80, min-maf=0,
 # first SNP/locus, 2 populations (garden and wild), no Kessler individuals.
 # Wild sample names/order must match those in the sample name column of the CSV (above)
 QUAC.genind <- read.genepop(paste0(QUAC.filePath,'Genetic/QUAC_DNFA_populations_R80_NOMAF_1SNP_2Pops_NoK.gen'))
 # Correct popNames of genind. For this analysis, we'll only utilize wild samples (i.e. those in pop 'wild')
-pop(QUAC.genind) <- 
+pop(QUAC.genind) <-
   factor(read.table(paste0(QUAC.filePath, 'Genetic/QUAC_popmap_GardenWild_NoK'), header=FALSE)[,2])
 
 # ---- GEOGRAPHIC COORDINATES
-# Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
-# The sample names (and order) have to match the sample names/order of the genind object 
+# Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude.
+# The sample names (and order) have to match the sample names/order of the genind object
 # (rownams of the genetic matrix) read in below.
 wildPoints <- read.csv(paste0(QUAC.filePath, 'Geographic/QUAC_coord_pop.csv'), header=TRUE)
 
-# ---- RESAMPLING ----
+# ---- RESAMPLING
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
 clusterExport(cl, varlist = c('wildPoints','QUAC.genind','num_reps','geo_buffSize', 'eco_buffSize',
                               'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers', 'geo_compareBuff', 'eco_intersectBuff', 'eco_compareBuff',
-                              'gen.getAlleleCategories','calculateCoverage', 'exSituResample', 
+                              'gen.getAlleleCategories','calculateCoverage', 'exSituResample',
                               'geo.gen.Resample.Parallel'))
 # Specify file path, for saving resampling array
 arrayDir <- paste0(QUAC.filePath, 'resamplingData/QUAC_1kmPOP_GE_5r_resampArr.Rdata')
 # Run resampling
-QUAC_demoArray_POP_Par <- 
-  geo.gen.Resample.Parallel(gen_obj = QUAC.genind, geoFlag = TRUE, coordPts = wildPoints, 
-                            geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                            ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
+QUAC_demoArray_POP_Par <-
+  geo.gen.Resample.Parallel(gen_obj = QUAC.genind, geoFlag = TRUE, coordPts = wildPoints,
+                            geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE,
+                            ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US',
                             reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
 
-# ---- CORRELATION ----
+# ---- CORRELATION 
 # Build a data.frame from array values, to pass to linear models
 QUAC_DF <- resample.array2dataframe(QUAC_demoArray_POP_Par)
 
@@ -357,7 +426,7 @@ QUAC_geoModel_summary <- summary(QUAC_geoModel) ; QUAC_geoModel_summary
 QUAC_geoModel_rSquared <- round(QUAC_geoModel_summary$adj.r.squared,2)
 QUAC_geoModel_pValue <- QUAC_geoModel_summary$coefficients[2, 4]
 
-# ---- PLOTTING ----
+# ---- PLOTTING 
 # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
 # Calculate minimum 95% sample size for genetic and geographic values
 gen_min95Value <- gen.min95Mean(QUAC_demoArray_Par) ; gen_min95Value
@@ -388,7 +457,7 @@ title(main='Quercus acerifolia: Geo-Gen Coverage', line=1.5)
 mtext(text='91 Individuals; 50 km buffer (populations); 5 replicates', side=3, line=0.3)
 mtext(text='Number of individuals', side=1, line=2.4)
 # Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3) 
+abline(h=95, col='black', lty=3)
 abline(v=gen_min95Value, col='red')
 abline(v=geo_min95Value, col='darkblue')
 # Add text for the minimum sampling size lines
