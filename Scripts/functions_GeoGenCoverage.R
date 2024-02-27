@@ -299,7 +299,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
       
       # Combine the two geographic coverage values (one using total buffered area, one using SDM)
       geoRate <- c(geoRate, geoRate_SDM)
-      names(geoRate) <- c('Geo (Buff)', 'Geo (SDM)')
+      names(geoRate) <- c('Geo_Buff', 'Geo_SDM')
     }
   } else {
     # If geographic processing is not occurring, make coverage values NA
