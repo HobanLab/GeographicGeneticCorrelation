@@ -115,15 +115,13 @@ MIGU_DF <- resample.array2dataframe(MIGU_demoArray_Par)
 # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
 MIGU_geoModel <- lm (Total ~ Geo, data=MIGU_DF)
 MIGU_geoModel_summary <- summary(MIGU_geoModel) ; MIGU_geoModel_summary
-# Pull R-squared and p-value estimates from model
+# Pull R-squared estimate from model
 MIGU_geoModel_rSquared <- round(MIGU_geoModel_summary$adj.r.squared,2)
-MIGU_geoModel_pValue <- MIGU_geoModel_summary$coefficients[2, 4]
 # ECOLOGICAL COVERAGE AS PREDICTOR VARIABLE
 MIGU_ecoModel <- lm (Total ~ Eco, data=MIGU_DF)
 MIGU_ecoModel_summary <- summary(MIGU_ecoModel) ; MIGU_ecoModel_summary
-# Pull R-squared and p-value estimates from model
+# Pull R-squared estimate from model
 MIGU_ecoModel_rSquared <- round(MIGU_ecoModel_summary$adj.r.squared, 2)
-MIGU_ecoModel_pValue <- MIGU_ecoModel_summary$coefficients[2, 4]
 
 # ---- PLOTTING ----
 # ---- CALCULATE 95% MSSE AND AVERAGE VALUES

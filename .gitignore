@@ -8,6 +8,10 @@
 # Any Rhistory/Rdata files
 *.Rhistory
 *.RData
+*.Rdata
+
+# Any output files
+*.out
 
 # Folder of GIS files (for geographic/ecological analyses). Included in this folder are the .shp files used for 
 # calculating geographic range for different species. These are two large (> 50MB) to be included on the repository.
@@ -16,3 +20,4 @@ GIS_shpFiles/
 # STRUCTURE input file for Pinus contorta dataset. This file is referenced in the PICO_demo.R script, but is too large
 # (> 50MB) to be included on the repository.
 Datasets/PICO/Genetic/Pine_NaturalComp_85SNPfilter.stru
+.Rproj.user

@@ -32,10 +32,16 @@ grabWorldAdmin <- function(GeoGenCorr_wd, fileExtentsion, overwrite=FALSE){
                                             type = "countries",
                                             returnclass = "sf")
     # convert to terra vect and simply 
+    # world_poly_clip <- download |>
+    #   terra::vect() |>
+    #   #this select is option but I don't think we need much of any attribute data on this file. 
+    #   dplyr::select("admin", "adm0_a3", "name","name_long" )
+    
+    # ACK: the dplyr::select command errors for me 
+    # (no applicable method for 'select' applied to an object of class "SpatVector")
+    # Command seems optional anyway, so commented out for now
     world_poly_clip <- download |>
-      terra::vect() |>
-      #this select is option but I don't think we need much of any attribute data on this file. 
-      dplyr::select("admin", "adm0_a3", "name","name_long" )
+      terra::vect()
     
     # export the file. 
     ## create folder structure 
