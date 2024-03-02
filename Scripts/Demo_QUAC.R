@@ -37,37 +37,32 @@ world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd,
                                   fileExtentsion = ".gpkg",
                                   overwrite = FALSE)
 
-
 wildPoints <- read.csv(paste0(GeoGenCorr_wd,
                               '/Datasets/QUAC/Geographic/QUAC_coord_ind.csv'),
                        header=TRUE)
 
-# perfor geographic filter on the admin layer
+# Perform geographic filter on the admin layer
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip,
                         wildPoints = wildPoints) 
 
-# ---- rasters 
+# Read in rasters 
 sdm <- terra::rast(paste0(GeoGenCorr_wd,
                           '/Datasets/QUAC/Geographic/prj_threshold.tif'))
 
-### test resolution of buffer against raster features 
-## assuming that 1 meter == 0.000012726903908907691 degrees 
+# Test resolution of buffer against raster features (assuming 1 meter=0.000012726903908907691 degrees)
+# (Note that this check has been incorporated into the calculateCoverage function)
 geoBuffDegree <- geo_buffSize * 0.000012726903908907691
 sdmDegree <- terra::res(sdm)[1]
 if(geoBuffDegree < sdmDegree){
   warning("Your input SDM has a resolution that is larger then your suggested buffer.
-          The SDM will be resample to a smaller resolution.")
-  # resample the raster to a smaller cell size 
+          The SDM will be resampled to a smaller resolution.")
+  # Resample the raster to a smaller cell size 
   scaleFactor <- ceiling(sdmDegree /geoBuffDegree)
   sdm <- terra::disagg(sdm, scaleFactor) 
 }
 
-
-# defined again in the primary workflow. 
+# Defined again in the primary workflow. 
 rm(wildPoints)
-
-
-
 
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
 ## no direct way to download so these need to be grad from epa website https://www.epa.gov/eco-research/level-iii-and-iv-ecoregions-continental-united-states
@@ -75,7 +70,6 @@ rm(wildPoints)
 ## better to use the smaller file. 
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
-
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel
@@ -97,14 +91,6 @@ if(parFlag==TRUE){
   ecoregion_poly_W <- wrap(ecoregion_poly)
   sdm_W <- wrap(sdm)
 }
-
-###
-# I wonder if these parameters above are going to be consistent across species. Maybe best to move it into a 
-# config files that source across the inputs. Also might not be such a big deal to duplicate between species. 
-#
-###
-
-
 
 # %%%% INDIVIDUAL-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that specify the location of each individual
@@ -319,11 +305,11 @@ QUAC_geoComp_1km_DF <- resample.array2dataframe(QUAC_geoComp_1km_array)
 # Also extract R squared values
 # Total buffer approach
 QUAC_geoComp_1km_geoModelBuff <- lm (Total ~ Geo_Buff, data=QUAC_geoComp_1km_DF)
-QUAC_geoComp_1km_geoModelBuff_summary <- summary(QUAC_geoComp_1km_geoModelBuff) ; QUAC_geoComp_1km_geoModel_summary
+QUAC_geoComp_1km_geoModelBuff_summary <- summary(QUAC_geoComp_1km_geoModelBuff) ; QUAC_geoComp_1km_geoModelBuff_summary
 QUAC_geoComp_1km_geoModelBuff_rSquared <- round(QUAC_geoComp_1km_geoModelBuff_summary$adj.r.squared,2)
 # SDM approach
 QUAC_geoComp_1km_geoModelSDM <- lm (Total ~ Geo_SDM, data=QUAC_geoComp_1km_DF)
-QUAC_geoComp_1km_geoModelSDM_summary <- summary(QUAC_geoComp_1km_geoModelSDM) ; QUAC_geoComp_1km_geoModel_summary
+QUAC_geoComp_1km_geoModelSDM_summary <- summary(QUAC_geoComp_1km_geoModelSDM) ; QUAC_geoComp_1km_geoModelSDM_summary
 QUAC_geoComp_1km_geoModelSDM_rSquared <- round(QUAC_geoComp_1km_geoModelSDM_summary$adj.r.squared,2)
 
 # ---- PLOTTING 
@@ -339,8 +325,6 @@ QUAC_geoComp_1km_averageValueMat <- meanArrayValues(QUAC_geoComp_1km_array)
 
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
-plotColors[2:5] <- alpha(plotColors[2:5], 0.35)
-plotColors_Sub <- plotColors[-(2:5)]
 
 # ---- CORRELATION PLOTS
 plot(QUAC_geoComp_1km_averageValueMat$Geo, QUAC_geoComp_1km_averageValueMat$Total, pch=20, 
@@ -355,21 +339,67 @@ text(x = 45, y = 95, labels = mylabel)
 matplot(QUAC_geoComp_1km_averageValueMat, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='Coverage (%)')
 # Add title and x-axis labels to the graph
 title(main='Quercus acerifolia: Geo-Gen Coverage', line=1.5)
-mtext(text='91 Individuals; 1 km buffer (individuals); 5 replicates', side=3, line=0.3)
+mtext(text='91 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3)
 mtext(text='Number of individuals', side=1, line=2.4)
-# Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3)
-abline(v=gen_min95Value, col='red')
-abline(v=geo_min95Value, col='darkblue')
-# Add text for the minimum sampling size lines
-mtext(text=paste0('Gen 95% MSSE = ', gen_min95Value),
-      side=1, line=-1.5, at=76, cex=1)
-mtext(text=paste0('Geo 95% MSSE = ', geo_min95Value),
-      side=1, line=-1.5, at=10, cex=1)
 # Add legend
 legend(x=65, y=80, inset = 0.05,
-       legend = c('Genetic coverage (Total)', 'Geographic coverage (1 km buffer IND)'),
-       col=plotColors_Sub, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.75)
+       legend = c('Genetic coverage (Total)', 'Geographic, Total buffer (1 km)', 'Geographic, SDM (1 km)'),
+       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.75)
+
+# --- 5 KM BUFFER
+# Read in array and build a data.frame of values
+arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_5km_IND_G2E_5r_resampArr.Rdata')
+QUAC_geoComp_5km_array <- readRDS(arrayDir)
+QUAC_geoComp_5km_DF <- resample.array2dataframe(QUAC_geoComp_5km_array)
+
+# ---- LINEAR MODELS
+# Generate linear models, using Total allelic coverage as the response variable
+# Use either the total buffer (Buff) or SDM (SDM) geographic coverage approach for the predictor variable
+# Also extract R squared values
+# Total buffer approach
+QUAC_geoComp_5km_geoModelBuff <- lm (Total ~ Geo_Buff, data=QUAC_geoComp_5km_DF)
+QUAC_geoComp_5km_geoModelBuff_summary <- summary(QUAC_geoComp_5km_geoModelBuff) ; QUAC_geoComp_5km_geoModelBuff_summary
+QUAC_geoComp_5km_geoModelBuff_rSquared <- round(QUAC_geoComp_5km_geoModelBuff_summary$adj.r.squared,2)
+# SDM approach
+QUAC_geoComp_5km_geoModelSDM <- lm (Total ~ Geo_SDM, data=QUAC_geoComp_5km_DF)
+QUAC_geoComp_5km_geoModelSDM_summary <- summary(QUAC_geoComp_5km_geoModelSDM) ; QUAC_geoComp_5km_geoModelSDM_summary
+QUAC_geoComp_5km_geoModelSDM_rSquared <- round(QUAC_geoComp_5km_geoModelSDM_summary$adj.r.squared,2)
+
+# ---- PLOTTING 
+# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
+# Calculate minimum 95% sample size for genetic and geographic values
+gen_min95Value <- gen.min95Mean(QUAC_geoComp_5km_demoArray_Par) ; gen_min95Value
+gen_min95SD(QUAC_geoComp_5km_demoArray_Par)
+geo_min95Value <- geo.min95Mean(QUAC_geoComp_5km_demoArray_Par) ; geo_min95Value
+geo_min95SD(QUAC_geoComp_5km_demoArray_Par)
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic and geographic proportions
+QUAC_geoComp_5km_averageValueMat <- meanArrayValues(QUAC_geoComp_5km_array)
+# Drop ecological coverage values
+QUAC_geoComp_5km_averageValueMat <- QUAC_geoComp_5km_averageValueMat[,-4]
+
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
+
+# ---- CORRELATION PLOTS
+plot(QUAC_geoComp_5km_averageValueMat$Geo_Buff, QUAC_geoComp_5km_averageValueMat$Total, pch=20, 
+     main='Q. acerifolia: Geographic by genetic coverage',
+     xlab='Geographic coverage (%)', ylab='Genetic coverage (%)')
+mtext(text='91 Individuals; 1 km buffer (individuals); 5 replicates', side=3, line=0.3)
+mylabel = bquote(italic(R)^2 == .(format(QUAC_geoComp_5km_model_rSquared, digits = 3)))
+text(x = 45, y = 95, labels = mylabel)
+
+# ---- COVERAGE PLOTS
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(QUAC_geoComp_5km_averageValueMat, ylim=c(0,100), col=plotColors, pch=16, ylab='Coverage (%)')
+# Add title and x-axis labels to the graph
+title(main='Quercus acerifolia: Genetic and Geographic (Total buffer and SDM) Coverage', line=1.5)
+mtext(text='91 Individuals; 5 km buffer (individuals); 5 replicates', side=3, line=0.3)
+mtext(text='Number of individuals', side=1, line=2.4)
+# Add legend
+legend(x=65, y=80, inset = 0.05,
+       legend = c('Genetic coverage (Total)', 'Geographic, Total buffer (5 km)', 'Geographic, SDM (5 km)'),
+       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.75)
 
 # %%%% POPULATION-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that uses the same value for each individual
