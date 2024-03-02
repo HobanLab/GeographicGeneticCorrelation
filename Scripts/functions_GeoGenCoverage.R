@@ -76,39 +76,29 @@ geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj,
 }
 
 
-geo.compareBuffSDM <- function(totalWildPoints=coordPts,
-                   sampVect=rownames(samp),
-                   radius=geoBuff, 
-                   model=SDMrast,
-                   ptProj=ptProj,
-                   buffProj=buffProj,
-                   boundary=boundary,
-                   parFlag=parFlag){
-  
-  # unwrap spatial features 
+geo.compareBuffSDM <- function(totalWildPoints=coordPts,sampVect=rownames(samp),
+                               radius=geoBuff, model=SDMrast, ptProj=ptProj,
+                               buffProj=buffProj, boundary=boundary, parFlag=parFlag){
+  # If running in parallel, unwrap spatial features 
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
     model <- unwrap(model)
   }
-
-  
-  # generate a mask of the model layer by converting all 0 values to NA  
+  # Generate a mask of the model layer by converting all 0 values to NA  
   m <- c(0, 0, NA)
   mask <- model |>
     classify(m)
-  
   # Select "ex situ" coordinates by subsetting totalWildPoints data.frame, according to sampVect
   exSitu <- totalWildPoints[sort(match(sampVect, totalWildPoints[,1])),]
   # Create buffers around selected (exSitu) wild points and around all (total) occurrences 
   geo_exSitu <- createBuffers(exSitu, radius, ptProj, buffProj, boundary) |>
-    # reproject to match crs of smd object 
+    # Reproject to match crs of smd object 
       terra::project(mask)
-  # rasterize 
+  # Rasterize 
   buffRast <- geo_exSitu |>
     terra::rasterize(mask)
-  # apply mask
+  # Apply mask
   buffMask <- buffRast * mask
-
   # Calculate the area under both rasters in km²
   geo_exSituArea <- terra::cellSize(buffMask, mask= TRUE, unit = "km") |>
     terra::values()|>
@@ -121,11 +111,6 @@ geo.compareBuffSDM <- function(totalWildPoints=coordPts,
   
   return(geo_Coverage)
 }
-
-
-
-
-
 
 # Create a data.frame with ecoregion data extracted for area covered by buffers
 eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary, parFlag=FALSE){
@@ -276,27 +261,26 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
     # If no rasterized SDM is provided, calculate geographic coverage using just the buffer approach (default)
     if(class(SDMrast)=="logical"){
       names(geoRate) <- 'Geo'
-    } else{
-      # If the rasterized SDM is provided to this function, calculate geographic coverage using the SDM-approach
+    } else {
+      # If rasterized SDM provided, also calculate geographic coverage using SDM approach
+      # Check that geographic buffer size is greater than SDM raster resolution
+      # Convert meters to degrees (assuming 1 m = 0.000012726903908907691 degrees)
+      geoBuffDegree <- geoBuff * 0.000012726903908907691
+      sdmDegree <- terra::res(SDMrast)[1]
+      # If geographic buffer less than SDM resolution, resample SDM to smaller resolution
+      if(geoBuffDegree < sdmDegree){
+        warning("SDM provided has a resolution larger than geographic buffer size.
+                SDM will be resampled to a smaller resolution.")
+        # Resample the raster to a smaller cell size 
+        scaleFactor <- ceiling(sdmDegree / geoBuffDegree)
+        SDMrast <- terra::disagg(SDMrast, scaleFactor) 
+      }
+      # If the rasterized SDM is provided to this function, calculate geographic coverage using SDMapproach
       # and append the two coverage values together.
-      
-      # geoRate_SDM <- newFunctionForSDMCalc(totalWildPoints=coordPts, sampVect=rownames(samp), radius=geoBuff, 
-      #                                      model=SDMrast, ptProj=ptProj, buffProj=buffProj, boundary=boundary, 
-      #                                      parFlag=parFlag)
-      geoRate_SDM <- geo.compareBuffSDM(
-          totalWildPoints = coordPts,
-          sampVect = rownames(samp),
-          radius = geoBuff,
-          model =
-            SDMrast,
-          ptProj = ptProj,
-          buffProj = buffProj,
-          boundary = boundary,
-          parFlag =
-            parFlag
-        )
-      
-      
+      geoRate_SDM <- geo.compareBuffSDM(totalWildPoints=coordPts, sampVect=rownames(samp),
+                                        radius=geoBuff, model=SDMrast, ptProj=ptProj,
+                                        buffProj=buffProj, boundary=boundary, 
+                                        parFlag=parFlag)
       # Combine the two geographic coverage values (one using total buffered area, one using SDM)
       geoRate <- c(geoRate, geoRate_SDM)
       names(geoRate) <- c('Geo_Buff', 'Geo_SDM')
@@ -346,12 +330,13 @@ exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMra
   # Apply the calculateCoverage function to all rows of the wild matrix
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
-  cov_matrix <- t(sapply(2:nrow(gen_mat), 
-                         function(x) calculateCoverage(gen_mat=gen_mat, geoFlag=geoFlag, coordPts=coordPts, 
-                                                       geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, buffProj=buffProj, 
-                                                       boundary=boundary, ecoFlag=ecoFlag, ecoBuff=ecoBuff,
-                                                       ecoRegions=ecoRegions, ecoLayer=ecoLayer,
-                                                       parFlag=FALSE, numSamples=x)))
+  cov_matrix <- 
+    t(sapply(2:nrow(gen_mat), 
+             function(x) calculateCoverage(gen_mat=gen_mat, geoFlag=geoFlag, coordPts=coordPts, 
+                                           geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, 
+                                           buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag, 
+                                           ecoBuff=ecoBuff, ecoRegions=ecoRegions, ecoLayer=ecoLayer,
+                                           parFlag=FALSE, numSamples=x)))
   # Return the matrix of coverage values
   return(cov_matrix)
 }
@@ -370,7 +355,8 @@ exSituResample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, S
   # Apply the calculateCoverage function to all rows of the wild matrix using parSapply
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categor(parSapply(cluster, 2:nrow(gen_mat), 
-  cov_matrix <- t(parSapply(cluster, 2:nrow(gen_mat),
+  cov_matrix <- 
+    t(parSapply(cluster, 2:nrow(gen_mat),
                             function(x) calculateCoverage(gen_mat=gen_mat, geoFlag=geoFlag, coordPts=coordPts, 
                                                           geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, buffProj=buffProj, 
                                                           boundary=boundary, ecoFlag=ecoFlag, ecoBuff=ecoBuff,
@@ -383,36 +369,20 @@ exSituResample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, S
 # WRAPPER FUNCTION: iterates exSituResample, which will generate an array of values from a single genind object
 # This function doesn't run in parallel, so it's primarily used for testing/demonstration purposes
 geo.gen.Resample <-
-  function(gen_obj,
-           geoFlag = TRUE,
-           coordPts,
-           geoBuff = 50000,
-           SDMrast = NA,
-           ptProj = '+proj=longlat +datum=WGS84',
-           buffProj = '+proj=eqearth +datum=WGS84',
-           boundary,
-           ecoFlag = FALSE,
-           ecoBuff = 50000,
-           ecoRegions,
-           ecoLayer = c('US', 'NA', 'GL'),
-           reps = 5) {
+  function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA,
+           ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84',
+           boundary, ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
+           ecoLayer=c('US', 'NA', 'GL'), reps=5){
     
   # Run resampling for all replicates, using sapply and lambda function
-  resamplingArray <- sapply(1:reps, 
-                            function(x) exSituResample(gen_obj=gen_obj,
-                                                       geoFlag=geoFlag,
-                                                       coordPts=coordPts,
-                                                       geoBuff=geoBuff,
-                                                       SDMrast=SDMrast,
-                                                       ptProj=ptProj,
-                                                       buffProj=buffProj,
-                                                       boundary=boundary, 
-                                                       ecoFlag=ecoFlag,
-                                                       ecoBuff=ecoBuff,
-                                                       ecoRegions=ecoRegions, 
-                                                       ecoLayer=ecoLayer,
-                                                       parFlag=FALSE), 
-                            simplify = 'array')
+  resamplingArray <- 
+    sapply(1:reps, function(x) exSituResample(gen_obj=gen_obj,geoFlag=geoFlag,
+                                              coordPts=coordPts,geoBuff=geoBuff,
+                                              SDMrast=SDMrast, ptProj=ptProj,
+                                              buffProj=buffProj,boundary=boundary, 
+                                              ecoFlag=ecoFlag, ecoBuff=ecoBuff,
+                                              ecoRegions=ecoRegions, ecoLayer=ecoLayer,
+                                              parFlag=FALSE), simplify = 'array')
   # Return array
   return(resamplingArray)
 }
@@ -420,32 +390,25 @@ geo.gen.Resample <-
 # WRAPPER FUNCTION: iterates exSituResample.Par, which will generate an array of values from a single genind object
 # This function iterates the parallelized version of exSituResample, such that each different sample size for a 
 # single resampling replicate is processed on a single core. Results (resampling array) are saved to a specified file path.
-geo.gen.Resample.Par <- function(gen_obj, 
-                                 geoFlag=TRUE, 
-                                 coordPts, 
-                                 geoBuff=50000, 
-                                 SDMrast=NA,
-                                 ptProj='+proj=longlat +datum=WGS84', 
-                                 buffProj='+proj=eqearth +datum=WGS84', 
-                                 boundary, 
-                                 ecoFlag=FALSE, 
-                                 ecoBuff=50000, 
-                                 ecoRegions,
-                                 ecoLayer=c('US','NA','GL'), 
-                                 reps=5,
-                                 arrayFilepath='~/resamplingArray.Rdata', 
-                                 cluster){
+geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, 
+                                 SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
+                                 buffProj='+proj=eqearth +datum=WGS84', boundary, 
+                                 ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
+                                 ecoLayer=c('US','NA','GL'), reps=5,
+                                 arrayFilepath='~/resamplingArray.Rdata', cluster){
   # Print starting time
   startTime <- Sys.time() 
   print(paste0('%%% RUNTIME START: ', startTime))
   # Run resampling for all replicates, using sapply and lambda function
-  resamplingArray <- sapply(1:reps, 
-                            function(x) exSituResample.Par(gen_obj=gen_obj, geoFlag=geoFlag, coordPts=coordPts, 
-                                                           geoBuff=geoBuff, SDMrast=SDMrast,ptProj=ptProj, 
-                                                           buffProj=buffProj, boundary=boundary, 
-                                                           ecoFlag=ecoFlag, ecoBuff=ecoBuff, ecoRegions=ecoRegions, 
-                                                           ecoLayer=ecoLayer, parFlag=TRUE, cluster), 
-                            simplify = 'array')
+  resamplingArray <- 
+    sapply(1:reps, function(x) exSituResample.Par(gen_obj=gen_obj, geoFlag=geoFlag, 
+                                                  coordPts=coordPts, geoBuff=geoBuff, 
+                                                  SDMrast=SDMrast,ptProj=ptProj, 
+                                                  buffProj=buffProj, boundary=boundary, 
+                                                  ecoFlag=ecoFlag, ecoBuff=ecoBuff, 
+                                                  ecoRegions=ecoRegions, ecoLayer=ecoLayer, 
+                                                  parFlag=TRUE, cluster), 
+           simplify = 'array')
   # Print ending time and total runtime
   endTime <- Sys.time() 
   print(paste0('%%% RUNTIME END: ', endTime))
@@ -605,6 +568,88 @@ getTotalAlleleFreqProportions <- function(gen.obj){
   freqProportions <- c(veryCommon_prop, lowFrequency_prop, rare_prop)
   names(freqProportions) <- c('Very common (>10%)','Low frequency (1% -- 10%)','Rare (<1%)')
   return(freqProportions)
+}
+
+#' Make a map command (written by Dan Carver)
+#'
+#' @param points : sf point object  
+#' @param raster : terra raster object... converted to raster within the function. 
+#' @param buffer : optional sf point buffered feature. 
+#'
+#' @return one of two maps depending on if a buffer input object was defined or not.
+makeAMap <- function(points,raster,buffer=NA){
+  # Create the centroid
+  centroid <- points |>
+    dplyr::mutate(group = 1)|>
+    group_by(group) |>
+    summarize(geometry = st_union(geometry)) |>
+    st_centroid()|>
+    st_coordinates()
+  
+  # Define base map 
+  map1 <- leaflet(options = leafletOptions(minZoom = 4)) |>
+    # Set zoom levels
+    setView(lng = centroid[1]
+            , lat = centroid[2]
+            , zoom = 6) |>
+    # Tile providers 
+    addProviderTiles("OpenStreetMap", group = "OpenStreetMap") |>
+    # Add point features 
+    addCircleMarkers(
+      data = points,
+      color = "#4287f5",
+      radius = 0.2,
+      group = "Points",
+      # Add highlight options to make labels a bit more intuitive 
+    ) |> 
+    addRasterImage(
+      x = raster::raster(raster),
+      colors = c("#ffffff95", "#8bed80"),
+      group = "Raster"
+    )|>
+    addLegend(
+      position = "topright",
+      colors = c("#ffffff95", "#8bed80"),
+      labels = c("potential area", "predicted area"),
+      group = "Raster"
+    )|>
+    addLayersControl(
+      overlayGroups = c(
+        "Points",
+        "Raster"
+      ),
+      position = "bottomleft",
+      options = layersControlOptions(collapsed = FALSE),
+    ) 
+  
+  # Add buffers if those are specified
+  if(!is.na(buffer)){
+    buffs <- st_as_sf(buffer)
+    # Build a new map 
+    map2 <- map1 |>
+      addPolygons(
+        data = buffs,
+        weight = 1,
+        fill = FALSE,
+        opacity = 0.6,
+        color = "#181b54",
+        dashArray = "3",
+        group = "Buffer"
+      )|>
+      addLayersControl(
+        overlayGroups = c(
+          "Buffer",
+          "Points",
+          "Raster"
+        ),
+        position = "bottomleft",
+        options = layersControlOptions(collapsed = FALSE),
+      ) 
+    map <- map2
+  }else{
+    map <- map1 
+  }
+  return(map)
 }
 
 # ---- ARCHIVE ----
