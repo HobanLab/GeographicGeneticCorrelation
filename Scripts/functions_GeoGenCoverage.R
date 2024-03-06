@@ -56,6 +56,7 @@ createBuffers <- function(df, radius=1000, ptProj='+proj=longlat +datum=WGS84',
 # place buffers around all wild points and the sample, and then the proportion of the total area covered 
 # is calculated
 geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
+  browser()
   # If running in parallel: world polygon shapefile needs to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
@@ -75,10 +76,15 @@ geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj,
   return(geo_Coverage)
 }
 
-
-geo.compareBuffSDM <- function(totalWildPoints=coordPts,sampVect=rownames(samp),
-                               radius=geoBuff, model=SDMrast, ptProj=ptProj,
-                               buffProj=buffProj, boundary=boundary, parFlag=parFlag){
+# WORKER FUNCTION: Analogous to geo.compareBuff, but instead of comparing buffered area around a random
+# sample of points to the total buffered area, compares it instead to the total area under SDM, which
+# is passed to this function as a raster argument (model).The sampVect argument represents vector 
+# of sample names, which is used to subset the totalWildPoints data.frame to create a separate 
+# "ex situ" spatial object. Then, the createBuffers function is used to place buffers around sampled
+# points, and the proportion of the total area covered is calculated
+geo.compareBuffSDM <- function(totalWildPoints, sampVect, radius, model, ptProj, 
+                               buffProj, boundary, parFlag=FALSE){
+  browser()
   # If running in parallel, unwrap spatial features 
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
@@ -221,6 +227,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
                               buffProj='+proj=eqearth +datum=WGS84', boundary,
                               ecoFlag=FALSE, ecoBuff, ecoRegions, ecoLayer=c('US','NA','GL'),
                               parFlag=FALSE, numSamples){
+  browser()
   
   # GENETIC PROCESSING
   # Calculate a vector of allele frequencies, based on the total sample matrix
@@ -570,7 +577,14 @@ getTotalAlleleFreqProportions <- function(gen.obj){
   return(freqProportions)
 }
 
-#' Make a map command (written by Dan Carver)
+# ---- SDM GEOGRAPHIC COVERAGE FUNCTIONS ----
+# The functions in this section are associated with the SDM approach to calculated geographic coverage,
+# but are not used in the geographic genetic resampling process. Instead, they are used to process the
+# data layers (e.g. country borders) prior to resampling, as well as to explore the results of geographic 
+# resampling analyses (using both the total buffer and the SDM approach). These functions were written by
+# Dan Carver.
+
+#' Make a map command 
 #'
 #' @param points : sf point object  
 #' @param raster : terra raster object... converted to raster within the function. 

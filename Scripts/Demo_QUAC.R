@@ -30,24 +30,36 @@ num_reps <- 1
 geo_buffSize <- 1000
 # Specify ecological buffer size in meters 
 eco_buffSize <- 1000
-# ---- SHAPEFILES
+
+# %%%% INDIVIDUAL-LEVEL GEOGRAPHIC COORDINATES %%%% ----
+# In this analysis, we utilize a CSV file of lat/longs that specify the location of each individual
+
+# ---- READ IN DATA ----
+# Specify filepath for QUAC geographic and genetic data
+QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
+
+# ---- GENETIC MATRIX
+# Read in genind file: Optimized de novo assembly; R80, min-maf=0, 
+# first SNP/locus, 2 populations (garden and wild), no Kessler individuals.
+# Wild sample names/order must match those in the sample name column of the CSV (above)
+QUAC_genind <- read.genepop(paste0(QUAC_filePath,'Genetic/QUAC_DNFA_populations_R80_NOMAF_1SNP_2Pops_NoK.gen'))
+# Correct popNames of genind. For this analysis, we'll only utilize wild samples (i.e. those in pop 'wild')
+pop(QUAC_genind) <- 
+  factor(read.table(paste0(QUAC_filePath, 'Genetic/QUAC_popmap_GardenWild_NoK'), header=FALSE)[,2])
+
+# ---- GEOGRAPHIC/ECOLOGICAL DATA FILES
+# Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
+# The sample names (and order) have to match the sample names/order of the genind object 
+# (rownams of the genetic matrix) read in below.
+wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coord_ind.csv'), header=TRUE)
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd,
-                                  fileExtentsion = ".gpkg",
-                                  overwrite = FALSE)
-
-wildPoints <- read.csv(paste0(GeoGenCorr_wd,
-                              '/Datasets/QUAC/Geographic/QUAC_coord_ind.csv'),
-                       header=TRUE)
-
+                                  fileExtentsion = ".gpkg", overwrite = TRUE)
 # Perform geographic filter on the admin layer
-world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip,
-                        wildPoints = wildPoints) 
-
-# Read in rasters 
-sdm <- terra::rast(paste0(GeoGenCorr_wd,
-                          '/Datasets/QUAC/Geographic/prj_threshold.tif'))
+world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = wildPoints) 
+# Read in raster data, for SDM
+sdm <- terra::rast(paste0(GeoGenCorr_wd,'/Datasets/QUAC/Geographic/QUAC_91inds_rast.tif'))
 
 # Test resolution of buffer against raster features (assuming 1 meter=0.000012726903908907691 degrees)
 # (Note that this check has been incorporated into the calculateCoverage function)
@@ -61,13 +73,11 @@ if(geoBuffDegree < sdmDegree){
   sdm <- terra::disagg(sdm, scaleFactor) 
 }
 
-# Defined again in the primary workflow. 
-rm(wildPoints)
-
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
-## no direct way to download so these need to be grad from epa website https://www.epa.gov/eco-research/level-iii-and-iv-ecoregions-continental-united-states
-## seems like the data with states was used originally, I don't that that reference is utialize so it might be 
-## better to use the smaller file. 
+# Dan Carver: no direct way to download so these need to be grabbed from EPA website: 
+# https://www.epa.gov/eco-research/level-iii-and-iv-ecoregions-continental-united-states
+# Seems like the data with states was used originally, I don't think that reference is utilizee 
+# so it might be better to use the smaller file. 
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 
@@ -92,28 +102,6 @@ if(parFlag==TRUE){
   sdm_W <- wrap(sdm)
 }
 
-# %%%% INDIVIDUAL-LEVEL GEOGRAPHIC COORDINATES %%%% ----
-# In this analysis, we utilize a CSV file of lat/longs that specify the location of each individual
-
-# ---- READ IN DATA ----
-# Specify filepath for QUAC geographic and genetic data
-QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
-
-# ---- GENETIC MATRIX
-# Read in genind file: Optimized de novo assembly; R80, min-maf=0, 
-# first SNP/locus, 2 populations (garden and wild), no Kessler individuals.
-# Wild sample names/order must match those in the sample name column of the CSV (above)
-QUAC_genind <- read.genepop(paste0(QUAC_filePath,'Genetic/QUAC_DNFA_populations_R80_NOMAF_1SNP_2Pops_NoK.gen'))
-# Correct popNames of genind. For this analysis, we'll only utilize wild samples (i.e. those in pop 'wild')
-pop(QUAC_genind) <- 
-  factor(read.table(paste0(QUAC_filePath, 'Genetic/QUAC_popmap_GardenWild_NoK'), header=FALSE)[,2])
-
-# ---- GEOGRAPHIC COORDINATES
-# Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
-# The sample names (and order) have to match the sample names/order of the genind object 
-# (rownams of the genetic matrix) read in below.
-wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coord_ind.csv'), header=TRUE)
-
 # ---- RESAMPLING ----
 if(parFlag==TRUE){
   # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
@@ -128,36 +116,17 @@ if(parFlag==TRUE){
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_5km_IND_G2E_5r_resampArr.Rdata')
   # Run resampling in parallel
   QUAC_demoArray_IND_Par <- 
-    geo.gen.Resample.Par(
-      gen_obj = QUAC_genind,
-      geoFlag = TRUE,
-      coordPts = wildPoints,
-      SDMrast = sdm_W,
-      geoBuff = geo_buffSize,
-      boundary = world_poly_clip_W,
-      ecoFlag = TRUE,
-      ecoBuff = eco_buffSize,
-      ecoRegions = ecoregion_poly_W,
-      ecoLayer = 'US',
-      reps = num_reps,
-      arrayFilepath = arrayDir,
-      cluster = cl
-    )
+    geo.gen.Resample.Par(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = sdm_W,
+                         geoBuff = geo_buffSize, boundary = world_poly_clip_W, ecoFlag = TRUE,
+                         ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US',
+                         reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
   # Close cores
   stopCluster(cl)
 } else{
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
-    geo.gen.Resample(
-      gen_obj = QUAC_genind,
-      SDMrast = sdm,
-      geoFlag = TRUE,
-      coordPts = wildPoints,
-      geoBuff = geo_buffSize,
-      boundary = world_poly_clip,
-      ecoFlag = FALSE,
-      reps = num_reps
-    )
+    geo.gen.Resample(gen_obj = QUAC_genind, SDMrast = sdm, geoFlag = TRUE, coordPts = wildPoints,
+                     geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = num_reps)
 }
 
 # %%% CORRELATION ANALYSES AND PLOTTING %%% ----

@@ -17,27 +17,16 @@ library(scales)
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
+source('Scripts/worldAdmin.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
-num_reps <- 5
+num_reps <- 1
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
 geo_buffSize <- 50000
 # Specify ecological buffer size in meters 
 eco_buffSize <- 50000
-# ---- SHAPEFILES
-# Read in world countries layer (created as part of the gap analysis workflow)
-# This layer is used to clip buffers, to make sure they're not in the water
-world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
-# Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
-ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
-# Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
-# exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
-world_poly_clip_W <- wrap(world_poly_clip)
-ecoregion_poly_W <- wrap(ecoregion_poly)
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -47,7 +36,6 @@ cl <- makeCluster(num_cores)
 clusterEvalQ(cl, library('adegenet'))
 clusterEvalQ(cl, library('terra'))
 clusterEvalQ(cl, library('parallel'))
-
 
 # %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
@@ -63,31 +51,49 @@ rownames(QULO_tab) <- QULO_tab[,1] ; QULO_tab <- QULO_tab[,-1]
 # (values of 1, 2, and 3 generate identical results)
 QULO_genind <- df2genind(QULO_tab, ncode = 3, ploidy = 2)
 
-# ---- GEOGRAPHIC COORDINATES
+# ---- GEOGRAPHIC/ECOLOGICAL DATA FILES
 # Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
 # The sample names (and order) have to match the sample names/order of the genind object 
 # (rownams of the genetic matrix) read in below.
-wildPoints <- read.csv(paste0(QULO_filePath, 'Geographic/Quercus_lobata.csv'), header=TRUE)
+QULO_points <- read.csv(paste0(QULO_filePath, 'Geographic/Quercus_lobata.csv'), header=TRUE)
+# This layer is used to clip buffers, to make sure they're not in the water
+world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = FALSE)
+# Perform geographic filter on the admin layer
+world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = QULO_points)
+# Read in raster data, for SDM
+QULO_sdm <- terra::rast(paste0(QULO_filePath,'Geographic/QULO_436inds_rast.tif'))
+# Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 
+# (solely in the U.S.)
+ecoregion_poly <- 
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
+# Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
+# exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
+world_poly_clip_W <- wrap(world_poly_clip)
+ecoregion_poly_W <- wrap(ecoregion_poly)
 
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
-clusterExport(cl, varlist = c('wildPoints','QULO_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                              'world_poly_clip_W', 'ecoregion_poly_W'))
+clusterExport(cl, varlist = c('QULO_points','QULO_genind','QULO_sdm', 'num_reps','geo_buffSize', 
+                              'eco_buffSize', 'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
-                              'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
-                              'geo.gen.Resample.Par'))
+clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 
+                              'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
+                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-# arrayDir <- paste0(QUAC.filePath, 'resamplingData/QULO_1km_GE_5r_resampArr.Rdata')
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 QULO_demoArray_Par <- 
-  geo.gen.Resample.Parallel(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = wildPoints, 
+  geo.gen.Resample.Parallel(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
                             geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
                             ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
                             reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
+
+QULO_demoArray_IND <-
+  geo.gen.Resample(gen_obj = QULO_genind, SDMrast = QULO_sdm, geoFlag = TRUE, coordPts = QULO_points,
+                   geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = 1)
+
 
 # %%% ANALYZE DATA %%% ----
 # Read in the resampling array .Rdata object, saved to disk
