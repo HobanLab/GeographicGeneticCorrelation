@@ -38,13 +38,13 @@ createBuffers <- function(df, radius=1000, ptProj='+proj=longlat +datum=WGS84',
   # Turn occurrence point data into a SpatVector
   spat_pts <- vect(df, geom=c('decimalLongitude', 'decimalLatitude'), crs=ptProj)
   # Reproject spatial vector to the specified projection
-  proj_df <- project(spat_pts, buffProj)
+  proj_df <- terra::project(spat_pts, buffProj)
   # Place buffer around each point, then dissolve into one polygon
-  buffers <- buffer(proj_df, width=radius)
-  buffers <- aggregate(buffers, dissolve = TRUE)
+  buffers <- terra::buffer(proj_df, width=radius)
+  buffers <- terra::aggregate(buffers, dissolve = TRUE)
   # Clip by boundary, so buffers don't extend into the water
-  boundary <- project(boundary, buffProj)
-  buffers_clip <- crop(buffers, boundary)
+  boundary <- terra::project(boundary, buffProj)
+  buffers_clip <- terra::crop(buffers, boundary)
   # Return buffer polygons
   return(buffers_clip)
 }
@@ -56,7 +56,6 @@ createBuffers <- function(df, radius=1000, ptProj='+proj=longlat +datum=WGS84',
 # place buffers around all wild points and the sample, and then the proportion of the total area covered 
 # is calculated
 geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj, boundary, parFlag=FALSE){
-  browser()
   # If running in parallel: world polygon shapefile needs to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
@@ -81,10 +80,9 @@ geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj,
 # is passed to this function as a raster argument (model).The sampVect argument represents vector 
 # of sample names, which is used to subset the totalWildPoints data.frame to create a separate 
 # "ex situ" spatial object. Then, the createBuffers function is used to place buffers around sampled
-# points, and the proportion of the total area covered is calculated
+# points, and the proportion of the total area covered is calculated. Authored by Dan Carver
 geo.compareBuffSDM <- function(totalWildPoints, sampVect, radius, model, ptProj, 
                                buffProj, boundary, parFlag=FALSE){
-  browser()
   # If running in parallel, unwrap spatial features 
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
@@ -128,7 +126,7 @@ eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary,
   # Create buffers
   buffers <- createBuffers(df, radius, ptProj, buffProj, boundary)
   # Make sure ecoregions are in same projection as buffers
-  ecoProj <- project(ecoRegion, buffProj)
+  ecoProj <- terra::project(ecoRegion, buffProj)
   # Intersect buffers with ecoregions, and return
   ecoBuffJoin <- intersect(buffers, ecoProj)
   return(ecoBuffJoin)
@@ -227,8 +225,6 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
                               buffProj='+proj=eqearth +datum=WGS84', boundary,
                               ecoFlag=FALSE, ecoBuff, ecoRegions, ecoLayer=c('US','NA','GL'),
                               parFlag=FALSE, numSamples){
-  browser()
-  
   # GENETIC PROCESSING
   # Calculate a vector of allele frequencies, based on the total sample matrix
   freqVector <- colSums(gen_mat, na.rm = TRUE)/(nrow(gen_mat)*2)*100
@@ -380,7 +376,6 @@ geo.gen.Resample <-
            ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84',
            boundary, ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
            ecoLayer=c('US', 'NA', 'GL'), reps=5){
-    
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- 
     sapply(1:reps, function(x) exSituResample(gen_obj=gen_obj,geoFlag=geoFlag,
