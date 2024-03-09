@@ -168,7 +168,16 @@ mtext(text='255 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
-legend(x=105, y=35, inset = 0.05,
+legend(x=65, y=35, inset = 0.05,
        legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level III)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n',
        y.intersp = 0.5)
+
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat_TEG[1:120,3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='Genetic Coverage', line=1.5)
+# mtext(text='255 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
+mtext(text='Proportion of alleles represented (%)', side=2, line=2.3, cex=1.6, srt=90)
+abline(h=95, lty=3)
