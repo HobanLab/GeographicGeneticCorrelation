@@ -110,7 +110,7 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersect
                               'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
                               'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_50km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_50km_GE_5r_resampArr.RData')
 # Run resampling (in parallel)
 YUBR_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = YUBR_genind, geoFlag = TRUE, coordPts = YUBR_coordinates, 
@@ -192,7 +192,7 @@ mtext(text='319 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
-legend(x=205, y=60, inset = 0.05,
+legend(x=50, y=60, inset = 0.05,
        legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level IV)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n',
        y.intersp = 0.8)
