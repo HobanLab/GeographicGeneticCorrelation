@@ -79,7 +79,7 @@ prepWorldAdmin <- function(world_poly_clip, wildPoints){
     terra::convHull()|>
     terra::buffer(width = 50000)# Unit is meter if x has a longitude/latitude CRS
   # intersect with the admin feature   
-  uniqueLocs <- terra::extract(world_poly_clip, bbox) |> 
+  uniqueLocs <- terra::extract(world_poly_clip, bbox) |>
     dplyr::select(adm0_a3)|>
     dplyr::pull()
   # filter world admin to countries on overlap
