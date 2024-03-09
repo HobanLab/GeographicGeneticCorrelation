@@ -54,8 +54,7 @@ pop(QUAC_genind) <-
 wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coord_ind.csv'), header=TRUE)
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
-world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd,
-                                  fileExtentsion = ".gpkg", overwrite = TRUE)
+world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = TRUE)
 # Perform geographic filter on the admin layer
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = wildPoints) 
 # Read in raster data, for SDM
