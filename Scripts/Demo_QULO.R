@@ -83,10 +83,10 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
 arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 QULO_demoArray_Par <- 
-  geo.gen.Resample.Parallel(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
-                            geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                            ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
-                            reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
+  geo.gen.Resample.Par(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
+                       geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
+                       ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
+                       reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
 
