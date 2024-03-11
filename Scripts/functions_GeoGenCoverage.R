@@ -610,6 +610,7 @@ getTotalAlleleFreqProportions <- function(gen.obj){
 #'
 #' @return one of two maps depending on if a buffer input object was defined or not.
 makeAMap <- function(points,raster,buffer=NA){
+  # browser()
   # Create the centroid
   centroid <- points |>
     dplyr::mutate(group = 1)|>
