@@ -70,11 +70,12 @@ ecoregion_poly <-
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
 world_poly_clip_W <- wrap(world_poly_clip)
 ecoregion_poly_W <- wrap(ecoregion_poly)
+QULO_sdm_W <- wrap(QULO_sdm)
 
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
 clusterExport(cl, varlist = c('QULO_points','QULO_genind','QULO_sdm', 'num_reps','geo_buffSize', 
-                              'eco_buffSize', 'world_poly_clip_W', 'ecoregion_poly_W'))
+                              'eco_buffSize', 'world_poly_clip_W', 'ecoregion_poly_W', 'QULO_sdm_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
@@ -84,7 +85,7 @@ arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_5r_resampArr.Rda
 # Run resampling (in parallel)
 QULO_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
-                       geoBuff = geo_buffSize, SDMrast=QULO_sdm, boundary=world_poly_clip_W, 
+                       geoBuff = geo_buffSize, SDMrast=QULO_sdm_W, boundary=world_poly_clip_W, 
                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
                        ecoLayer = 'US', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
