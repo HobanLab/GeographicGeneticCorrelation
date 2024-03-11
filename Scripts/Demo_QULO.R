@@ -84,9 +84,9 @@ arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_5r_resampArr.Rda
 # Run resampling (in parallel)
 QULO_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
-                       geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                       ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
-                       reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
+                       geoBuff = geo_buffSize, SDMrast=QULO_sdm, boundary=world_poly_clip_W, 
+                       ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
+                       ecoLayer = 'US', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
 
@@ -95,8 +95,8 @@ stopCluster(cl)
 #   geo.gen.Resample(gen_obj = QULO_genind, SDMrast = QULO_sdm, geoFlag = TRUE, coordPts = QULO_points,
 #                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = 1)
 
-# %%% ANALYZE DATA %%% ----
-# Read in the resampling array .Rdata object, saved to disk
+# # %%% ANALYZE DATA %%% ----
+# # Read in the resampling array .Rdata object, saved to disk
 # QULO_demoArray_Par <- readRDS(arrayDir)
 # 
 # # ---- CORRELATION ----
@@ -164,7 +164,7 @@ stopCluster(cl)
 # # Add legend
 # legend(x=205, y=60, inset = 0.05,
 #        legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level IV)'),
-#        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n', 
+#        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n',
 #        y.intersp = 0.8)
 # 
 # # ---- BOTH PLOTS (For IMLS NLG subgroup presentation, 2023-08-17) ----
