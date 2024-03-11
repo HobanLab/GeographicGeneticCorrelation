@@ -116,9 +116,38 @@ geo.compareBuffSDM <- function(totalWildPoints, sampVect, radius, model, ptProj,
   return(geo_Coverage)
 }
 
-# Create a data.frame with ecoregion data extracted for area covered by buffers
+# This function compares the resolution of a raster argument to the geographic buffer size being used. If the
+# buffer size is smaller than the raster resolution, a warning is given, and the SDM is resampled (scaled) to 
+# a lower resolution. (Without this scaling, geographic coverage commands will throw an error). Authored by
+# Dan Carver.
+geo.checkSDMres <- function(buffSize, raster, parFlag=FALSE){
+  # If running in parallel, unwrap the raster argument
+  if(parFlag==TRUE){
+    raster <- unwrap(raster)
+  }
+  # Convert buffer from meters to degrees (assuming 1 m = 0.000012726903908907691 degrees)
+  buffSizeDegree <- buffSize * 0.000012726903908907691
+  # Extract the raster resolution
+  sdmDegree <- terra::res(raster)[1]
+  # If geographic buffer less than SDM resolution, give a warning and resample SDM to smaller resolution
+  if(buffSizeDegree < sdmDegree){
+    warning("SDM provided has a resolution larger than geographic buffer size.
+                SDM will be resampled to a smaller resolution.")
+    # Resample the raster to a smaller cell size, based on scaling factor
+    scaleFactor <- ceiling(sdmDegree / buffSizeDegree)
+    raster <- terra::disagg(raster, scaleFactor) 
+  }
+  # If running in parallel, rewrap the raster argument
+  if(parFlag==TRUE){
+    raster <- wrap(raster)
+  }
+  # Return the raster
+  return(raster)
+}
+
+# WORKER FUNCTION: Create a data.frame with ecoregion data extracted for area covered by buffers
 eco.intersectBuff <- function(df, radius, ptProj, buffProj, ecoRegion, boundary, parFlag=FALSE){
-  # If running in parallel: world polygon and ecoregions shapefiles need to be 'unwrapped', 
+  # If running in parallel: world polygon and ecoregions shapefiles need to be unwrapped, 
   # after being exported to cluster
   if(parFlag==TRUE){
     ecoRegion <- unwrap(ecoRegion) ; boundary <- unwrap(boundary)
@@ -265,21 +294,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
     if(class(SDMrast)=="logical"){
       names(geoRate) <- 'Geo'
     } else {
-      # If rasterized SDM provided, also calculate geographic coverage using SDM approach
-      # Check that geographic buffer size is greater than SDM raster resolution
-      # Convert meters to degrees (assuming 1 m = 0.000012726903908907691 degrees)
-      geoBuffDegree <- geoBuff * 0.000012726903908907691
-      sdmDegree <- terra::res(SDMrast)[1]
-      # If geographic buffer less than SDM resolution, resample SDM to smaller resolution
-      if(geoBuffDegree < sdmDegree){
-        warning("SDM provided has a resolution larger than geographic buffer size.
-                SDM will be resampled to a smaller resolution.")
-        # Resample the raster to a smaller cell size 
-        scaleFactor <- ceiling(sdmDegree / geoBuffDegree)
-        SDMrast <- terra::disagg(SDMrast, scaleFactor) 
-      }
-      # If the rasterized SDM is provided to this function, calculate geographic coverage using SDMapproach
-      # and append the two coverage values together.
+      # If rasterized SDM provided, calculate geo. coverage using SDM approach, and append coverage values together
       geoRate_SDM <- geo.compareBuffSDM(totalWildPoints=coordPts, sampVect=rownames(samp),
                                         radius=geoBuff, model=SDMrast, ptProj=ptProj,
                                         buffProj=buffProj, boundary=boundary, 
@@ -358,10 +373,10 @@ exSituResample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, S
   # Apply the calculateCoverage function to all rows of the wild matrix using parSapply
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categor(parSapply(cluster, 2:nrow(gen_mat), 
-  cov_matrix <- 
+  cov_matrix <-
     t(parSapply(cluster, 2:nrow(gen_mat),
-                            function(x) calculateCoverage(gen_mat=gen_mat, geoFlag=geoFlag, coordPts=coordPts, 
-                                                          geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, buffProj=buffProj, 
+                            function(x) calculateCoverage(gen_mat=gen_mat, geoFlag=geoFlag, coordPts=coordPts,
+                                                          geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, buffProj=buffProj,
                                                           boundary=boundary, ecoFlag=ecoFlag, ecoBuff=ecoBuff,
                                                           ecoRegions=ecoRegions, ecoLayer=ecoLayer,
                                                           parFlag=parFlag, numSamples=x)))
@@ -376,15 +391,19 @@ geo.gen.Resample <-
            ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84',
            boundary, ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
            ecoLayer=c('US', 'NA', 'GL'), reps=5){
-  # Run resampling for all replicates, using sapply and lambda function
-  resamplingArray <- 
-    sapply(1:reps, function(x) exSituResample(gen_obj=gen_obj,geoFlag=geoFlag,
-                                              coordPts=coordPts,geoBuff=geoBuff,
-                                              SDMrast=SDMrast, ptProj=ptProj,
-                                              buffProj=buffProj,boundary=boundary, 
-                                              ecoFlag=ecoFlag, ecoBuff=ecoBuff,
-                                              ecoRegions=ecoRegions, ecoLayer=ecoLayer,
-                                              parFlag=FALSE), simplify = 'array')
+    # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, and fix if not
+    if(!class(SDMrast)=="logical"){
+      SDMrast <- geo.checkSDMres(buffSize = geoBuff, raster = SDMrast, parFlag=FALSE)
+    }
+    # Run resampling for all replicates, using sapply and lambda function
+    resamplingArray <- 
+      sapply(1:reps, function(x) exSituResample(gen_obj=gen_obj,geoFlag=geoFlag,
+                                                coordPts=coordPts,geoBuff=geoBuff,
+                                                SDMrast=SDMrast, ptProj=ptProj,
+                                                buffProj=buffProj,boundary=boundary, 
+                                                ecoFlag=ecoFlag, ecoBuff=ecoBuff,
+                                                ecoRegions=ecoRegions, ecoLayer=ecoLayer,
+                                                parFlag=FALSE), simplify = 'array')
   # Return array
   return(resamplingArray)
 }
@@ -401,11 +420,15 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
   # Print starting time
   startTime <- Sys.time() 
   print(paste0('%%% RUNTIME START: ', startTime))
+  # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, and fix if not
+  if(!class(SDMrast)=="logical"){
+    SDMrast <- geo.checkSDMres(buffSize = geoBuff, raster = SDMrast, parFlag=TRUE)
+  }
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- 
     sapply(1:reps, function(x) exSituResample.Par(gen_obj=gen_obj, geoFlag=geoFlag, 
                                                   coordPts=coordPts, geoBuff=geoBuff, 
-                                                  SDMrast=SDMrast,ptProj=ptProj, 
+                                                  SDMrast=SDMrast, ptProj=ptProj, 
                                                   buffProj=buffProj, boundary=boundary, 
                                                   ecoFlag=ecoFlag, ecoBuff=ecoBuff, 
                                                   ecoRegions=ecoRegions, ecoLayer=ecoLayer, 
@@ -417,7 +440,7 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
   cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
   # Save the resampling array object to disk, for later usage
   saveRDS(resamplingArray, file = arrayFilepath)
-  cat(paste0('\n', '%%% Resampling array object saved to: ', arrayFilepath))
+  cat(paste0('\n', '%%% Resampling array object saved to: ', arrayFilepath, '\n'))
   # Return array
   return(resamplingArray)
 }
