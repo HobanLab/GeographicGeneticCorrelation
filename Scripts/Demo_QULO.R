@@ -15,6 +15,8 @@ library(scales)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
+# option2 
+GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/' 
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
 source('Scripts/worldAdmin.R')
@@ -58,8 +60,8 @@ QULO_genind <- df2genind(QULO_tab, ncode = 3, ploidy = 2)
 QULO_points <- read.csv(paste0(QULO_filePath, 'Geographic/Quercus_lobata.csv'), header=TRUE)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = FALSE)
-# Perform geographic filter on the admin layer. AK: SKIPPING FOR NOW, AS THIS WILL ERROR
-# world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = QULO_points)
+# Perform geographic filter on the admin layer. 
+world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = QULO_points)
 # Read in raster data, for SDM
 QULO_sdm <- terra::rast(paste0(QULO_filePath,'Geographic/QULO_436inds_rast.tif'))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 

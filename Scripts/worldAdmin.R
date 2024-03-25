@@ -75,18 +75,24 @@ prepWorldAdmin <- function(world_poly_clip, wildPoints){
   # buffer the wild points to max expected buffer distance 
   bbox <- vect(wildPoints, 
                geom = c("decimalLongitude", "decimalLatitude"),
-               crs = "epsg:4326")|> # setting wgs1984
-    terra::convHull()|>
-    terra::buffer(width = 50000)# Unit is meter if x has a longitude/latitude CRS
+               crs = crs(world_poly_clip))|> # setting wgs1984
+    terra::convHull() |>
+    terra::buffer(width = 50000)
+  crs(bbox) <- crs(world_poly_clip)
+  
+  # Unit is meter if x has a longitude/latitude CRS
   # intersect with the admin feature   
-  uniqueLocs <- terra::extract(world_poly_clip, bbox) |>
-    dplyr::select(adm0_a3)|>
-    dplyr::pull()
+  uniqueLocs <- terra::intersect(world_poly_clip, bbox) 
+  # pull the iso3 for a filter later on 
+  counties <- unique(uniqueLocs$adm0_a3)
+    # sf::st_as_sf()|>
+    # dplyr::select(adm0_a3)|>
+    # dplyr::pull()
   # filter world admin to countries on overlap
   ### this is silly... but the dplyr filter is not working on the vect object... 
   admin <- world_poly_clip |>
     sf::st_as_sf()|>
-    dplyr::filter(adm0_a3 %in% uniqueLocs)|>
+    dplyr::filter(adm0_a3 %in% counties)|>
     terra::vect()|> 
     terra::aggregate()
                       
