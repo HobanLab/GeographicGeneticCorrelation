@@ -16,6 +16,8 @@ library(scales)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
+# option2 
+GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/' 
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
 
@@ -31,7 +33,7 @@ eco_buffSize <- 50000
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.gpkg')))
 # Read in the EPA Level III ecoregion shapefile, which is used for calculating ecological coverage (in North America)
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level3/NA_CEC_Eco_Level3.shp')))
