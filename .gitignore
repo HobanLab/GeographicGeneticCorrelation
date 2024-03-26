@@ -9,7 +9,7 @@
 *.Rhistory
 *.RData
 *.Rdata
-*.Rproj
+*.Rproj*
 
 # Any output files
 *.out
