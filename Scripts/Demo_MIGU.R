@@ -94,10 +94,10 @@ arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_50km_GE_5r_resampArr.Rdat
 # Run resampling (in parallel)
 print("%%% BEGINNING RESAMPLING %%%")
 MIGU_demoArray_Par <- 
-  geo.gen.Resample.Parallel(gen_obj = MIGU_genind, geoFlag = TRUE, coordPts = MIGU_coordinates, 
-                            geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                            ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', 
-                            reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
+  geo.gen.Resample.Par(gen_obj = MIGU_genind, geoFlag = TRUE, coordPts = MIGU_coordinates, 
+                       geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
+                       ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', 
+                       reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 
 # Close cores
 stopCluster(cl)
