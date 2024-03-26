@@ -5,10 +5,11 @@
 # The files and folders specified in this file are not tracked in the GitHub repository for the GeoGenCorr project. 
 # A brief explanation of each file is provided above each one, and files are largely grouped by folders.
 
-# Any Rhistory/Rdata files
+# Any Rhistory/Rdata/Rproj files
 *.Rhistory
 *.RData
 *.Rdata
+*.Rproj
 
 # Any output files
 *.out
@@ -17,7 +18,10 @@
 # calculating geographic range for different species. These are two large (> 50MB) to be included on the repository.
 GIS_shpFiles/
 
-# STRUCTURE input file for Pinus contorta dataset. This file is referenced in the PICO_demo.R script, but is too large
+# STRUCTURE input file for Pinus contorta dataset. This file is referenced in the Demo_PICO.R script, but is too large
 # (> 50MB) to be included on the repository.
 Datasets/PICO/Genetic/Pine_NaturalComp_85SNPfilter.stru
-.Rproj.user
+
+# VCF input for Conradina glabra dataset. This file is referenced in the Demo_COGL.R script, but is too large
+# (> 50MB) to be included on the repository.
+Datasets/COGL/Genetic/conradina.vcf
