@@ -33,7 +33,8 @@ eco_buffSize <- 50000
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <-
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.gpkg')))
-# Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
+# Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 
+# (solely in the U.S.)
 ecoregion_poly <-
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
@@ -101,6 +102,7 @@ YUBR_coordinates <- YUBR_points[which(YUBR_points$Sample %in% indNames(YUBR_geni
 # Reorder the coordinate values to match the order of samples in the genind file
 YUBR_coordinates <- YUBR_coordinates[match(indNames(YUBR_genind), YUBR_coordinates$Sample),]
 write.csv(YUBR_coordinates,  paste0(YUBR_filePath, 'Geographic/TreeCoordinates_trim.csv'))
+
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) 
 # to the cluster
