@@ -15,6 +15,8 @@ library(scales)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
+# option2 
+GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/' 
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
 
@@ -30,7 +32,7 @@ eco_buffSize <- 50000
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <-
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.gpkg')))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
 ecoregion_poly <-
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
@@ -98,7 +100,7 @@ colnames(YUBR_points) <- c('Sample', 'decimalLatitude', 'decimalLongitude')
 YUBR_coordinates <- YUBR_points[which(YUBR_points$Sample %in% indNames(YUBR_genind)),]
 # Reorder the coordinate values to match the order of samples in the genind file
 YUBR_coordinates <- YUBR_coordinates[match(indNames(YUBR_genind), YUBR_coordinates$Sample),]
-
+write.csv(YUBR_coordinates,  paste0(YUBR_filePath, 'Geographic/TreeCoordinates_trim.csv'))
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) 
 # to the cluster
