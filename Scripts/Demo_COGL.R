@@ -111,73 +111,61 @@ stopCluster(cl)
 #   geo.gen.Resample(gen_obj = COGL_genind, geoFlag = TRUE, coordPts = COGL_coordinates,
 #                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = 1)
 
-# # %%% ANALYZE DATA %%% ----
-# # Read in the resampling array .Rdata object, saved to disk
-# COGL_demoArray_Par <- readRDS(arrayDir)
-# 
-# # ---- CORRELATION ----
-# # Build a data.frame from array values, to pass to linear models
-# COGL_DF <- resample.array2dataframe(COGL_demoArray_Par)
-# 
-# # ---- LINEAR MODELS
-# # Generate linear models, using Total allelic coverage as the response variable
-# # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
-# COGL_geoModel <- lm (Total ~ Geo, data=COGL_DF)
-# COGL_geoModel_summary <- summary(COGL_geoModel) ; COGL_geoModel_summary
-# # Pull R-squared estimate from model
-# COGL_geoModel_rSquared <- round(COGL_geoModel_summary$adj.r.squared,2)
-# # ECOLOGICAL COVERAGE AS PREDICTOR VARIABLE
-# COGL_ecoModel <- lm (Total ~ Eco, data=COGL_DF)
-# COGL_ecoModel_summary <- summary(COGL_ecoModel) ; COGL_ecoModel_summary
-# # Pull R-squared estimate from model
-# COGL_ecoModel_rSquared <- round(COGL_ecoModel_summary$adj.r.squared, 2)
-# 
-# # ---- PLOTTING ----
-# # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
-# # Calculate minimum 95% sample size for genetic and geographic values
-# gen_min95Value <- gen.min95Mean(COGL_demoArray_Par) ; gen_min95Value
-# geo_min95Value <- geo.min95Mean(COGL_demoArray_Par) ; geo_min95Value
-# eco_min95Value <- eco.min95Mean(COGL_demoArray_Par) ; eco_min95Value
-# # Generate the average values (across replicates) for all proportions
-# # This function has default arguments for returning just Total allelic geographic proportions
-# averageValueMat <- meanArrayValues(COGL_demoArray_Par, allValues = TRUE)
-# # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
-# averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
-# 
-# # Specify plot colors
-# plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
-# plotColors <- alpha(plotColors, 0.45)
-# plotColors_Sub <- plotColors[-(2:5)]
-# 
-# # ---- CORRELATION PLOTS
-# par(mfrow=c(2,1))
-# # ---- GEOGRAPHIC-GENETIC
-# plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-#      main='C. glabra: Geographic by genetic coverage',xlab='', ylab='')
-# mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.6)
-# mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# mylabel = bquote(italic(R)^2 == .(format(COGL_geoModel_rSquared, digits = 3)))
-# text(x = 2, y = 10, labels = mylabel, cex=0.8)
-# # ---- ECOLOGICAL-GENETIC
-# plot(averageValueMat_TEG$Eco, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-#      main='C. glabra: Ecological by genetic coverage',xlab='', ylab='')
-# mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Ecological coverage (%)', side=1, line=3, cex=1.6)
-# mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# mylabel = bquote(italic(R)^2 == .(format(COGL_ecoModel_rSquared, digits = 3)))
-# text(x = 2, y = 10, labels = mylabel, cex=0.8)
-# 
-# # ---- COVERAGE PLOTS
-# # Use the matplot function to plot the matrix of average values, with specified settings
-# matplot(averageValueMat_TEG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='Conradina glabra: Gen-Geo-Eco Coverage', line=1.5)
-# mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
-# mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=65, y=35, inset = 0.05,
-#        legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level III)'),
-#        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n',
-#        y.intersp = 0.5)
+# %%% ANALYZE DATA %%% ----
+# Read in the resampling array .Rdata object, saved to disk
+COGL_array <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
+# Build a data.frame from array values, to pass to linear models
+COGL_DF <- resample.array2dataframe(COGL_array)
+
+# ---- LINEAR MODELS
+# Generate linear models, using Total allelic coverage as the response variable
+# GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
+COGL_geoModel <- lm (Total ~ Geo, data=COGL_DF)
+COGL_geoModel_summary <- summary(COGL_geoModel) ; COGL_geoModel_summary
+# Pull R-squared estimate from model
+COGL_geoModel_rSquared <- round(COGL_geoModel_summary$adj.r.squared,2)
+# (Ecological coverage is 100% for a single sample, so not included in  these analyses)
+
+# ---- PLOTTING ----
+# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
+# Calculate minimum 95% sample size for genetic and geographic values
+gen_min95Value <- gen.min95Mean(COGL_demoArray_Par) ; gen_min95Value
+geo_min95Value <- geo.min95Mean(COGL_demoArray_Par) ; geo_min95Value
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic geographic proportions
+averageValueMat <- meanArrayValues(COGL_array, allValues = TRUE)
+# Subset matrix of all average values to just Total allelic and geographic coverage
+averageValueMat_TG <- averageValueMat[,c(1,6)]
+
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
+plotColors <- alpha(plotColors, 0.45)
+plotColors_Sub <- plotColors[-(2:5)]
+
+# ---- CORRELATION PLOTS
+par(mfrow=c(2,1), mar=c(4,4,3,2)+0.1)
+# ---- GEOGRAPHIC-GENETIC
+plot(averageValueMat_TG$Geo, averageValueMat_TG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
+     xlab='', ylab='')
+title(main='C. glabra: Geographic by genetic coverage', line=1.5)
+mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.1, cex=1.3)
+mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.2)
+mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
+mylabel = bquote(italic(R)^2 == .(format(COGL_geoModel_rSquared, digits = 3)))
+text(x = 2, y = 80, labels = mylabel, cex=1.2)
+
+# ---- COVERAGE PLOTS
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat_TG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='C. glabra: Coverage values', line=1.5)
+mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
+# Add legend
+legend(x=65, y=35, inset = 0.05,
+       legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
+       col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
+       y.intersp = 0.5)
