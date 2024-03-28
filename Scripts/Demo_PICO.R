@@ -3,10 +3,10 @@
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Script calculating the correlation between genetic, geographic, and ecological coverage
-# for Pinus contorta. Uses data files from MacLachlan et al. 2021 to pull in genetic data (as a STRUCTURE input file) 
-# and geographic coordinates (included in a CSV) to conduct correlation analyses. We also process
-# the geographic coordinates to match the order of the genetic samples, prior to passing both along
-# to the correlation analyses.
+# for Pinus contorta. Uses data files from MacLachlan et al. 2021 to pull in genetic data 
+# (as a STRUCTURE input file) and geographic coordinates (included in a CSV) to conduct 
+# correlation analyses. We also process the geographic coordinates to match the order of 
+# the genetic samples, prior to passing both along to the correlation analyses.
 
 library(adegenet)
 library(terra)
@@ -20,6 +20,7 @@ GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/' 
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
+source('Scripts/worldAdmin.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
@@ -29,18 +30,6 @@ num_reps <- 5
 geo_buffSize <- 50000
 # Specify ecological buffer size in meters 
 eco_buffSize <- 50000
-# ---- SHAPEFILES
-# Read in world countries layer (created as part of the gap analysis workflow)
-# This layer is used to clip buffers, to make sure they're not in the water
-world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.gpkg')))
-# Read in the EPA Level III ecoregion shapefile, which is used for calculating ecological coverage (in North America)
-ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level3/NA_CEC_Eco_Level3.shp')))
-# Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
-# exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
-world_poly_clip_W <- wrap(world_poly_clip)
-ecoregion_poly_W <- wrap(ecoregion_poly)
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -53,15 +42,17 @@ clusterEvalQ(cl, library('parallel'))
 
 # %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
-# Specify filepath for PICO geographic and genetic data. Because the STRUCTURe input file is greater than 50 MB 
-# in size, it is not included on the GitHub repository
+# Specify filepath for PICO geographic and genetic data. 
 PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
 
 # ---- GENETIC MATRIX
-# The 1st script in the MacLachlan et al. 2021 supplement (1_MacLachlan_etal_Pine_GPA_ped&mapfile_formatting_Jan10th2021.R)
-# generates a .ped and .map file. This is for 929 individuals (control individuals are not included), and it includes
-# 32,449 loci, after filtering for minor alleles and missing data. The .ped file was then are passed into PLINK 
+# The 1st script in the MacLachlan et al. 2021 supplement 
+# (1_MacLachlan_etal_Pine_GPA_ped&mapfile_formatting_Jan10th2021.R) generates a .ped and .map file. 
+# This is for 929 individuals (control individuals are not included), and it includes 32,449 loci, 
+# after filtering for minor alleles and missing data. The .ped file was then are passed into PLINK 
 # in order to generate a STRUCTURE input file, which is converted into a genind object in the call below.
+
+# (Because the STRUCTURE input file is greater than 50 MB in size, it is not included on the GitHub repository)
 PICO_genind <- read.structure(file=paste0(PICO_filePath, 'Genetic/Pine_NaturalComp_85SNPfilter.stru'), 
                               n.ind = 929, n.loc = 32449, onerowperind = TRUE, col.lab = 1, 
                               col.pop = 0, row.marknames = 0, sep = ' ', ask = FALSE)
@@ -69,9 +60,10 @@ PICO_genind <- read.structure(file=paste0(PICO_filePath, 'Genetic/Pine_NaturalCo
 PICO_sampleNames <- indNames(PICO_genind)
 
 # ---- GEOGRAPHIC COORDINATES
-# The supplement of MacLachlan et al. 2021 includes a csv that contains climate data for all of the seedlings in the study,
-# as well as coordinate information. This dataset needs to first be subset just to the 929 samples included in the
-# genind object (above), and then ordered to match the order of samples in that genind object. These steps are taken below.
+# The supplement of MacLachlan et al. 2021 includes a csv that contains climate data for all of the 
+# seedlings in the study, as well as coordinate information. This dataset needs to first be subset 
+# just to the 929 samples included in the genind object (above), and then ordered to match the order 
+# of samples in that genind object. These steps are taken below.
 PICO_coordinates <- 
   read.csv(file=paste0(PICO_filePath, 'Geographic/Pine_NaturalOrchard_ClimateData_Sept7th2015.csv'), header = TRUE)
 # Start by subsetting the CSV to just the variables we need: sample names, latitude, and longitude
@@ -79,10 +71,25 @@ PICO_coordinates <-
   PICO_coordinates[which(PICO_coordinates$Internal_ID %in% PICO_sampleNames),c('Internal_ID','Latitude','Longitude')]
 # Reorder the coordinate values to match the order of samples in the genind file
 PICO_coordinates <- PICO_coordinates[order(match(PICO_coordinates$Internal_ID, PICO_sampleNames)),]
-# Rename the columns of the geographic coordinates data.frame (because geo.compareBuff function expects certain strings)
+# Rename the columns of the geographic coordinates data.frame (because geo.compareBuff function 
+# expects certain strings)
 colnames(PICO_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
-# Read in raster data, for SDM; wrap in order to export
+# Read in raster data, for SDM
 PICO_sdm <- terra::rast(paste0(PICO_filePath,'Geographic/PICO_929inds_rast_Carver.tif'))
+# Read in world countries layer (created as part of the gap analysis workflow)
+# This layer is used to clip buffers, to make sure they're not in the water
+world_poly_clip <- 
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.gpkg')))
+# Perform geographic filter on the admin layer. 
+world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = PICO_coordinates)
+# Read in the EPA Level III ecoregion shapefile, which is used for calculating ecological coverage 
+# (in North America)
+ecoregion_poly <- 
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level3/NA_CEC_Eco_Level3.shp')))
+# Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
+# exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
+world_poly_clip_W <- wrap(world_poly_clip)
+ecoregion_poly_W <- wrap(ecoregion_poly)
 PICO_sdm_W <- wrap(PICO_sdm)
 
 # ---- RESAMPLING ----
