@@ -16,8 +16,6 @@ library(scales)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
-# option2 
-GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/' 
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
 source('Scripts/worldAdmin.R')
