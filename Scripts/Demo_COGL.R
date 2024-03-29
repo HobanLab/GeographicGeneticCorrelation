@@ -31,7 +31,8 @@ eco_buffSize <- 1000
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
-# Read in the EPA Level III ecoregion shapefile, which is used for calculating ecological coverage (in North America)
+# Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 
+# (solely in the U.S.)
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
