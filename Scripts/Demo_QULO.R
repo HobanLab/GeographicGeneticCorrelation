@@ -194,7 +194,7 @@ text(x = 20, y = 85, labels = mylabel, cex=1.4)
 
 # %%%% 2024-03-11 SDM AND TOTAL BUFFER COMPARISON ----
 # Read in array and build a data.frame of values
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_Carver_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_LozaMX_5r_resampArr.Rdata')
 QULO_geoComp_50km_array <- readRDS(arrayDir)
 QULO_geoComp_50km_DF <- resample.array2dataframe(QULO_geoComp_50km_array)
 
@@ -231,27 +231,27 @@ plot(QULO_geoComp_50km_averageValueMat$Geo_Buff, QULO_geoComp_50km_averageValueM
 points(x=QULO_geoComp_50km_averageValueMat$Geo_SDM, y=QULO_geoComp_50km_averageValueMat$Total,
        pch=20, col='darkorange3')
 # Subtitle
-mtext(text='SDM: Dan Carver; 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
+mtext(text='SDM: Bela Loza (MaxEnt); 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
 # Add R-squared values for each comparison
 mylabel_totalBuff = bquote(italic(R)^2 == .(format(QULO_geoComp_50km_geoModelBuff_rSquared, digits = 3)))
 text(x = 81, y = 74.5, labels = mylabel_totalBuff, col='red4')
 mylabel_SDM = bquote(italic(R)^2 == .(format(QULO_geoComp_50km_geoModelSDM_rSquared, digits = 3)))
 text(x = 81, y = 69, labels = mylabel_SDM, col='darkorange3')
 # Add legend
-legend(x=60, y=135, inset = 0.05,
+legend(x=60, y=89, inset = 0.05, xpd=TRUE,
        legend = c('Total buffer approach', 'SDM approach'),
-       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.05)
+       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
 
 # ---- COVERAGE PLOT
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(QULO_geoComp_50km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors, pch=16, ylab='Coverage (%)')
 # Add title and x-axis labels to the graph
 title(main='Q. lobata: Coverage Values by Sample Size', line=1.5)
-mtext(text='SDM: Dan Carver; 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
+mtext(text='SDM: Bela Loza (MaxEnt); 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
 mtext(text='Number of individuals', side=1, line=2.4)
 # Add legend
-legend(x=300, y=65, inset = 0.05,
+legend(x=300, y=75, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
-       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.75)
+       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
 # # ---- MAP OF SDM AND SAMPLED POINTS
 # makeAMap(QULO_points, raster = QULO_sdm, buffer = geo_buffSize)

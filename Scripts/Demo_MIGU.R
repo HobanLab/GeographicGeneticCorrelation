@@ -20,6 +20,7 @@ library(vcfR) # for vcfR2genind function
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
+source('Scripts/worldAdmin.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
@@ -29,18 +30,6 @@ num_reps <- 5
 geo_buffSize <- 50000
 # Specify ecological buffer size in meters 
 eco_buffSize <- 50000
-# ---- SHAPEFILES
-# Read in world countries layer (created as part of the gap analysis workflow)
-# This layer is used to clip buffers, to make sure they're not in the water
-world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
-# Read in the EPA Level III ecoregion shapefile, which is used for calculating ecological coverage (in North America)
-ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level3/NA_CEC_Eco_Level3.shp')))
-# Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
-# exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
-world_poly_clip_W <- wrap(world_poly_clip)
-ecoregion_poly_W <- wrap(ecoregion_poly)
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -56,15 +45,7 @@ clusterEvalQ(cl, library('parallel'))
 # Specify filepath for MIGU geographic and genetic data
 MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
 
-# ---- GENETIC MATRIX
-# Read in the VCF file provided in Vallejo-Martin et al. 2021 using vcfR::read.vcfR
-MIGU_vcf <- 
-  read.vcfR(file=paste0(MIGU_filePath, 'Genetic/mgut_all_20180305_gut_filter_75.i50.recode.pruned.plink_20180326.vcf'))
-# Convert the vcf to a genind; the return.alleles TRUE value is suggested in the function's help file
-# This genind file is made up of 474 individuals and 1,498 loci
-MIGU_genind_global <- vcfR2genind(MIGU_vcf, sep = "/", return.alleles = TRUE)
-
-# ---- COORDINATE POINTS
+# ---- GEOGRAPHIC/ECOLOGICAL DATA FILES
 # The supplement of Vallejo-Martin et al. 2021 includes a PDF of the latitudes and longitudes for each population 
 # (SupplementaryData1). This was first converted to a Google Sheet. In order to convert this to a CSV that had latitudes 
 # and longitudes for each individual, individual names were added to the spreadsheet and matched manually 
@@ -74,31 +55,54 @@ MIGU_coordinates <-
   read.csv(file=paste0(MIGU_filePath, 'Geographic/MIGU_LatLongs.csv'), header = TRUE)
 # Rename the columns of the geographic coordinates data.frame (because geo.compareBuff function expects certain strings)
 colnames(MIGU_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
+# Read in raster data, for SDM
+MIGU_sdm <- terra::rast(paste0(MIGU_filePath,'Geographic/MIGU_474inds_rast_Carver.tif'))
+# Read in world countries layer (created as part of the gap analysis workflow)
+# This layer is used to clip buffers, to make sure they're not in the water
+world_poly_clip <- 
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+# Perform geographic filter on the admin layer. 
+world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = MIGU_coordinates)
+# Read in the EPA Level III ecoregion shapefile, which is used for calculating ecological coverage 
+# (in North America)
+ecoregion_poly <- 
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level3/NA_CEC_Eco_Level3.shp')))
+# Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
+# exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
+world_poly_clip_W <- wrap(world_poly_clip)
+ecoregion_poly_W <- wrap(ecoregion_poly)
+MIGU_sdm_W <- wrap(MIGU_sdm)
 
-# ---- REMOVE INTRODUCED POPULATIONS ----
-# Subset global genind object to only contain individuals from native range. The 'drop' argument removes alleles
-# no longer present in the dataset.
+# ---- GENETIC MATRIX
+# Read in the VCF file provided in Vallejo-Martin et al. 2021 using vcfR::read.vcfR
+MIGU_vcf <- 
+  read.vcfR(file=paste0(MIGU_filePath, 'Genetic/mgut_all_20180305_gut_filter_75.i50.recode.pruned.plink_20180326.vcf'))
+# Convert the vcf to a genind; the return.alleles TRUE value is suggested in the function's help file
+# This genind file is made up of 474 individuals and 1,498 loci
+MIGU_genind_global <- vcfR2genind(MIGU_vcf, sep = "/", return.alleles = TRUE)
+# REMOVE INTRODUCED POPULATIONS: Subset global genind object to only contain individuals from native range. 
+# The 'drop' argument removes alleles no longer present in the dataset.
 MIGU_genind <- MIGU_genind_global[MIGU_coordinates[,1], drop=TRUE]
 
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
 clusterExport(cl, varlist = c('MIGU_coordinates','MIGU_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                              'world_poly_clip_W', 'ecoregion_poly_W'))
+                              'world_poly_clip_W', 'ecoregion_poly_W', 'MIGU_sdm_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
-                              'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
-                              'geo.gen.Resample.Par'))
+clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 
+                              'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
+                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_50km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_50km_G2E_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 print("%%% BEGINNING RESAMPLING %%%")
 MIGU_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = MIGU_genind, geoFlag = TRUE, coordPts = MIGU_coordinates, 
-                       geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                       ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', 
-                       reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
-
+                       geoBuff = geo_buffSize, SDMrast = MIGU_sdm_W, 
+                       boundary=world_poly_clip_W, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
+                       ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', reps = num_reps, 
+                       arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
 
