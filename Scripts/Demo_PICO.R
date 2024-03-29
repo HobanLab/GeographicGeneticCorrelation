@@ -181,3 +181,66 @@ legend(x=405, y=60, inset = 0.05,
        legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level III)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n',
        y.intersp = 0.5)
+
+# %%%% 2024-03-29 SDM AND TOTAL BUFFER COMPARISON ----
+# Read in array and build a data.frame of values
+arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_50km_G2E_5r_resampArr.Rdata')
+PICO_geoComp_50km_array <- readRDS(arrayDir)
+PICO_geoComp_50km_DF <- resample.array2dataframe(PICO_geoComp_50km_array)
+
+# ---- LINEAR MODELS
+# Generate linear models, using Total allelic coverage as the response variable
+# Use either the total buffer (Buff) or SDM (SDM) geographic coverage approach for the predictor variable
+# Also extract R squared values
+# Total buffer approach
+PICO_geoComp_50km_geoModelBuff <- lm (Total ~ Geo_Buff, data=PICO_geoComp_50km_DF)
+PICO_geoComp_50km_geoModelBuff_summary <- summary(PICO_geoComp_50km_geoModelBuff) ; PICO_geoComp_50km_geoModelBuff_summary
+PICO_geoComp_50km_geoModelBuff_rSquared <- round(PICO_geoComp_50km_geoModelBuff_summary$adj.r.squared,2)
+# SDM approach
+PICO_geoComp_50km_geoModelSDM <- lm (Total ~ Geo_SDM, data=PICO_geoComp_50km_DF)
+PICO_geoComp_50km_geoModelSDM_summary <- summary(PICO_geoComp_50km_geoModelSDM) ; PICO_geoComp_50km_geoModelSDM_summary
+PICO_geoComp_50km_geoModelSDM_rSquared <- round(PICO_geoComp_50km_geoModelSDM_summary$adj.r.squared,2)
+
+# ---- PLOTTING
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic and geographic proportions
+PICO_geoComp_50km_averageValueMat <- meanArrayValues(PICO_geoComp_50km_array)
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
+plotColors_fade <- alpha(c('red','red4','darkorange3','coral','purple', 'darkblue'), 0.45)
+# Set plotting window to stack 2 graphs vertically
+par(mfcol=c(2,1))
+
+# ---- CORRELATION PLOT
+# Plot genetic coverage against geographic coverage using total buffer approach
+plot(PICO_geoComp_50km_averageValueMat$Geo_Buff, PICO_geoComp_50km_averageValueMat$Total, pch=20,
+     main='P. contorta: Geographic by genetic coverage',
+     xlab='Geographic coverage (%)', ylab='Genetic coverage (%)',
+     col=plotColors_fade[[2]])
+# Add points for SDM approach
+points(x=PICO_geoComp_50km_averageValueMat$Geo_SDM, y=PICO_geoComp_50km_averageValueMat$Total,
+       pch=20, col=plotColors_fade[[3]])
+# Subtitle
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
+# Add R-squared values for each comparison
+mylabel_totalBuff = bquote(italic(R)^2 == .(format(PICO_geoComp_50km_geoModelBuff_rSquared, digits = 3)))
+text(x = 81, y = 74.5, labels = mylabel_totalBuff, col=plotColors[[2]])
+mylabel_SDM = bquote(italic(R)^2 == .(format(PICO_geoComp_50km_geoModelSDM_rSquared, digits = 3)))
+text(x = 81, y = 69, labels = mylabel_SDM, col=plotColors[[3]])
+# Add legend
+legend(x=57, y=89, inset = 0.05, xpd=TRUE,
+       legend = c('Total buffer approach', 'SDM approach'),
+       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
+
+# ---- COVERAGE PLOT
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(PICO_geoComp_50km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors_fade, 
+        pch=16, ylab='Coverage (%)')
+# Add title and x-axis labels to the graph
+title(main='P. contorta: Coverage Values by Sample Size', line=1.5)
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
+mtext(text='Number of individuals', side=1, line=2.4)
+# Add legend
+legend(x=500, y=55, inset = 0.05, xpd=TRUE,
+       legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
+       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)

@@ -24,9 +24,9 @@ source('Scripts/worldAdmin.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters
-geo_buffSize <- 50000
+geo_buffSize <- 1000
 # Specify ecological buffer size in meters
-eco_buffSize <- 50000
+eco_buffSize <- 1000
 
 # ---- PARALLELIZATION
 # Set up relevant cores
@@ -116,7 +116,7 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                               'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_50km_G2E_5r_resampArr.RData')
+arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_1km_G2E_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 YUBR_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = YUBR_genind, geoFlag = TRUE, coordPts = YUBR_coordinates, 
@@ -175,7 +175,7 @@ stopCluster(cl)
 # # ---- GEOGRAPHIC-GENETIC
 # plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
 #      main='Y. brevifolia: Geographic by genetic coverage',xlab='', ylab='')
-# mtext(text='319 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+# mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 # mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.6)
 # mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # mylabel = bquote(italic(R)^2 == .(format(YUBR_geoModel_rSquared, digits = 3)))
@@ -183,7 +183,7 @@ stopCluster(cl)
 # # ---- ECOLOGICAL-GENETIC
 # plot(averageValueMat_TEG$Eco, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
 #      main='Y. brevifolia: Ecological by genetic coverage',xlab='', ylab='')
-# mtext(text='319 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+# mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 # mtext(text='Ecological coverage (%)', side=1, line=3, cex=1.6)
 # mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # mylabel = bquote(italic(R)^2 == .(format(YUBR_ecoModel_rSquared, digits = 3)))
@@ -194,11 +194,74 @@ stopCluster(cl)
 # matplot(averageValueMat_TEG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
 # # Add title and x-axis labels to the graph
 # title(main='Yucca brevifolia: Geo-Eco-Gen Coverage', line=1.5)
-# mtext(text='319 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+# mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 # mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 # mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # # Add legend
 # legend(x=50, y=60, inset = 0.05,
-#        legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level IV)'),
+#        legend = c('Genetic coverage (Total)', 'Geographic coverage (1 km buffer)', 'Ecological coverage (EPA Level IV)'),
 #        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n',
 #        y.intersp = 0.8)
+# 
+# # %%%% 2024-03-29 SDM AND TOTAL BUFFER COMPARISON ----
+# # Read in array and build a data.frame of values
+# arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_1km_G2E_5r_resampArr.Rdata')
+# YUBR_geoComp_1km_array <- readRDS(arrayDir)
+# YUBR_geoComp_1km_DF <- resample.array2dataframe(YUBR_geoComp_1km_array)
+# 
+# # ---- LINEAR MODELS
+# # Generate linear models, using Total allelic coverage as the response variable
+# # Use either the total buffer (Buff) or SDM (SDM) geographic coverage approach for the predictor variable
+# # Also extract R squared values
+# # Total buffer approach
+# YUBR_geoComp_1km_geoModelBuff <- lm (Total ~ Geo_Buff, data=YUBR_geoComp_1km_DF)
+# YUBR_geoComp_1km_geoModelBuff_summary <- summary(YUBR_geoComp_1km_geoModelBuff) ; YUBR_geoComp_1km_geoModelBuff_summary
+# YUBR_geoComp_1km_geoModelBuff_rSquared <- round(YUBR_geoComp_1km_geoModelBuff_summary$adj.r.squared,2)
+# # SDM approach
+# YUBR_geoComp_1km_geoModelSDM <- lm (Total ~ Geo_SDM, data=YUBR_geoComp_1km_DF)
+# YUBR_geoComp_1km_geoModelSDM_summary <- summary(YUBR_geoComp_1km_geoModelSDM) ; YUBR_geoComp_1km_geoModelSDM_summary
+# YUBR_geoComp_1km_geoModelSDM_rSquared <- round(YUBR_geoComp_1km_geoModelSDM_summary$adj.r.squared,2)
+# 
+# # ---- PLOTTING
+# # Generate the average values (across replicates) for all proportions
+# # This function has default arguments for returning just Total allelic and geographic proportions
+# YUBR_geoComp_1km_averageValueMat <- meanArrayValues(YUBR_geoComp_1km_array)
+# # Specify plot colors
+# plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
+# plotColors_fade <- alpha(c('red','red4','darkorange3','coral','purple', 'darkblue'), 0.45)
+# # Set plotting window to stack 2 graphs vertically
+# par(mfcol=c(2,1))
+# 
+# # ---- CORRELATION PLOT
+# # Plot genetic coverage against geographic coverage using total buffer approach
+# plot(YUBR_geoComp_1km_averageValueMat$Geo_Buff, YUBR_geoComp_1km_averageValueMat$Total, pch=20,
+#      main='Y. brevifolia: Geographic by genetic coverage',
+#      xlab='Geographic coverage (%)', ylab='Genetic coverage (%)',
+#      col=plotColors_fade[[2]])
+# # Add points for SDM approach
+# points(x=YUBR_geoComp_1km_averageValueMat$Geo_SDM, y=YUBR_geoComp_1km_averageValueMat$Total,
+#        pch=20, col=plotColors_fade[[3]])
+# # Subtitle
+# mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3)
+# # Add R-squared values for each comparison
+# mylabel_totalBuff = bquote(italic(R)^2 == .(format(YUBR_geoComp_1km_geoModelBuff_rSquared, digits = 3)))
+# text(x = 81, y = 74.5, labels = mylabel_totalBuff, col=plotColors[[2]])
+# mylabel_SDM = bquote(italic(R)^2 == .(format(YUBR_geoComp_1km_geoModelSDM_rSquared, digits = 3)))
+# text(x = 81, y = 69, labels = mylabel_SDM, col=plotColors[[3]])
+# # Add legend
+# legend(x=57, y=88, inset = 0.05, xpd=TRUE,
+#        legend = c('Total buffer approach', 'SDM approach'),
+#        col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
+# 
+# # ---- COVERAGE PLOT
+# # Use the matplot function to plot the matrix of average values, with specified settings
+# matplot(YUBR_geoComp_1km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors_fade, 
+#         pch=16, ylab='Coverage (%)')
+# # Add title and x-axis labels to the graph
+# title(main='Y. brevifolia: Coverage Values by Sample Size', line=1.5)
+# mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3)
+# mtext(text='Number of individuals', side=1, line=2.4)
+# # Add legend
+# legend(x=175, y=60, inset = 0.05, xpd=TRUE,
+#        legend = c('Genetic coverage', 'Geographic, Total buffer (1 km)', 'Geographic, SDM (1 km)'),
+#        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
