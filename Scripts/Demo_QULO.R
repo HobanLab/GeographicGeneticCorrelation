@@ -80,7 +80,7 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                               'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_LozaMX_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_GE_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 QULO_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
@@ -118,11 +118,6 @@ QULO_ecoModel_rSquared <- round(QULO_ecoModel_summary$adj.r.squared, 2)
 QULO_ecoModel_pValue <- QULO_ecoModel_summary$coefficients[2, 4]
 
 # ---- PLOTTING ----
-# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
-# Calculate minimum 95% sample size for genetic and geographic values
-gen_min95Value <- gen.min95Mean(QULO_demoArray_Par) ; gen_min95Value
-geo_min95Value <- geo.min95Mean(QULO_demoArray_Par) ; geo_min95Value
-eco_min95Value <- eco.min95Mean(QULO_demoArray_Par) ; eco_min95Value
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic geographic proportions
 averageValueMat <- meanArrayValues(QULO_demoArray_Par, allValues = TRUE)
@@ -130,71 +125,47 @@ averageValueMat <- meanArrayValues(QULO_demoArray_Par, allValues = TRUE)
 averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
 
 # Specify plot colors
-plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
+plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
 plotColors <- alpha(plotColors, 0.45)
-plotColors_Sub <- plotColors[-(2:5)]
+plotColors_Sub <- plotColors[-(2:4)]
 
-# ---- CORRELATION PLOTS
+# Two plots in a single window
 par(mfrow=c(2,1))
-# ---- GEOGRAPHIC-GENETIC
+# ---- CORRELATION PLOTS
 plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     main='Q. lobata: Geographic by genetic coverage',xlab='', ylab='')
+     main='Q. lobata: Geographic/Ecological by genetic coverage',xlab='', ylab='', col=plotColors[[5]])
 mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.6)
+mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-mylabel = bquote(italic(R)^2 == .(format(QULO_geoModel_rSquared, digits = 3)))
-text(x = 2, y = 10, labels = mylabel, cex=0.8)
-# ---- ECOLOGICAL-GENETIC
-plot(averageValueMat_TEG$Eco, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     main='Q. lobata: Ecological by genetic coverage',xlab='', ylab='')
-mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Ecological coverage (%)', side=1, line=3, cex=1.6)
-mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-mylabel = bquote(italic(R)^2 == .(format(QULO_ecoModel_rSquared, digits = 3)))
-text(x = 2, y = 10, labels = mylabel, cex=0.8)
-
+# Add points for ecological coverage
+points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
+# Add R-squared values for each comparison
+QULO_geo_label = bquote(italic(R)^2 == .(format(QULO_geoModel_rSquared, digits = 3)))
+text(x = 76, y = 49.5, labels = QULO_geo_label, col='darkblue')
+QULO_eco_label = bquote(italic(R)^2 == .(format(QULO_ecoModel_rSquared, digits = 3)))
+text(x = 76, y = 40, labels = QULO_eco_label, col='purple')
+# Add legend
+legend(x=60, y=82, inset = 0.05, xpd=TRUE,
+       legend = c('Geographic', 'Ecological'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(averageValueMat_TEG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
 # Add title and x-axis labels to the graph
-title(main='Quercus lobata: Geo-Eco-Gen Coverage', line=1.5)
+title(main='Q. lobata: Geo-Eco-Gen Coverage', line=1.5)
 mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
-legend(x=205, y=60, inset = 0.05,
-       legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level IV)'),
-       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n',
-       y.intersp = 0.8)
-
-# ---- BOTH PLOTS (For IMLS NLG subgroup presentation, 2023-08-17) ----
-par(mfrow=c(2,1))
-
-# ---- TOTAL ALLELIC AND GEOGRAPHIC COVERAGE
-# Use the matplot function to plot the matrix of average values, with specified settings
-matplot(averageValueMat, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
-# Add title and x-axis labels to the graph
-title(main='Quercus lobata: Geo-Gen Coverage', line=1.5)
-mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
-mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3)
-# Add legend
-legend(x=215, y=65, inset = 0.05,
-       legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)'),
-       col=plotColors_Sub, pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n', y.intersp = 0.6)
-
-# ---- GEOGRAPHIC-GENETIC CORRELATION
-plot(averageValueMat$Geo, averageValueMat$Total, pch=20, main='',xlab='', ylab='')
-mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.6)
-mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-mylabel = bquote(italic(R)^2 == .(format(QULO_model_rSquared, digits = 3)))
-text(x = 20, y = 85, labels = mylabel, cex=1.4)
+legend(x=275, y=75, inset = 0.05,
+       legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)', 
+                  'Ecological coverage (50 km buffer, EPA Level IV)'),
+       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.25)
 
 # %%%% 2024-03-11 SDM AND TOTAL BUFFER COMPARISON ----
 # Read in array and build a data.frame of values
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_LozaMX_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_Carver_5r_resampArr.Rdata')
 QULO_geoComp_50km_array <- readRDS(arrayDir)
 QULO_geoComp_50km_DF <- resample.array2dataframe(QULO_geoComp_50km_array)
 
@@ -231,27 +202,26 @@ plot(QULO_geoComp_50km_averageValueMat$Geo_Buff, QULO_geoComp_50km_averageValueM
 points(x=QULO_geoComp_50km_averageValueMat$Geo_SDM, y=QULO_geoComp_50km_averageValueMat$Total,
        pch=20, col='darkorange3')
 # Subtitle
-mtext(text='SDM: Bela Loza (MaxEnt); 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
+mtext(text='SDM: Dan Carver; 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.1)
 # Add R-squared values for each comparison
 mylabel_totalBuff = bquote(italic(R)^2 == .(format(QULO_geoComp_50km_geoModelBuff_rSquared, digits = 3)))
 text(x = 81, y = 74.5, labels = mylabel_totalBuff, col='red4')
 mylabel_SDM = bquote(italic(R)^2 == .(format(QULO_geoComp_50km_geoModelSDM_rSquared, digits = 3)))
 text(x = 81, y = 69, labels = mylabel_SDM, col='darkorange3')
 # Add legend
-legend(x=60, y=89, inset = 0.05, xpd=TRUE,
+legend(x=60, y=82, inset = 0.05, xpd=TRUE,
        legend = c('Total buffer approach', 'SDM approach'),
-       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
-
+       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.35)
 # ---- COVERAGE PLOT
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(QULO_geoComp_50km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors, pch=16, ylab='Coverage (%)')
 # Add title and x-axis labels to the graph
 title(main='Q. lobata: Coverage Values by Sample Size', line=1.5)
-mtext(text='SDM: Bela Loza (MaxEnt); 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
+mtext(text='SDM: Dan Carver; 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
 mtext(text='Number of individuals', side=1, line=2.4)
 # Add legend
-legend(x=300, y=75, inset = 0.05, xpd=TRUE,
+legend(x=300, y=60, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
-       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
+       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.35)
 # # ---- MAP OF SDM AND SAMPLED POINTS
 # makeAMap(QULO_points, raster = QULO_sdm, buffer = geo_buffSize)

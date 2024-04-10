@@ -116,11 +116,11 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                               'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_1km_G2E_5r_resampArr.Rdata')
+arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_1km_GE_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 YUBR_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = YUBR_genind, geoFlag = TRUE, coordPts = YUBR_coordinates, 
-                       geoBuff = geo_buffSize, SDMrast = YUBR_sdm_W, boundary=world_poly_clip_W, 
+                       geoBuff = geo_buffSize, boundary=world_poly_clip_W, 
                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
                        ecoLayer = 'US', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
@@ -154,11 +154,6 @@ YUBR_ecoModel_summary <- summary(YUBR_ecoModel) ; YUBR_ecoModel_summary
 YUBR_ecoModel_rSquared <- round(YUBR_ecoModel_summary$adj.r.squared, 2)
 
 # ---- PLOTTING ----
-# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
-# Calculate minimum 95% sample size for genetic and geographic values
-gen_min95Value <- gen.min95Mean(YUBR_demoArray_Par) ; gen_min95Value
-geo_min95Value <- geo.min95Mean(YUBR_demoArray_Par) ; geo_min95Value
-eco_min95Value <- eco.min95Mean(YUBR_demoArray_Par) ; eco_min95Value
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic geographic proportions
 averageValueMat <- meanArrayValues(YUBR_demoArray_Par, allValues = TRUE)
@@ -166,42 +161,42 @@ averageValueMat <- meanArrayValues(YUBR_demoArray_Par, allValues = TRUE)
 averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
 
 # Specify plot colors
-plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
+plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
 plotColors <- alpha(plotColors, 0.45)
-plotColors_Sub <- plotColors[-(2:5)]
-
-# ---- CORRELATION PLOTS
+plotColors_Sub <- plotColors[-(2:4)]
+# Two plots in a single window
 par(mfrow=c(2,1))
-# ---- GEOGRAPHIC-GENETIC
+# ---- CORRELATION PLOTS
 plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     main='Y. brevifolia: Geographic by genetic coverage',xlab='', ylab='')
+     main='Y. brevifolia: Geographic by genetic coverage',xlab='', ylab='', col=plotColors[[5]])
 mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.6)
+mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-mylabel = bquote(italic(R)^2 == .(format(YUBR_geoModel_rSquared, digits = 3)))
-text(x = 2, y = 10, labels = mylabel, cex=0.8)
-# ---- ECOLOGICAL-GENETIC
-plot(averageValueMat_TEG$Eco, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     main='Y. brevifolia: Ecological by genetic coverage',xlab='', ylab='')
-mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Ecological coverage (%)', side=1, line=3, cex=1.6)
-mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-mylabel = bquote(italic(R)^2 == .(format(YUBR_ecoModel_rSquared, digits = 3)))
-text(x = 2, y = 10, labels = mylabel, cex=0.8)
-
+# Add points for ecological coverage
+points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
+# Add R-squared values for each comparison
+YUBR_geo_label = bquote(italic(R)^2 == .(format(YUBR_geoModel_rSquared, digits = 3)))
+text(x = 76, y = 29.5, labels = YUBR_geo_label, col='darkblue')
+YUBR_eco_label = bquote(italic(R)^2 == .(format(YUBR_ecoModel_rSquared, digits = 3)))
+text(x = 76, y = 20, labels = YUBR_eco_label, col='purple')
+# Add legend
+legend(x=60, y=62, inset = 0.05, xpd=TRUE,
+       legend = c('Geographic', 'Ecological'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(averageValueMat_TEG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
 # Add title and x-axis labels to the graph
-title(main='Yucca brevifolia: Geo-Eco-Gen Coverage', line=1.5)
+title(main='Y. brevifolia: Geo-Eco-Gen Coverage', line=1.5)
 mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
-legend(x=50, y=60, inset = 0.05,
-       legend = c('Genetic coverage (Total)', 'Geographic coverage (1 km buffer)', 'Ecological coverage (EPA Level IV)'),
-       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n',
-       y.intersp = 0.8)
+legend(x=200, y=75, inset = 0.05,
+       legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)',
+                  'Ecological coverage (1 km buffer, EPA Level IV)'),
+       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.25)
 
 # %%%% 2024-03-29 SDM AND TOTAL BUFFER COMPARISON ----
 # Read in array and build a data.frame of values

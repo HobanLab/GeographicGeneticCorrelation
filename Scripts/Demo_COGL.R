@@ -131,9 +131,6 @@ COGL_geoModel_rSquared <- round(COGL_geoModel_summary$adj.r.squared,2)
 
 # ---- PLOTTING ----
 # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
-# Calculate minimum 95% sample size for genetic and geographic values
-gen_min95Value <- gen.min95Mean(COGL_demoArray_Par) ; gen_min95Value
-geo_min95Value <- geo.min95Mean(COGL_demoArray_Par) ; geo_min95Value
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic geographic proportions
 averageValueMat <- meanArrayValues(COGL_array, allValues = TRUE)
@@ -155,7 +152,7 @@ mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.1, cex=1
 mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.2)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
 mylabel = bquote(italic(R)^2 == .(format(COGL_geoModel_rSquared, digits = 3)))
-text(x = 2, y = 80, labels = mylabel, cex=1.2)
+text(x = 80, y = 40, labels = mylabel, cex=1.2)
 
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
@@ -166,7 +163,7 @@ mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
 # Add legend
-legend(x=65, y=35, inset = 0.05,
+legend(x=350, y=70, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
        y.intersp = 0.5)
