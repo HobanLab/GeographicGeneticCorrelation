@@ -116,21 +116,26 @@ if(parFlag==TRUE){
                      geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = num_reps)
 }
 
-# %%% CORRELATION ANALYSES AND PLOTTING %%% ----
-# %%% ORIGINAL ANALYSIS/PLOTTING COMMANDS ----
+# %%% ANALYZE DATA %%% ----
+QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
+arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_G_5r_resampArr.Rdata')
 # Read in the resampling array .Rdata object, saved to disk
 QUAC_demoArray_IND_Par <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 QUAC_DF <- resample.array2dataframe(QUAC_demoArray_IND_Par)
+# Calculate Spearman's r for geographic coverage
+QUAC_spearR_geo <- round(cor(QUAC_DF$Geo, QUAC_DF$Total, method = 'spearman'),3) ; QUAC_spearR_geo
 
-# ---- LINEAR MODELS
-# Generate linear models, using Total allelic coverage as the response variable
-# GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
-QUAC_geoModel <- lm (Total ~ Geo_Buff, data=QUAC_DF)
-QUAC_geoModel_summary <- summary(QUAC_geoModel) ; QUAC_geoModel_summary
-# Pull R-squared estimate from model
-QUAC_geoModel_rSquared <- round(QUAC_geoModel_summary$adj.r.squared,2)
-# (Ecological coverage is 100% for a single sample, so not included in  these analyses)
+# # ---- LINEAR MODELS
+# # Generate linear models, using Total allelic coverage as the response variable
+# # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
+# QUAC_geoModel <- lm (Total ~ Geo_Buff, data=QUAC_DF)
+# QUAC_geoModel_summary <- summary(QUAC_geoModel) ; QUAC_geoModel_summary
+# # Pull R-squared estimate from model
+# QUAC_geoModel_rSquared <- round(QUAC_geoModel_summary$adj.r.squared,2)
+# # (Ecological coverage is 100% for a single sample, so not included in  these analyses)
 
 # ---- PLOTTING ----
 # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
@@ -149,13 +154,13 @@ plotColors_Sub <- plotColors[-(2:5)]
 par(mfrow=c(2,1), mar=c(4,4,3,2)+0.1)
 # ---- GEOGRAPHIC-GENETIC
 plot(averageValueMat_TG$Geo, averageValueMat_TG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     xlab='', ylab='')
+     xlab='', ylab='', col='darkblue')
 title(main='Q. acerifolia: Geographic by genetic coverage', line=1.5)
 mtext(text='91 Individuals; 1 km buffer; 3 replicates', side=3, line=0.1, cex=1.3)
 mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.2)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
-mylabel = bquote(italic(R)^2 == .(format(QUAC_geoModel_rSquared, digits = 3)))
-text(x = 80, y = 40, labels = mylabel, cex=1.2)
+# Add Spearman's r values for each comparison
+text(x = 76, y = 35, labels = paste0('Spearman r: ', QUAC_spearR_geo), col='darkblue', cex=1.2)
 
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
@@ -166,10 +171,10 @@ mtext(text='91 Individuals; 1 km buffer; 3 replicates', side=3, line=0.3, cex=1.
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
 # Add legend
-legend(x=60, y=70, inset = 0.05,
+legend(x=60, y=75, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
-       y.intersp = 0.5)
+       y.intersp = 0.3)
 
 # %%%% 2023-09-27 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS ----
 # (For IMLS NLG subgroup presentation, 2023-09-27)

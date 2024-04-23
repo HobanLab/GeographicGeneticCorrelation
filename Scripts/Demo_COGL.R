@@ -113,21 +113,26 @@ stopCluster(cl)
 #                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = 1)
 
 # %%% ANALYZE DATA %%% ----
+# Specify filepath for COGL geographic and genetic data, including resampling data
+COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
+arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_50km_GE_5r_resampArr.Rdata')
 # Read in the resampling array .Rdata object, saved to disk
 COGL_array <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 COGL_DF <- resample.array2dataframe(COGL_array)
+# Calculate Spearman's r for geographic coverage
+COGL_spearR_geo <- round(cor(COGL_DF$Geo, COGL_DF$Total, method = 'spearman'),3) ; COGL_spearR_geo
 
-# ---- LINEAR MODELS
-# Generate linear models, using Total allelic coverage as the response variable
-# GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
-COGL_geoModel <- lm (Total ~ Geo, data=COGL_DF)
-COGL_geoModel_summary <- summary(COGL_geoModel) ; COGL_geoModel_summary
-# Pull R-squared estimate from model
-COGL_geoModel_rSquared <- round(COGL_geoModel_summary$adj.r.squared,2)
-# (Ecological coverage is 100% for a single sample, so not included in  these analyses)
+# # ---- LINEAR MODELS
+# # Generate linear models, using Total allelic coverage as the response variable
+# # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
+# COGL_geoModel <- lm (Total ~ Geo, data=COGL_DF)
+# COGL_geoModel_summary <- summary(COGL_geoModel) ; COGL_geoModel_summary
+# # Pull R-squared estimate from model
+# COGL_geoModel_rSquared <- round(COGL_geoModel_summary$adj.r.squared,2) ; COGL_geoModel_rSquared
+# # (Ecological coverage is 100% for a single sample, so not included in  these analyses)
 
 # ---- PLOTTING ----
 # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
@@ -146,13 +151,13 @@ plotColors_Sub <- plotColors[-(2:5)]
 par(mfrow=c(2,1), mar=c(4,4,3,2)+0.1)
 # ---- GEOGRAPHIC-GENETIC
 plot(averageValueMat_TG$Geo, averageValueMat_TG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     xlab='', ylab='')
+     xlab='', ylab='', col='darkblue')
 title(main='C. glabra: Geographic by genetic coverage', line=1.5)
 mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.1, cex=1.3)
 mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.2)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
-mylabel = bquote(italic(R)^2 == .(format(COGL_geoModel_rSquared, digits = 3)))
-text(x = 80, y = 40, labels = mylabel, cex=1.2)
+# Add Spearman's r values for each comparison
+text(x = 76, y = 43, labels = paste0('Spearman r: ', COGL_spearR_geo), col='darkblue', cex=1.2)
 
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
@@ -163,7 +168,7 @@ mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
 # Add legend
-legend(x=350, y=70, inset = 0.05,
+legend(x=350, y=80, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
-       y.intersp = 0.5)
+       y.intersp = 0.4)

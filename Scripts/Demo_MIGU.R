@@ -107,25 +107,31 @@ MIGU_demoArray_Par <-
 stopCluster(cl)
 
 # %%% ANALYZE DATA %%% ----
+# Specify filepath for MIGU geographic and genetic data, including resampling array
+MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_50km_GE_5r_resampArr.Rdata')
 # Read in the resampling array .Rdata object, saved to disk
 MIGU_demoArray_Par <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 MIGU_DF <- resample.array2dataframe(MIGU_demoArray_Par)
+# Calculate Spearman's r for geographic/ecological coverage
+MIGU_spearR_geo <- round(cor(MIGU_DF$Geo, MIGU_DF$Total, method = 'spearman'),3) ; MIGU_spearR_geo
+MIGU_spearR_eco <- round(cor(MIGU_DF$Eco, MIGU_DF$Total, method = 'spearman'),3) ; MIGU_spearR_eco
 
-# ---- LINEAR MODELS
-# Generate linear models, using Total allelic coverage as the response variable
-# GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
-MIGU_geoModel <- lm (Total ~ Geo, data=MIGU_DF)
-MIGU_geoModel_summary <- summary(MIGU_geoModel) ; MIGU_geoModel_summary
-# Pull R-squared estimate from model
-MIGU_geoModel_rSquared <- round(MIGU_geoModel_summary$adj.r.squared,2)
-# ECOLOGICAL COVERAGE AS PREDICTOR VARIABLE
-MIGU_ecoModel <- lm (Total ~ Eco, data=MIGU_DF)
-MIGU_ecoModel_summary <- summary(MIGU_ecoModel) ; MIGU_ecoModel_summary
-# Pull R-squared estimate from model
-MIGU_ecoModel_rSquared <- round(MIGU_ecoModel_summary$adj.r.squared, 2)
+# # ---- LINEAR MODELS
+# # Generate linear models, using Total allelic coverage as the response variable
+# # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
+# MIGU_geoModel <- lm (Total ~ Geo, data=MIGU_DF)
+# MIGU_geoModel_summary <- summary(MIGU_geoModel) ; MIGU_geoModel_summary
+# # Pull R-squared estimate from model
+# MIGU_geoModel_rSquared <- round(MIGU_geoModel_summary$adj.r.squared,2) ; MIGU_geoModel_rSquared
+# # ECOLOGICAL COVERAGE AS PREDICTOR VARIABLE
+# MIGU_ecoModel <- lm (Total ~ Eco, data=MIGU_DF)
+# MIGU_ecoModel_summary <- summary(MIGU_ecoModel) ; MIGU_ecoModel_summary
+# # Pull R-squared estimate from model
+# MIGU_ecoModel_rSquared <- round(MIGU_ecoModel_summary$adj.r.squared, 2) ; MIGU_ecoModel_rSquared
 
 # ---- PLOTTING ----
 # Generate the average values (across replicates) for all proportions
@@ -148,15 +154,13 @@ mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add points for ecological coverage
 points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
-# Add R-squared values for each comparison
-MIGU_geo_label = bquote(italic(R)^2 == .(format(MIGU_geoModel_rSquared, digits = 3)))
-text(x = 76, y = 49.5, labels = MIGU_geo_label, col='darkblue')
-MIGU_eco_label = bquote(italic(R)^2 == .(format(MIGU_ecoModel_rSquared, digits = 3)))
-text(x = 76, y = 40, labels = MIGU_eco_label, col='purple')
+# Add Spearman's r values for each comparison
+text(x = 76, y = 35, labels = paste0('Spearman r: ', MIGU_spearR_geo), col='darkblue', cex=0.9)
+text(x = 76, y = 20, labels = paste0('Spearman r: ', MIGU_spearR_eco), col='purple', cex=0.9)
 # Add legend
-legend(x=60, y=82, inset = 0.05, xpd=TRUE,
+legend(x=60, y=235, inset = 0.05, xpd=TRUE,
        legend = c('Geographic', 'Ecological'),
-       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(averageValueMat_TEG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
@@ -166,30 +170,40 @@ mtext(text='255 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
-legend(x=160, y=75, inset = 0.05,
+legend(x=160, y=235, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)', 
                   'Ecological coverage (50 km buffer, EPA Level III)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
-       y.intersp = 0.25)
+       y.intersp = 0.04)
 
 # %%%% 2024-03-29 SDM AND TOTAL BUFFER COMPARISON ----
-# Read in array and build a data.frame of values
+# Specify filepath for MIGU geographic and genetic data, including resampling array
+MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
 arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_50km_G2E_5r_resampArr.Rdata')
+# Read in the resampling array .Rdata object, saved to disk
 MIGU_geoComp_50km_array <- readRDS(arrayDir)
-MIGU_geoComp_50km_DF <- resample.array2dataframe(MIGU_geoComp_50km_array)
 
-# ---- LINEAR MODELS
-# Generate linear models, using Total allelic coverage as the response variable
-# Use either the total buffer (Buff) or SDM (SDM) geographic coverage approach for the predictor variable
-# Also extract R squared values
-# Total buffer approach
-MIGU_geoComp_50km_geoModelBuff <- lm (Total ~ Geo_Buff, data=MIGU_geoComp_50km_DF)
-MIGU_geoComp_50km_geoModelBuff_summary <- summary(MIGU_geoComp_50km_geoModelBuff) ; MIGU_geoComp_50km_geoModelBuff_summary
-MIGU_geoComp_50km_geoModelBuff_rSquared <- round(MIGU_geoComp_50km_geoModelBuff_summary$adj.r.squared,2)
-# SDM approach
-MIGU_geoComp_50km_geoModelSDM <- lm (Total ~ Geo_SDM, data=MIGU_geoComp_50km_DF)
-MIGU_geoComp_50km_geoModelSDM_summary <- summary(MIGU_geoComp_50km_geoModelSDM) ; MIGU_geoComp_50km_geoModelSDM_summary
-MIGU_geoComp_50km_geoModelSDM_rSquared <- round(MIGU_geoComp_50km_geoModelSDM_summary$adj.r.squared,2)
+# ---- CORRELATION ----
+# Build a data.frame from array values, to pass to linear models
+MIGU_geoComp_50km_DF <- resample.array2dataframe(MIGU_geoComp_50km_array)
+# Calculate Spearman's R for total buffer/SDM coverage
+MIGU_spearR_geo_totalBuff <- 
+  round(cor(MIGU_geoComp_50km_DF$Geo_Buff, MIGU_geoComp_50km_DF$Total, method = 'spearman'),3)
+MIGU_spearR_geo_SDM <- 
+  round(cor(MIGU_geoComp_50km_DF$Geo_SDM, MIGU_geoComp_50km_DF$Total, method = 'spearman'),3)
+
+# # ---- LINEAR MODELS
+# # Generate linear models, using Total allelic coverage as the response variable
+# # Use either the total buffer (Buff) or SDM (SDM) geographic coverage approach for the predictor variable
+# # Also extract R squared values
+# # Total buffer approach
+# MIGU_geoComp_50km_geoModelBuff <- lm (Total ~ Geo_Buff, data=MIGU_geoComp_50km_DF)
+# MIGU_geoComp_50km_geoModelBuff_summary <- summary(MIGU_geoComp_50km_geoModelBuff) ; MIGU_geoComp_50km_geoModelBuff_summary
+# MIGU_geoComp_50km_geoModelBuff_rSquared <- round(MIGU_geoComp_50km_geoModelBuff_summary$adj.r.squared,2)
+# # SDM approach
+# MIGU_geoComp_50km_geoModelSDM <- lm (Total ~ Geo_SDM, data=MIGU_geoComp_50km_DF)
+# MIGU_geoComp_50km_geoModelSDM_summary <- summary(MIGU_geoComp_50km_geoModelSDM) ; MIGU_geoComp_50km_geoModelSDM_summary
+# MIGU_geoComp_50km_geoModelSDM_rSquared <- round(MIGU_geoComp_50km_geoModelSDM_summary$adj.r.squared,2)
 
 # ---- PLOTTING
 # Generate the average values (across replicates) for all proportions
@@ -212,15 +226,13 @@ points(x=MIGU_geoComp_50km_averageValueMat$Geo_SDM, y=MIGU_geoComp_50km_averageV
        pch=20, col=plotColors_fade[[3]])
 # Subtitle
 mtext(text='255 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
-# Add R-squared values for each comparison
-mylabel_totalBuff = bquote(italic(R)^2 == .(format(MIGU_geoComp_50km_geoModelBuff_rSquared, digits = 3)))
-text(x = 81, y = 74.5, labels = mylabel_totalBuff, col=plotColors[[2]])
-mylabel_SDM = bquote(italic(R)^2 == .(format(MIGU_geoComp_50km_geoModelSDM_rSquared, digits = 3)))
-text(x = 81, y = 69, labels = mylabel_SDM, col=plotColors[[3]])
+# Add Spearman's r values for each comparison
+text(x = 79, y = 71, labels = paste0('Spearman r: ', MIGU_spearR_geo_totalBuff), col='red4', cex=0.9)
+text(x = 79, y = 66, labels = paste0('Spearman r: ', MIGU_spearR_geo_SDM), col='darkorange3', cex=0.9)
 # Add legend
-legend(x=57, y=88, inset = 0.05, xpd=TRUE,
+legend(x=57, y=148, inset = 0.05, xpd=TRUE,
        legend = c('Total buffer approach', 'SDM approach'),
-       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
+       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
 # ---- COVERAGE PLOT
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(MIGU_geoComp_50km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors_fade, 
@@ -230,6 +242,6 @@ title(main='M. guttatus: Coverage Values by Sample Size', line=1.5)
 mtext(text='255 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
 mtext(text='Number of individuals', side=1, line=2.4)
 # Add legend
-legend(x=175, y=60, inset = 0.05, xpd=TRUE,
+legend(x=175, y=215, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
-       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
+       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
