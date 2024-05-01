@@ -165,6 +165,10 @@ YUBR_spearR_eco <- round(cor(YUBR_DF$Eco, YUBR_DF$Total, method = 'spearman'),3)
 averageValueMat <- meanArrayValues(YUBR_demoArray_Par, allValues = TRUE)
 # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
 averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
+names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
 
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
@@ -201,6 +205,19 @@ legend(x=200, y=225, inset = 0.05,
                   'Ecological coverage (1 km buffer, EPA Level IV)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 0.04)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='Y. brevifolia: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
+mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=200, y=35, inset = 0.05,
+       legend = c('Genographic coverage difference', 'Ecological coverage difference'), 
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)
 
 # %%%% 2024-03-29 SDM AND TOTAL BUFFER COMPARISON ----
 # Specify filepath for MIGU geographic and genetic data, including resampling array
@@ -235,6 +252,13 @@ YUBR_spearR_geo_SDM <-
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic and geographic proportions
 YUBR_geoComp_1km_averageValueMat <- meanArrayValues(YUBR_geoComp_1km_array)
+# Calculate the absolute difference between genetic and geographic approaches, and add to data.frame
+YUBR_geoComp_1km_averageValueMat <- 
+  cbind(YUBR_geoComp_1km_averageValueMat, abs(YUBR_geoComp_1km_averageValueMat$Total-YUBR_geoComp_1km_averageValueMat$Geo_Buff))
+YUBR_geoComp_1km_averageValueMat <- 
+  cbind(YUBR_geoComp_1km_averageValueMat, abs(YUBR_geoComp_1km_averageValueMat$Total-YUBR_geoComp_1km_averageValueMat$Geo_SDM))
+names(YUBR_geoComp_1km_averageValueMat) <- 
+  c(names(YUBR_geoComp_1km_averageValueMat)[1:4],'Geo_Buff_Difference', 'Geo_SDM_Difference')
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
 plotColors_fade <- alpha(c('red','red4','darkorange3','coral','purple', 'darkblue'), 0.45)
@@ -259,7 +283,6 @@ text(x = 86, y = 54, labels = paste0('Spearman r: ', YUBR_spearR_geo_SDM), col='
 legend(x=65, y=180, inset = 0.05, xpd=TRUE,
        legend = c('Total buffer approach', 'SDM approach'),
        col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
-
 # ---- COVERAGE PLOT
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(YUBR_geoComp_1km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors_fade,
@@ -272,3 +295,16 @@ mtext(text='Number of individuals', side=1, line=2.4)
 legend(x=200, y=255, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (1 km)', 'Geographic, SDM (1 km)'),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(YUBR_geoComp_1km_averageValueMat[5:6], col=plotColors_fade[2:3], pch=16, ylab='')
+# Add title, subtitle, and x-axis labels to the graph
+title(main='Y. brevifolia: Genetic-Geographic Coverage Difference', line=1.5)
+mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.1)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=200, y=50, inset = 0.05,
+       legend = c('Total buffer approach', 'SDM approach'), 
+       col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)

@@ -144,6 +144,10 @@ PICO_ecoModel_rSquared <- round(PICO_ecoModel_summary$adj.r.squared, 2) ; PICO_e
 averageValueMat <- meanArrayValues(PICO_demoArray_Par, allValues = TRUE)
 # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
 averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
+names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
 
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
@@ -180,6 +184,19 @@ legend(x=580, y=235, inset = 0.05,
                   'Ecological coverage (50 km buffer, EPA Level III)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 0.03)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='P. contorta: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=275, y=45, inset = 0.05,
+       legend = c('Genographic coverage difference', 'Ecological coverage difference'), 
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)
 
 # %%%% 2024-03-29 SDM AND TOTAL BUFFER COMPARISON ----
 # Specify filepath for PICO geographic and genetic data, including resampling array
@@ -214,6 +231,13 @@ PICO_spearR_geo_SDM <-
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic and geographic proportions
 PICO_geoComp_50km_averageValueMat <- meanArrayValues(PICO_geoComp_50km_array)
+# Calculate the absolute difference between genetic and geographic approaches, and add to data.frame
+PICO_geoComp_50km_averageValueMat <- 
+  cbind(PICO_geoComp_50km_averageValueMat, abs(PICO_geoComp_50km_averageValueMat$Total-PICO_geoComp_50km_averageValueMat$Geo_Buff))
+PICO_geoComp_50km_averageValueMat <- 
+  cbind(PICO_geoComp_50km_averageValueMat, abs(PICO_geoComp_50km_averageValueMat$Total-PICO_geoComp_50km_averageValueMat$Geo_SDM))
+names(PICO_geoComp_50km_averageValueMat) <- 
+  c(names(PICO_geoComp_50km_averageValueMat)[1:4],'Geo_Buff_Difference', 'Geo_SDM_Difference')
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
 plotColors_fade <- alpha(c('red','red4','darkorange3','coral','purple', 'darkblue'), 0.45)
@@ -250,3 +274,16 @@ mtext(text='Number of individuals', side=1, line=2.4)
 legend(x=500, y=220, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(PICO_geoComp_50km_averageValueMat[5:6], col=plotColors_fade[2:3], pch=16, ylab='')
+# Add title, subtitle, and x-axis labels to the graph
+title(main='P. contorta: Genetic-Geographic Coverage Difference', line=1.5)
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.1)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=275, y=30, inset = 0.05,
+       legend = c('Total buffer approach', 'SDM approach'), 
+       col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)
