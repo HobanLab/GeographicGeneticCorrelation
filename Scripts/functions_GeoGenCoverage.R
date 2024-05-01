@@ -202,6 +202,13 @@ eco.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj,
   return(eco_Coverage)
 }
 
+# WORKER FUNCTION: Dummy function for concatenating individual SNPs together, in order to create
+# multilocus haplotypes. This is in development
+gen.buildMLH <- function(gen_obj){
+  # Process the genetic matrix and return
+  return(new_genMat)
+}
+
 # WORKER FUNCTION: Function for reporting representation rates, using a vector of allele frequencies 
 # and a sample matrix. Assumes that freqVector represents the absolute allele frequencies 
 # for the population of interest (the entire wild population). 
