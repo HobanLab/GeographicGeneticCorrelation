@@ -139,6 +139,10 @@ MIGU_spearR_eco <- round(cor(MIGU_DF$Eco, MIGU_DF$Total, method = 'spearman'),3)
 averageValueMat <- meanArrayValues(MIGU_demoArray_Par, allValues = TRUE)
 # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
 averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
+names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
 
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
@@ -175,6 +179,19 @@ legend(x=160, y=235, inset = 0.05,
                   'Ecological coverage (50 km buffer, EPA Level III)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 0.04)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='M. guttatus: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
+mtext(text='255 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=160, y=50, inset = 0.05,
+       legend = c('Genographic coverage difference', 'Ecological coverage difference'), 
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)
 
 # %%%% 2024-03-29 SDM AND TOTAL BUFFER COMPARISON ----
 # Specify filepath for MIGU geographic and genetic data, including resampling array
@@ -209,6 +226,13 @@ MIGU_spearR_geo_SDM <-
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic and geographic proportions
 MIGU_geoComp_50km_averageValueMat <- meanArrayValues(MIGU_geoComp_50km_array)
+# Calculate the absolute difference between genetic and geographic approaches, and add to data.frame
+MIGU_geoComp_50km_averageValueMat <- 
+  cbind(MIGU_geoComp_50km_averageValueMat, abs(MIGU_geoComp_50km_averageValueMat$Total-MIGU_geoComp_50km_averageValueMat$Geo_Buff))
+MIGU_geoComp_50km_averageValueMat <- 
+  cbind(MIGU_geoComp_50km_averageValueMat, abs(MIGU_geoComp_50km_averageValueMat$Total-MIGU_geoComp_50km_averageValueMat$Geo_SDM))
+names(MIGU_geoComp_50km_averageValueMat) <- 
+  c(names(MIGU_geoComp_50km_averageValueMat)[1:4],'Geo_Buff_Difference', 'Geo_SDM_Difference')
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
 plotColors_fade <- alpha(c('red','red4','darkorange3','coral','purple', 'darkblue'), 0.45)
@@ -245,3 +269,16 @@ mtext(text='Number of individuals', side=1, line=2.4)
 legend(x=175, y=215, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(MIGU_geoComp_50km_averageValueMat[5:6], col=plotColors_fade[2:3], pch=16, ylab='')
+# Add title, subtitle, and x-axis labels to the graph
+title(main='M. guttatus: Genetic-Geographic Coverage Difference', line=1.5)
+mtext(text='255 Individuals; 50 km buffer; 5 replicates', side=3, line=0.1)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=160, y=45, inset = 0.05,
+       legend = c('Total buffer approach', 'SDM approach'), 
+       col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)

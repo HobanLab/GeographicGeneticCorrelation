@@ -141,6 +141,9 @@ COGL_spearR_geo <- round(cor(COGL_DF$Geo, COGL_DF$Total, method = 'spearman'),3)
 averageValueMat <- meanArrayValues(COGL_array, allValues = TRUE)
 # Subset matrix of all average values to just Total allelic and geographic coverage
 averageValueMat_TG <- averageValueMat[,c(1,6)]
+# Calculate the absolute difference between genetic and geographic, and add this as a column to the data.frame
+averageValueMat_TG <- cbind(averageValueMat_TG, abs(averageValueMat_TG$Total-averageValueMat_TG$Geo))
+names(averageValueMat_TG) <- c(names(averageValueMat_TG)[1:2], "Difference")
 
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
@@ -158,7 +161,6 @@ mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.2)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
 # Add Spearman's r values for each comparison
 text(x = 76, y = 43, labels = paste0('Spearman r: ', COGL_spearR_geo), col='darkblue', cex=1.2)
-
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(averageValueMat_TG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
@@ -172,3 +174,10 @@ legend(x=350, y=80, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
        y.intersp = 0.4)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(averageValueMat_TG[[3]], col=plotColors[[6]], pch=16, ylab='Gen-Geo Difference')
+# Add title and x-axis labels to the graph
+title(main='C. glabra: Genetic Geographic Coverage Difference', line=1.5)
+mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
