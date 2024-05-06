@@ -55,6 +55,7 @@ QULO_genind <- df2genind(QULO_tab, ncode = 3, ploidy = 2)
 # The sample names (and order) have to match the sample names/order of the genind object 
 # (rownams of the genetic matrix) read in below.
 QULO_points <- read.csv(paste0(QULO_filePath, 'Geographic/Quercus_lobata.csv'), header=TRUE)
+
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = FALSE)
 # Perform geographic filter on the admin layer. 
@@ -80,7 +81,7 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                               'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_LozaMX_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_GE_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 QULO_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
@@ -96,12 +97,18 @@ stopCluster(cl)
 #                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = 1)
 
 # %%% ANALYZE DATA %%% ----
+# Specify filepath for QULO geographic and genetic data, including resampling array
+QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_GE_5r_resampArr.Rdata')
 # Read in the resampling array .Rdata object, saved to disk
 QULO_demoArray_Par <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 QULO_DF <- resample.array2dataframe(QULO_demoArray_Par)
+# Calculate Spearman's r for geographic/ecological coverage
+QULO_spearR_geo <- round(cor(QULO_DF$Geo, QULO_DF$Total, method = 'spearman'),3) ; QULO_spearR_geo
+QULO_spearR_eco <- round(cor(QULO_DF$Eco, QULO_DF$Total, method = 'spearman'),3) ; QULO_spearR_eco
 
 # ---- LINEAR MODELS
 # Generate linear models, using Total allelic coverage as the response variable
@@ -109,115 +116,117 @@ QULO_DF <- resample.array2dataframe(QULO_demoArray_Par)
 QULO_geoModel <- lm (Total ~ Geo, data=QULO_DF)
 QULO_geoModel_summary <- summary(QULO_geoModel) ; QULO_geoModel_summary
 # Pull R-squared estimate from model
-QULO_geoModel_rSquared <- round(QULO_geoModel_summary$adj.r.squared,2)
+QULO_geoModel_rSquared <- round(QULO_geoModel_summary$adj.r.squared,2) ; QULO_geoModel_rSquared
 # ECOLOGICAL COVERAGE AS PREDICTOR VARIABLE
 QULO_ecoModel <- lm (Total ~ Eco, data=QULO_DF)
 QULO_ecoModel_summary <- summary(QULO_ecoModel) ; QULO_ecoModel_summary
 # Pull R-squared estimate from model
-QULO_ecoModel_rSquared <- round(QULO_ecoModel_summary$adj.r.squared, 2)
-QULO_ecoModel_pValue <- QULO_ecoModel_summary$coefficients[2, 4]
+QULO_ecoModel_rSquared <- round(QULO_ecoModel_summary$adj.r.squared, 2) ; QULO_ecoModel_rSquared
 
 # ---- PLOTTING ----
-# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
-# Calculate minimum 95% sample size for genetic and geographic values
-gen_min95Value <- gen.min95Mean(QULO_demoArray_Par) ; gen_min95Value
-geo_min95Value <- geo.min95Mean(QULO_demoArray_Par) ; geo_min95Value
-eco_min95Value <- eco.min95Mean(QULO_demoArray_Par) ; eco_min95Value
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic geographic proportions
 averageValueMat <- meanArrayValues(QULO_demoArray_Par, allValues = TRUE)
 # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
 averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
-
+# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
+names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
 # Specify plot colors
-plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
+plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
 plotColors <- alpha(plotColors, 0.45)
-plotColors_Sub <- plotColors[-(2:5)]
+plotColors_Sub <- plotColors[-(2:4)]
+# Two plots in a single window
+par(mfrow=c(2,1))
 
 # ---- CORRELATION PLOTS
-par(mfrow=c(2,1))
-# ---- GEOGRAPHIC-GENETIC
 plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     main='Q. lobata: Geographic by genetic coverage',xlab='', ylab='')
+     main='Q. lobata: Geographic/Ecological by genetic coverage',xlab='', ylab='', col=plotColors[[5]])
 mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.6)
+mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-mylabel = bquote(italic(R)^2 == .(format(QULO_geoModel_rSquared, digits = 3)))
-text(x = 2, y = 10, labels = mylabel, cex=0.8)
-# ---- ECOLOGICAL-GENETIC
-plot(averageValueMat_TEG$Eco, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     main='Q. lobata: Ecological by genetic coverage',xlab='', ylab='')
-mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Ecological coverage (%)', side=1, line=3, cex=1.6)
-mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-mylabel = bquote(italic(R)^2 == .(format(QULO_ecoModel_rSquared, digits = 3)))
-text(x = 2, y = 10, labels = mylabel, cex=0.8)
-
+# Add points for ecological coverage
+points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
+# Add Spearman's r values for each comparison
+text(x = 76, y = 35, labels = paste0('Spearman r: ', QULO_spearR_geo), col='darkblue', cex=0.9)
+text(x = 76, y = 20, labels = paste0('Spearman r: ', QULO_spearR_eco), col='purple', cex=0.9)
+# Add legend
+legend(x=60, y=235, inset = 0.05, xpd=TRUE,
+       legend = c('Geographic', 'Ecological'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(averageValueMat_TEG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
 # Add title and x-axis labels to the graph
-title(main='Quercus lobata: Geo-Eco-Gen Coverage', line=1.5)
+title(main='Q. lobata: Geo-Eco-Gen Coverage', line=1.5)
 mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
-legend(x=205, y=60, inset = 0.05,
-       legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)', 'Ecological coverage (EPA Level IV)'),
-       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n',
-       y.intersp = 0.8)
-
-# ---- BOTH PLOTS (For IMLS NLG subgroup presentation, 2023-08-17) ----
-par(mfrow=c(2,1))
-
-# ---- TOTAL ALLELIC AND GEOGRAPHIC COVERAGE
-# Use the matplot function to plot the matrix of average values, with specified settings
-matplot(averageValueMat, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+legend(x=275, y=220, inset = 0.05,
+       legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)', 
+                  'Ecological coverage (50 km buffer, EPA Level IV)'),
+       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.03)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
 # Add title and x-axis labels to the graph
-title(main='Quercus lobata: Geo-Gen Coverage', line=1.5)
+title(main='Q. lobata: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
 mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
-mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Mark the 95% threshold line, and the genetic/geographic points
-abline(h=95, col='black', lty=3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
-legend(x=215, y=65, inset = 0.05,
-       legend = c('Genetic coverage (Total)', 'Geographic coverage (50 km buffer)'),
-       col=plotColors_Sub, pch = c(20,20,20), cex=1.2, pt.cex = 2, bty='n', y.intersp = 0.6)
-
-# ---- GEOGRAPHIC-GENETIC CORRELATION
-plot(averageValueMat$Geo, averageValueMat$Total, pch=20, main='',xlab='', ylab='')
-mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.6)
-mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-mylabel = bquote(italic(R)^2 == .(format(QULO_model_rSquared, digits = 3)))
-text(x = 20, y = 85, labels = mylabel, cex=1.4)
+legend(x=275, y=45, inset = 0.05,
+       legend = c('Genographic coverage difference', 'Ecological coverage difference'), 
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)
 
 # %%%% 2024-03-11 SDM AND TOTAL BUFFER COMPARISON ----
+# Specify filepath for QULO geographic and genetic data, including resampling array
+QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_Carver_5r_resampArr.Rdata')
 # Read in array and build a data.frame of values
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_LozaMX_5r_resampArr.Rdata')
 QULO_geoComp_50km_array <- readRDS(arrayDir)
-QULO_geoComp_50km_DF <- resample.array2dataframe(QULO_geoComp_50km_array)
 
-# ---- LINEAR MODELS
-# Generate linear models, using Total allelic coverage as the response variable
-# Use either the total buffer (Buff) or SDM (SDM) geographic coverage approach for the predictor variable
-# Also extract R squared values
-# Total buffer approach
-QULO_geoComp_50km_geoModelBuff <- lm (Total ~ Geo_Buff, data=QULO_geoComp_50km_DF)
-QULO_geoComp_50km_geoModelBuff_summary <- summary(QULO_geoComp_50km_geoModelBuff) ; QULO_geoComp_50km_geoModelBuff_summary
-QULO_geoComp_50km_geoModelBuff_rSquared <- round(QULO_geoComp_50km_geoModelBuff_summary$adj.r.squared,2)
-# SDM approach
-QULO_geoComp_50km_geoModelSDM <- lm (Total ~ Geo_SDM, data=QULO_geoComp_50km_DF)
-QULO_geoComp_50km_geoModelSDM_summary <- summary(QULO_geoComp_50km_geoModelSDM) ; QULO_geoComp_50km_geoModelSDM_summary
-QULO_geoComp_50km_geoModelSDM_rSquared <- round(QULO_geoComp_50km_geoModelSDM_summary$adj.r.squared,2)
+# ---- CORRELATION ----
+# Build a data.frame from array values, to pass to linear models
+QULO_geoComp_50km_DF <- resample.array2dataframe(QULO_geoComp_50km_array)
+# Calculate Spearman's r for total buffer/SDM coverage
+QULO_spearR_geo_totalBuff <- 
+  round(cor(QULO_geoComp_50km_DF$Geo_Buff, QULO_geoComp_50km_DF$Total, method = 'spearman'),3)
+QULO_spearR_geo_SDM <- 
+  round(cor(QULO_geoComp_50km_DF$Geo_SDM, QULO_geoComp_50km_DF$Total, method = 'spearman'),3)
+
+# # ---- LINEAR MODELS
+# # Generate linear models, using Total allelic coverage as the response variable
+# # Use either the total buffer (Buff) or SDM (SDM) geographic coverage approach for the predictor variable
+# # Also extract R squared values
+# # Total buffer approach
+# QULO_geoComp_50km_geoModelBuff <- lm (Total ~ Geo_Buff, data=QULO_geoComp_50km_DF)
+# QULO_geoComp_50km_geoModelBuff_summary <- summary(QULO_geoComp_50km_geoModelBuff) ; QULO_geoComp_50km_geoModelBuff_summary
+# QULO_geoComp_50km_geoModelBuff_rSquared <- round(QULO_geoComp_50km_geoModelBuff_summary$adj.r.squared,2)
+# # SDM approach
+# QULO_geoComp_50km_geoModelSDM <- lm (Total ~ Geo_SDM, data=QULO_geoComp_50km_DF)
+# QULO_geoComp_50km_geoModelSDM_summary <- summary(QULO_geoComp_50km_geoModelSDM) ; QULO_geoComp_50km_geoModelSDM_summary
+# QULO_geoComp_50km_geoModelSDM_rSquared <- round(QULO_geoComp_50km_geoModelSDM_summary$adj.r.squared,2)
 
 # ---- PLOTTING
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic and geographic proportions
 QULO_geoComp_50km_averageValueMat <- meanArrayValues(QULO_geoComp_50km_array)
-
+# Calculate the absolute difference between genetic and geographic approaches, and add to data.frame
+QULO_geoComp_50km_averageValueMat <- 
+  cbind(QULO_geoComp_50km_averageValueMat, abs(QULO_geoComp_50km_averageValueMat$Total-QULO_geoComp_50km_averageValueMat$Geo_Buff))
+QULO_geoComp_50km_averageValueMat <- 
+  cbind(QULO_geoComp_50km_averageValueMat, abs(QULO_geoComp_50km_averageValueMat$Total-QULO_geoComp_50km_averageValueMat$Geo_SDM))
+names(QULO_geoComp_50km_averageValueMat) <- 
+  c(names(QULO_geoComp_50km_averageValueMat)[1:4],'Geo_Buff_Difference', 'Geo_SDM_Difference')
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
+plotColors <- alpha(plotColors, 0.45)
+
 # Set plotting window to stack 2 graphs vertically
 par(mfcol=c(2,1))
 
@@ -231,27 +240,37 @@ plot(QULO_geoComp_50km_averageValueMat$Geo_Buff, QULO_geoComp_50km_averageValueM
 points(x=QULO_geoComp_50km_averageValueMat$Geo_SDM, y=QULO_geoComp_50km_averageValueMat$Total,
        pch=20, col='darkorange3')
 # Subtitle
-mtext(text='SDM: Bela Loza (MaxEnt); 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
-# Add R-squared values for each comparison
-mylabel_totalBuff = bquote(italic(R)^2 == .(format(QULO_geoComp_50km_geoModelBuff_rSquared, digits = 3)))
-text(x = 81, y = 74.5, labels = mylabel_totalBuff, col='red4')
-mylabel_SDM = bquote(italic(R)^2 == .(format(QULO_geoComp_50km_geoModelSDM_rSquared, digits = 3)))
-text(x = 81, y = 69, labels = mylabel_SDM, col='darkorange3')
+mtext(text='SDM: Carver; 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.1)
+# Add Spearman's r values for each comparison
+text(x = 80, y = 62, labels = paste0('Spearman r: ', QULO_spearR_geo_totalBuff), col='red4', cex=0.9)
+text(x = 80, y = 57, labels = paste0('Spearman r: ', QULO_spearR_geo_SDM), col='darkorange3', cex=0.9)
 # Add legend
-legend(x=60, y=89, inset = 0.05, xpd=TRUE,
+legend(x=60, y=155, inset = 0.05, xpd=TRUE,
        legend = c('Total buffer approach', 'SDM approach'),
-       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
-
+       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
 # ---- COVERAGE PLOT
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(QULO_geoComp_50km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors, pch=16, ylab='Coverage (%)')
 # Add title and x-axis labels to the graph
 title(main='Q. lobata: Coverage Values by Sample Size', line=1.5)
-mtext(text='SDM: Bela Loza (MaxEnt); 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
+mtext(text='SDM: Carver; 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
 mtext(text='Number of individuals', side=1, line=2.4)
 # Add legend
-legend(x=300, y=75, inset = 0.05, xpd=TRUE,
+legend(x=300, y=225, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
-       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.25)
+       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(QULO_geoComp_50km_averageValueMat[5:6], col=plotColors[2:3], pch=16, ylab='')
+# Add title, subtitle, and x-axis labels to the graph
+title(main='Q. lobata: Genetic-Geographic Coverage Difference', line=1.5)
+mtext(text='SDM: Carver; 436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.1)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=275, y=30, inset = 0.05,
+       legend = c('Total buffer approach', 'SDM approach'), 
+       col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)
 # # ---- MAP OF SDM AND SAMPLED POINTS
 # makeAMap(QULO_points, raster = QULO_sdm, buffer = geo_buffSize)
