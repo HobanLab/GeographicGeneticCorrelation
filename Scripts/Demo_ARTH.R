@@ -90,7 +90,7 @@ ARTH_genind <- ARTH_genind_global[ARTH_coordinates[,1], drop=TRUE]
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
 clusterExport(cl, varlist = c('ARTH_coordinates','ARTH_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                              'world_poly_clip_W', 'ecoregion_poly_W', 'ARTH_sdm_W'))
+                              'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
