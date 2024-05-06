@@ -18,9 +18,13 @@
 # calculating geographic range for different species. These are two large (> 50MB) to be included on the repository.
 GIS_shpFiles/
 
-# STRUCTURE input file for Pinus contorta dataset. This file is referenced in the Demo_PICO.R script, but is too large
+# STRUCTURE input file for Pinus contorta dataset (PICO). This file is referenced in the Demo_PICO.R script, but is too large
 # (> 50MB) to be included on the repository.
 Datasets/PICO/Genetic/Pine_NaturalComp_85SNPfilter.stru
+
+# Subset VCF file for Arabidopsis thaliana dataset (ARTH). This file is referenced in the Demo_ARTH.R script, but is too large
+# (> 50 MB) to be included on the repository.
+Datasets/ARTH/Genetic/ARTH_10k.vcf
 
 # Data inputs (both genetic and geographic) for Conradina glabra. The genetic data cannot be shared on GitHub because
 # the VCF size is greater than 50 MB. The geographic data cannot be shared because coordinates are protected (as this
