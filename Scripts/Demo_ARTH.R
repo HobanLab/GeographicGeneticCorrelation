@@ -65,8 +65,7 @@ world_poly_clip <-
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
 # Perform geographic filter on the admin layer. 
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = ARTH_coordinates)
-# Read in the EPA Level III ecoregion shapefile, which is used for calculating ecological coverage 
-# (in North America)
+# Read in the TNC global ecoregion shapefile, which is used for calculating ecological coverage 
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_globalTNC/Terrestrial_Ecoregions.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
@@ -108,76 +107,76 @@ ARTH_demoArray_Par <-
 # Close cores
 stopCluster(cl)
 
-# # %%% ANALYZE DATA %%% ----
-# # Specify filepath for ARTH geographic and genetic data, including resampling array
-# ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
-# arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_50km_GE_5r_resampArr.Rdata')
-# # Read in the resampling array .Rdata object, saved to disk
-# ARTH_demoArray_Par <- readRDS(arrayDir)
-# 
-# # ---- CORRELATION ----
-# # Build a data.frame from array values, to pass to linear models
-# ARTH_DF <- resample.array2dataframe(ARTH_demoArray_Par)
-# # Calculate Spearman's r for geographic/ecological coverage
-# ARTH_spearR_geo <- round(cor(ARTH_DF$Geo, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_geo
-# ARTH_spearR_eco <- round(cor(ARTH_DF$Eco, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_eco
-# 
-# # ---- PLOTTING ----
-# # Generate the average values (across replicates) for all proportions
-# # This function has default arguments for returning just Total allelic geographic proportions
-# averageValueMat <- meanArrayValues(ARTH_demoArray_Par, allValues = TRUE)
-# # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
-# averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
-# # Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
-# averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
-# averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
-# names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
-# 
-# # Specify plot colors
-# plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
-# plotColors <- alpha(plotColors, 0.45)
-# plotColors_Sub <- plotColors[-(2:4)]
-# # Two plots in a single window
-# par(mfrow=c(2,1))
-# # ---- CORRELATION PLOTS
-# plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-#      main='A. thaliana: Geographic by genetic coverage',xlab='', ylab='', col=plotColors[[5]])
-# mtext(text='1,135 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
-# mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add points for ecological coverage
-# points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
-# # Add Spearman's r values for each comparison
-# text(x = 76, y = 35, labels = paste0('Spearman r: ', ARTH_spearR_geo), col='darkblue', cex=0.9)
-# text(x = 76, y = 20, labels = paste0('Spearman r: ', ARTH_spearR_eco), col='purple', cex=0.9)
-# # Add legend
-# legend(x=60, y=235, inset = 0.05, xpd=TRUE,
-#        legend = c('Geographic', 'Ecological'),
-#        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
-# # ---- COVERAGE PLOTS
-# # Use the matplot function to plot the matrix of average values, with specified settings
-# matplot(averageValueMat_TEG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='A. thaliana: Geo-Eco-Gen Coverage', line=1.5)
-# mtext(text='1,135 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
-# mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=160, y=235, inset = 0.05,
-#        legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)', 
-#                   'Ecological coverage (50 km buffer, EPA Level III)'),
-#        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 0.04)
-# # ---- DIFFERENCE PLOTS
-# # Plot difference between geographic and genetic coverage
-# matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='A. thaliana: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
-# mtext(text='1,135 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-# mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=160, y=50, inset = 0.05,
-#        legend = c('Genographic coverage difference', 'Ecological coverage difference'), 
-#        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 1)
+# %%% ANALYZE DATA %%% ----
+# Specify filepath for ARTH geographic and genetic data, including resampling array
+ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
+arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_50km_GE_5r_resampArr.Rdata')
+# Read in the resampling array .Rdata object, saved to disk
+ARTH_demoArray_Par <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
+# Build a data.frame from array values, to pass to linear models
+ARTH_DF <- resample.array2dataframe(ARTH_demoArray_Par)
+# Calculate Spearman's r for geographic/ecological coverage
+ARTH_spearR_geo <- round(cor(ARTH_DF$Geo, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_geo
+ARTH_spearR_eco <- round(cor(ARTH_DF$Eco, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_eco
+
+# ---- PLOTTING ----
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic geographic proportions
+averageValueMat <- meanArrayValues(ARTH_demoArray_Par, allValues = TRUE)
+# Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
+averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
+names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
+
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
+plotColors <- alpha(plotColors, 0.45)
+plotColors_Sub <- plotColors[-(2:4)]
+# Two plots in a single window
+par(mfrow=c(2,1))
+# ---- CORRELATION PLOTS
+plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
+     main='A. thaliana: Geographic by genetic coverage',xlab='', ylab='', col=plotColors[[5]])
+mtext(text='1,010 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
+mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add points for ecological coverage
+points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
+# Add Spearman's r values for each comparison
+text(x = 76, y = 35, labels = paste0('Spearman r: ', ARTH_spearR_geo), col='darkblue', cex=0.9)
+text(x = 76, y = 20, labels = paste0('Spearman r: ', ARTH_spearR_eco), col='purple', cex=0.9)
+# Add legend
+legend(x=55, y=70, inset = 0.05, xpd=TRUE,
+       legend = c('Geographic', 'Ecological'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.35)
+# ---- COVERAGE PLOTS
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat_TEG[1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='A. thaliana: Geo-Eco-Gen Coverage', line=1.5)
+mtext(text='1,010 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=600, y=70, inset = 0.05,
+       legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)',
+                  'Ecological coverage (TNC global ecoregions)'),
+       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.35)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='A. thaliana: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
+mtext(text='1,010 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=650, y=45, inset = 0.05,
+       legend = c('Genographic coverage difference', 'Ecological coverage difference'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)
