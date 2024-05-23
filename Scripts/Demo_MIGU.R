@@ -56,7 +56,7 @@ MIGU_coordinates <-
 # Rename the columns of the geographic coordinates data.frame (because geo.compareBuff function expects certain strings)
 colnames(MIGU_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
 # Read in raster data, for SDM
-MIGU_sdm <- terra::rast(paste0(MIGU_filePath,'Geographic/MIGU_474inds_rast_Carver.tif'))
+MIGU_sdm <- terra::rast(paste0(MIGU_filePath,'Geographic/MIGU_255inds_rast_Carver.tif'))
 
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
