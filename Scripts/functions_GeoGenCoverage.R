@@ -539,6 +539,23 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
   return(resamp_DF)
 }
 
+# Function for calculating normalized root mean square error
+nrmse_func <-  function(obs, pred, type = 'sd'){
+  # Calculate root mean square error
+  squared_sums <- sum((obs - pred)^2)
+  mse <- squared_sums/length(obs)
+  rmse <- sqrt(mse)
+  # Normalize, based on type argument
+  if (type == 'sd') nrmse <- rmse/sd(obs)
+  if (type == 'mean') nrmse <- rmse/mean(obs)
+  if (type == 'maxmin') nrmse <- rmse/ (max(obs) - min(obs))
+  if (type == 'iq') nrmse <- rmse/ (quantile(obs, 0.75) - quantile(obs, 0.25))
+  if (!type %in% c('mean', 'sd', 'maxmin', 'iq')) message('Wrong type argument!')
+  # Round result and return
+  nrmse <- round(nrmse, 3)
+  return(nrmse)
+}
+
 # ---- DATA EXPLORATION FUNCTIONS ----
 # Function for generating a vector of wild allele frequencies from a genind object
 getWildFreqs <- function(gen.obj){
