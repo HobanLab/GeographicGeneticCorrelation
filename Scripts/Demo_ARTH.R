@@ -117,9 +117,12 @@ ARTH_demoArray_Par <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 ARTH_DF <- resample.array2dataframe(ARTH_demoArray_Par)
-# Calculate Spearman's r for geographic/ecological coverage
-ARTH_spearR_geo <- round(cor(ARTH_DF$Geo, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_geo
-ARTH_spearR_eco <- round(cor(ARTH_DF$Eco, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_eco
+# # Calculate Spearman's r for geographic/ecological coverage
+# ARTH_spearR_geo <- round(cor(ARTH_DF$Geo, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_geo
+# ARTH_spearR_eco <- round(cor(ARTH_DF$Eco, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_eco
+# Calculate normalized root mean square value
+ARTH_nrmse_geo <- nrmse_func(obs=ARTH_DF$Geo, pred=ARTH_DF$Total) ; ARTH_nrmse_geo
+ARTH_nrmse_eco <- nrmse_func(obs=ARTH_DF$Eco, pred=ARTH_DF$Total) ; ARTH_nrmse_eco
 
 # ---- PLOTTING ----
 # Generate the average values (across replicates) for all proportions
@@ -146,13 +149,13 @@ mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add points for ecological coverage
 points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
-# Add Spearman's r values for each comparison
-text(x = 76, y = 35, labels = paste0('Spearman r: ', ARTH_spearR_geo), col='darkblue', cex=0.9)
-text(x = 76, y = 20, labels = paste0('Spearman r: ', ARTH_spearR_eco), col='purple', cex=0.9)
+# Add NRMSE values for each comparison
+text(x = 76, y = 35, labels = paste0('NRMSE: ', ARTH_nrmse_geo), col='darkblue', cex=0.9)
+text(x = 76, y = 20, labels = paste0('NRMSE: ', ARTH_nrmse_eco), col='purple', cex=0.9)
 # Add legend
-legend(x=55, y=70, inset = 0.05, xpd=TRUE,
+legend(x=55, y=55, inset = 0.05, xpd=TRUE,
        legend = c('Geographic', 'Ecological'),
-       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.35)
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(averageValueMat_TEG[1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
@@ -162,11 +165,11 @@ mtext(text='1,010 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, ce
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
-legend(x=600, y=70, inset = 0.05,
+legend(x=600, y=65, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)',
                   'Ecological coverage (TNC global ecoregions)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
-       y.intersp = 0.35)
+       y.intersp = 0.8)
 # ---- DIFFERENCE PLOTS
 # Plot difference between geographic and genetic coverage
 matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')

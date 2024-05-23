@@ -122,17 +122,10 @@ COGL_array <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 COGL_DF <- resample.array2dataframe(COGL_array)
-# Calculate Spearman's r for geographic coverage
-COGL_spearR_geo <- round(cor(COGL_DF$Geo, COGL_DF$Total, method = 'spearman'),3) ; COGL_spearR_geo
-
-# # ---- LINEAR MODELS
-# # Generate linear models, using Total allelic coverage as the response variable
-# # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
-# COGL_geoModel <- lm (Total ~ Geo, data=COGL_DF)
-# COGL_geoModel_summary <- summary(COGL_geoModel) ; COGL_geoModel_summary
-# # Pull R-squared estimate from model
-# COGL_geoModel_rSquared <- round(COGL_geoModel_summary$adj.r.squared,2) ; COGL_geoModel_rSquared
-# # (Ecological coverage is 100% for a single sample, so not included in  these analyses)
+# # Calculate Spearman's r for geographic coverage
+# COGL_spearR_geo <- round(cor(COGL_DF$Geo, COGL_DF$Total, method = 'spearman'),3) ; COGL_spearR_geo
+# Calculate normalized root mean square value
+COGL_nrmse_geo <- nrmse_func(obs=COGL_DF$Geo, pred=COGL_DF$Total) ; COGL_nrmse_geo
 
 # ---- PLOTTING ----
 # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
@@ -154,16 +147,16 @@ plotColors_Sub <- plotColors[-(2:5)]
 par(mfrow=c(2,1), mar=c(4,4,3,2)+0.1)
 # ---- GEOGRAPHIC-GENETIC
 plot(averageValueMat_TG$Geo, averageValueMat_TG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     xlab='', ylab='', col='darkblue')
+     xlab='', ylab='', col=plotColors[[6]])
 title(main='C. glabra: Geographic by genetic coverage', line=1.5)
 mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.1, cex=1.3)
 mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.2)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
-# Add Spearman's r values for each comparison
-text(x = 76, y = 43, labels = paste0('Spearman r: ', COGL_spearR_geo), col='darkblue', cex=1.2)
+# Add NRMSE values for each comparison
+text(x = 76, y = 43, labels = paste0('NRMSE: ', COGL_nrmse_geo), col='darkblue', cex=1.2)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
-matplot(averageValueMat_TG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+matplot(averageValueMat_TG[,1:2], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
 # Add title and x-axis labels to the graph
 title(main='C. glabra: Coverage values', line=1.5)
 mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
@@ -173,7 +166,7 @@ mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
 legend(x=350, y=80, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
-       y.intersp = 0.4)
+       y.intersp = 0.8)
 # ---- DIFFERENCE PLOTS
 # Plot difference between geographic and genetic coverage
 matplot(averageValueMat_TG[[3]], col=plotColors[[6]], pch=16, ylab='Gen-Geo Difference')

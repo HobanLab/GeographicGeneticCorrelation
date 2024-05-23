@@ -143,9 +143,12 @@ YUBR_demoArray_Par <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 YUBR_DF <- resample.array2dataframe(YUBR_demoArray_Par)
-# Calculate Spearman's r for geographic/ecological coverage
-YUBR_spearR_geo <- round(cor(YUBR_DF$Geo, YUBR_DF$Total, method = 'spearman'),3) ; YUBR_spearR_geo
-YUBR_spearR_eco <- round(cor(YUBR_DF$Eco, YUBR_DF$Total, method = 'spearman'),3) ; YUBR_spearR_eco
+# # Calculate Spearman's r for geographic/ecological coverage
+# YUBR_spearR_geo <- round(cor(YUBR_DF$Geo, YUBR_DF$Total, method = 'spearman'),3) ; YUBR_spearR_geo
+# YUBR_spearR_eco <- round(cor(YUBR_DF$Eco, YUBR_DF$Total, method = 'spearman'),3) ; YUBR_spearR_eco
+# Calculate normalized root mean square value
+YUBR_nrmse_geo <- nrmse_func(obs=YUBR_DF$Geo, pred=YUBR_DF$Total) ; YUBR_nrmse_geo
+YUBR_nrmse_eco <- nrmse_func(obs=YUBR_DF$Eco, pred=YUBR_DF$Total) ; YUBR_nrmse_eco
 
 # # ---- LINEAR MODELS
 # # Generate linear models, using Total allelic coverage as the response variable
@@ -173,39 +176,41 @@ names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference
 
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
-plotColors <- alpha(plotColors, 0.45)
-plotColors_Sub <- plotColors[-(2:4)]
+plotColors_Fade <- alpha(plotColors, 0.45)
+plotColors_Sub <- plotColors_Fade[-(2:4)]
 # Two plots in a single window
 par(mfrow=c(2,1))
 # ---- CORRELATION PLOTS
 plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     main='Y. brevifolia: Geographic by genetic coverage',xlab='', ylab='', col=plotColors[[5]])
+     main='Y. brevifolia: Geographic by genetic coverage',xlab='', ylab='', 
+     col=plotColors_Fade[[5]])
 mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add points for ecological coverage
-points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
-# Add Spearman's r values for each comparison
-text(x = 76, y = 23, labels = paste0('Spearman r: ', YUBR_spearR_geo), col='darkblue', cex=0.9)
-text(x = 76, y = 10, labels = paste0('Spearman r: ', YUBR_spearR_eco), col='purple', cex=0.9)
+points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors_Fade[[6]])
+# Add NRMSE values for each comparison
+text(x = 76, y = 22, labels = paste0('NRMSE: ', YUBR_nrmse_geo), col='darkblue', cex=0.9)
+text(x = 76, y = 8, labels = paste0('NRMSE: ', YUBR_nrmse_eco), col='purple', cex=0.9)
 # Add legend
-legend(x=60, y=225, inset = 0.05, xpd=TRUE,
+legend(x=57, y=41, inset = 0.05, xpd=TRUE,
        legend = c('Geographic', 'Ecological'),
-       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', 
+       y.intersp = 0.8)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
-matplot(averageValueMat_TEG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+matplot(averageValueMat_TEG[,1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
 # Add title and x-axis labels to the graph
 title(main='Y. brevifolia: Geo-Eco-Gen Coverage', line=1.5)
 mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
-legend(x=200, y=225, inset = 0.05,
+legend(x=200, y=60, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)',
                   'Ecological coverage (1 km buffer, EPA Level IV)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
-       y.intersp = 0.04)
+       y.intersp = 0.8)
 # ---- DIFFERENCE PLOTS
 # Plot difference between geographic and genetic coverage
 matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
@@ -220,7 +225,7 @@ legend(x=200, y=35, inset = 0.05,
        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 1)
 
-# %%%% 2024-03-29 SDM AND TOTAL BUFFER COMPARISON ----
+# %%%% SDM AND TOTAL BUFFER COMPARISON ----
 # Specify filepath for MIGU geographic and genetic data, including resampling array
 YUBR_filePath <- paste0(GeoGenCorr_wd, 'Datasets/YUBR/')
 arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_1km_G2E_5r_resampArr.Rdata')
@@ -230,11 +235,16 @@ YUBR_geoComp_1km_array <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 YUBR_geoComp_1km_DF <- resample.array2dataframe(YUBR_geoComp_1km_array)
-# Calculate Spearman's R for total buffer/SDM coverage
-YUBR_spearR_geo_totalBuff <- 
-  round(cor(YUBR_geoComp_1km_DF$Geo_Buff, YUBR_geoComp_1km_DF$Total, method = 'spearman'),3)
-YUBR_spearR_geo_SDM <- 
-  round(cor(YUBR_geoComp_1km_DF$Geo_SDM, YUBR_geoComp_1km_DF$Total, method = 'spearman'),3)
+# # Calculate Spearman's R for total buffer/SDM coverage
+# YUBR_spearR_geo_totalBuff <- 
+#   round(cor(YUBR_geoComp_1km_DF$Geo_Buff, YUBR_geoComp_1km_DF$Total, method = 'spearman'),3)
+# YUBR_spearR_geo_SDM <- 
+#   round(cor(YUBR_geoComp_1km_DF$Geo_SDM, YUBR_geoComp_1km_DF$Total, method = 'spearman'),3)
+# Calculate normalized root mean square value
+YUBR_nrmse_geo_totalBuff <- 
+  nrmse_func(obs=YUBR_geoComp_1km_DF$Geo_Buff, pred=YUBR_geoComp_1km_DF$Total) ; YUBR_nrmse_geo_totalBuff
+YUBR_nrmse_geo_SDM <- 
+  nrmse_func(obs=YUBR_geoComp_1km_DF$Geo_SDM, pred=YUBR_geoComp_1km_DF$Total) ; YUBR_nrmse_geo_SDM
 
 # # ---- LINEAR MODELS
 # # Generate linear models, using Total allelic coverage as the response variable
@@ -277,13 +287,13 @@ points(x=YUBR_geoComp_1km_averageValueMat$Geo_SDM, y=YUBR_geoComp_1km_averageVal
        pch=20, col=plotColors_fade[[3]])
 # Subtitle
 mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3)
-# Add Spearman's r values for each comparison
-text(x = 86, y = 61, labels = paste0('Spearman r: ', YUBR_spearR_geo_totalBuff), col='red4', cex=0.9)
-text(x = 86, y = 54, labels = paste0('Spearman r: ', YUBR_spearR_geo_SDM), col='darkorange3', cex=0.9)
+# Add NRMSE values for each comparison
+text(x = 86, y = 59, labels = paste0('NRMSE: ', YUBR_nrmse_geo_totalBuff), col='red4', cex=0.9)
+text(x = 86, y = 50, labels = paste0('NRMSE: ', YUBR_nrmse_geo_SDM), col='darkorange3', cex=0.9)
 # Add legend
-legend(x=65, y=180, inset = 0.05, xpd=TRUE,
+legend(x=65, y=69, inset = 0.05, xpd=TRUE,
        legend = c('Total buffer approach', 'SDM approach'),
-       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
+       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 # ---- COVERAGE PLOT
 # Use the matplot function to plot the matrix of average values, with specified settings
 matplot(YUBR_geoComp_1km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors_fade,
@@ -293,9 +303,9 @@ title(main='Y. brevifolia: Coverage Values by Sample Size', line=1.5)
 mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3)
 mtext(text='Number of individuals', side=1, line=2.4)
 # Add legend
-legend(x=200, y=255, inset = 0.05, xpd=TRUE,
+legend(x=200, y=85, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (1 km)', 'Geographic, SDM (1 km)'),
-       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.04)
+       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 # ---- DIFFERENCE PLOTS
 # Plot difference between geographic and genetic coverage
 matplot(YUBR_geoComp_1km_averageValueMat[5:6], col=plotColors_fade[2:3], pch=16, ylab='')
