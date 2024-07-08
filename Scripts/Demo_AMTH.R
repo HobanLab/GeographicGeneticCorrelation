@@ -121,83 +121,83 @@ AMTH_demoArray_Par <-
 # Close cores
 stopCluster(cl)
 
-# # Run resampling not in parallel (for function testing purposes)
+# Run resampling not in parallel (for function testing purposes)
 # AMTH_demoArray_IND <-
 #   geo.gen.Resample(gen_obj = AMTH_genind, geoFlag = TRUE, coordPts = AMTH_coordinates, geoBuff = geo_buffSize,
 #                    boundary = world_poly_clip, ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly,
 #                    ecoLayer = "US", reps = 1)
 
-# # %%% ANALYZE DATA %%% ----
-# # Specify filepath for AMTH geographic and genetic data, including resampling array
-# AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
-# arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_1km_GE_5r_resampArr.Rdata')
-# # Read in the resampling array .Rdata object, saved to disk
-# AMTH_demoArray_Par <- readRDS(arrayDir)
-# 
-# # ---- CORRELATION ----
-# # Build a data.frame from array values, to pass to linear models
-# AMTH_DF <- resample.array2dataframe(AMTH_demoArray_Par)
-# # Calculate normalized root mean square value
-# AMTH_nrmse_geo <- nrmse_func(obs=AMTH_DF$Geo, pred=AMTH_DF$Total) ; AMTH_nrmse_geo
-# AMTH_nrmse_eco <- nrmse_func(obs=AMTH_DF$Eco, pred=AMTH_DF$Total) ; AMTH_nrmse_eco
-# 
-# # ---- PLOTTING ----
-# # Generate the average values (across replicates) for all proportions
-# # This function has default arguments for returning just Total allelic geographic proportions
-# averageValueMat <- meanArrayValues(AMTH_demoArray_Par, allValues = TRUE)
-# # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
-# averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
-# # Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
-# averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
-# averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
-# names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
-# 
-# # Specify plot colors
-# plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
-# plotColors_Fade <- alpha(plotColors, 0.45)
-# plotColors_Sub <- plotColors_Fade[-(2:4)]
-# # Two plots in a single window
-# par(mfrow=c(2,1))
-# # ---- CORRELATION PLOTS
-# plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-#      main='A. tharpii: Geographic by genetic coverage',xlab='', ylab='', col=plotColors_Fade[[5]])
-# mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
-# mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add points for ecological coverage
-# points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors_Fade[[6]])
-# # Add NRMSE values for each comparison
-# text(x = 76, y = 35, labels = paste0('NRMSE: ', AMTH_nrmse_geo), col='darkblue', cex=0.9)
-# text(x = 76, y = 20, labels = paste0('NRMSE: ', AMTH_nrmse_eco), col='purple', cex=0.9)
-# # Add legend
-# legend(x=58, y=54, inset = 0.05, xpd=TRUE,
-#        legend = c('Geographic', 'Ecological'),
-#        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 0.8)
-# # ---- COVERAGE PLOTS
-# # Use the matplot function to plot the matrix of average values, with specified settings
-# matplot(averageValueMat_TEG[,1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='A. tharpii: Geo-Eco-Gen Coverage', line=1.5)
-# mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
-# mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=160, y=68, inset = 0.05,
-#        legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)',
-#                   'Ecological coverage (50 km buffer, EPA Level IV)'),
-#        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 0.8)
-# # ---- DIFFERENCE PLOTS
-# # Plot difference between geographic and genetic coverage
-# matplot(averageValueMat_TEG[4:5], col=plotColors_Fade[5:6], pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='A. tharpii: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
-# mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-# mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=160, y=50, inset = 0.05,
-#        legend = c('Genographic coverage difference', 'Ecological coverage difference'),
-#        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 1)
+# %%% ANALYZE DATA %%% ----
+# Specify filepath for AMTH geographic and genetic data, including resampling array
+AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
+arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_1km_GE_5r_resampArr.Rdata')
+# Read in the resampling array .Rdata object, saved to disk
+AMTH_demoArray_Par <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
+# Build a data.frame from array values, to pass to linear models
+AMTH_DF <- resample.array2dataframe(AMTH_demoArray_Par)
+# Calculate normalized root mean square value
+AMTH_nrmse_geo <- nrmse_func(obs=AMTH_DF$Geo, pred=AMTH_DF$Total) ; AMTH_nrmse_geo
+AMTH_nrmse_eco <- nrmse_func(obs=AMTH_DF$Eco, pred=AMTH_DF$Total) ; AMTH_nrmse_eco
+
+# ---- PLOTTING ----
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic geographic proportions
+averageValueMat <- meanArrayValues(AMTH_demoArray_Par, allValues = TRUE)
+# Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
+averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
+names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
+
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
+plotColors_Fade <- alpha(plotColors, 0.65)
+plotColors_Sub <- plotColors_Fade[-(2:4)]
+# Two plots in a single window
+par(mfrow=c(2,1))
+# ---- CORRELATION PLOTS
+plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
+     main='A. tharpii: Geographic by genetic coverage',xlab='', ylab='', col=plotColors_Fade[[5]])
+mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
+mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add points for ecological coverage
+points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors_Fade[[6]])
+# Add NRMSE values for each comparison
+text(x = 76, y = 35, labels = paste0('NRMSE: ', AMTH_nrmse_geo), col='darkblue', cex=0.9)
+text(x = 76, y = 20, labels = paste0('NRMSE: ', AMTH_nrmse_eco), col='purple', cex=0.9)
+# Add legend
+legend(x=58, y=162, inset = 0.05, xpd=TRUE,
+       legend = c('Geographic', 'Ecological'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.08)
+# ---- COVERAGE PLOTS
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat_TEG[,1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='A. tharpii: Geo-Eco-Gen Coverage', line=1.5)
+mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=85, y=180, inset = 0.05,
+       legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)',
+                  'Ecological coverage (1 km buffer, EPA Level IV)'),
+       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.08)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(averageValueMat_TEG[4:5], col=plotColors_Fade[5:6], pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='A. tharpii: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
+mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=160, y=50, inset = 0.05,
+       legend = c('Genographic coverage difference', 'Ecological coverage difference'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)
