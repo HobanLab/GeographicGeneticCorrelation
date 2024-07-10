@@ -121,7 +121,7 @@ for(i in 1:length(COGL_haplos_output)){
   print(paste0('%%% HAPLOTYPE LENGTH: ', i))
   # Run resampling
   COGL_demoArray_Par <- 
-    geo.gen.Resample.Par(gen_obj = unlist(COGL_genList[[i]]), geoFlag = TRUE, coordPts = COGL_coordinates, 
+    geo.gen.Resample.Par(gen_obj = COGL_genList[[i]], geoFlag = TRUE, coordPts = COGL_coordinates, 
                          geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
                          ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
                          reps = num_reps, arrayFilepath = COGL_haplos_output[[i]], cluster = cl)
