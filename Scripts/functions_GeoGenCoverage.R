@@ -298,7 +298,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
     geoRate <- geo.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp), radius=geoBuff, 
                                ptProj=ptProj, buffProj=buffProj, boundary=boundary, parFlag=parFlag)
     # If no rasterized SDM is provided, calculate geographic coverage using just the buffer approach (default)
-    if(class(SDMrast)=="logical"){
+    if(class(SDMrast)=='logical'){
       names(geoRate) <- 'Geo'
     } else {
       # If rasterized SDM provided, calculate geo. coverage using SDM approach, and append coverage values together
@@ -544,6 +544,26 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
     resamp_DF <- resamp_DF[,-(3:6)]
   }
   return(resamp_DF)
+}
+
+# Function for calculating normalized root mean square error. Takes two vectors of equal length
+# (for this project, typically allelic representation values and geographic or ecological coverages)
+# and calculates the root mean square error between them. A lower value indicates similarity between
+# values.
+nrmse_func <-  function(obs, pred, type = 'sd'){
+  # Calculate root mean square error
+  squared_sums <- sum((obs - pred)^2)
+  mse <- squared_sums/length(obs)
+  rmse <- sqrt(mse)
+  # Normalize, based on type argument
+  if (type == 'sd') nrmse <- rmse/sd(obs)
+  if (type == 'mean') nrmse <- rmse/mean(obs)
+  if (type == 'maxmin') nrmse <- rmse/ (max(obs) - min(obs))
+  if (type == 'iq') nrmse <- rmse/ (quantile(obs, 0.75) - quantile(obs, 0.25))
+  if (!type %in% c('mean', 'sd', 'maxmin', 'iq')) message('Wrong type argument!')
+  # Round result and return
+  nrmse <- round(nrmse, 3)
+  return(nrmse)
 }
 
 # ---- DATA EXPLORATION FUNCTIONS ----
