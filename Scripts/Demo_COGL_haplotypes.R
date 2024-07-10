@@ -64,7 +64,7 @@ COGL_haplos_filePath <- paste0(COGL_filePath, 'Genetic/haplotypicData')
 COGL_haplos_input <- list.files(COGL_haplos_filePath, full.names = TRUE)
 # Declare a list of integers, storing the number of loci for each STRUCTURE input file
 COGL_lociLevels <- c(16291,7045,4001,2509,1627,1083,727,473,330,212)
-# Predeclare an empty list to store genind objects, and a list of resampling arrays to write to
+# Predeclare an empty list to store genind objects
 COGL_genList <- list()
 # For each STRUCTURE input file, 
 for(i in 1:length(COGL_haplos_input)){
@@ -115,7 +115,7 @@ for(i in 1:length(COGL_haplos_output)){
   }
 }
 
-# Run resampling (in parallel). Use a loop to loop through the different haplotype lengths
+# Run resampling (in parallel). Use a loop to iterate through the different haplotype lengths
 print('%%% BEGINNING RESAMPLING %%%')
 for(i in 1:length(COGL_haplos_output)){
   print(paste0('%%% HAPLOTYPE LENGTH: ', i))
