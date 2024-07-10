@@ -62,8 +62,6 @@ COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
 # genind object. 
 COGL_haplos_filePath <- paste0(COGL_filePath, 'Genetic/haplotypicData')
 COGL_haplos_input <- list.files(COGL_haplos_filePath, full.names = TRUE)
-# Reposition the haplotype file of 10 concatenated SNPs to be the last file (instead of the 2nd)
-COGL_haplos_input <- c(COGL_haplos_input[[1]],COGL_haplos_input[3:10],COGL_haplos_input[[2]])
 # Declare a list of integers, storing the number of loci for each STRUCTURE input file
 COGL_lociLevels <- c(16291,7045,4001,2509,1627,1083,727,473,330,212)
 # Predeclare an empty list to store genind objects, and a list of resampling arrays to write to
@@ -107,10 +105,14 @@ clusterExport(cl, varlist = c('COGL_coordinates','COGL_genList','num_reps','geo_
 clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
                               'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
                               'geo.gen.Resample.Par'))
-# Specify file paths, for saving resampling arrays
+# Specify file paths, for saving resampling arrays (if/else statement is for leading zeros)
 COGL_haplos_output <- dirname(gsub("Genetic", "resamplingData", COGL_haplos_input))
 for(i in 1:length(COGL_haplos_output)){
-  COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/COGL_1km_GE_5r_Hap-', i, '_resampArr.Rdata')
+  if(i>10){
+    COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/COGL_1km_GE_5r_Hap-0', i, '_resampArr.Rdata')
+  } else{
+    COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/COGL_1km_GE_5r_Hap-', i, '_resampArr.Rdata')
+  }
 }
 
 # Run resampling (in parallel). Use a loop to loop through the different haplotype lengths
@@ -132,72 +134,48 @@ stopCluster(cl)
 #   geo.gen.Resample(gen_obj = unlist(COGL_genList[[9]]), geoFlag = TRUE, coordPts = COGL_coordinates,
 #                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = 1)
 
-# # %%% ANALYZE DATA %%% ----
-# # Specify filepath for COGL geographic and genetic data, including resampling data
-# COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
-# arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_50km_GE_5r_resampArr.Rdata')
-# # Read in the resampling array .Rdata object, saved to disk
-# COGL_array <- readRDS(arrayDir)
-# 
-# # ---- CORRELATION ----
-# # Build a data.frame from array values, to pass to linear models
-# COGL_DF <- resample.array2dataframe(COGL_array)
-# # Calculate Spearman's r for geographic coverage
-# COGL_spearR_geo <- round(cor(COGL_DF$Geo, COGL_DF$Total, method = 'spearman'),3) ; COGL_spearR_geo
-# 
-# # # ---- LINEAR MODELS
-# # # Generate linear models, using Total allelic coverage as the response variable
-# # # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
-# # COGL_geoModel <- lm (Total ~ Geo, data=COGL_DF)
-# # COGL_geoModel_summary <- summary(COGL_geoModel) ; COGL_geoModel_summary
-# # # Pull R-squared estimate from model
-# # COGL_geoModel_rSquared <- round(COGL_geoModel_summary$adj.r.squared,2) ; COGL_geoModel_rSquared
-# # # (Ecological coverage is 100% for a single sample, so not included in  these analyses)
-# 
-# # ---- PLOTTING ----
-# # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
-# # Generate the average values (across replicates) for all proportions
-# # This function has default arguments for returning just Total allelic geographic proportions
-# averageValueMat <- meanArrayValues(COGL_array, allValues = TRUE)
-# # Subset matrix of all average values to just Total allelic and geographic coverage
-# averageValueMat_TG <- averageValueMat[,c(1,6)]
-# # Calculate the absolute difference between genetic and geographic, and add this as a column to the data.frame
-# averageValueMat_TG <- cbind(averageValueMat_TG, abs(averageValueMat_TG$Total-averageValueMat_TG$Geo))
-# names(averageValueMat_TG) <- c(names(averageValueMat_TG)[1:2], "Difference")
-# 
-# # Specify plot colors
-# plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
-# plotColors <- alpha(plotColors, 0.45)
-# plotColors_Sub <- plotColors[-(2:5)]
-# 
-# # ---- CORRELATION PLOTS
-# par(mfrow=c(2,1), mar=c(4,4,3,2)+0.1)
-# # ---- GEOGRAPHIC-GENETIC
-# plot(averageValueMat_TG$Geo, averageValueMat_TG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-#      xlab='', ylab='', col='darkblue')
-# title(main='C. glabra: Geographic by genetic coverage', line=1.5)
-# mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.1, cex=1.3)
-# mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.2)
-# mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
-# # Add Spearman's r values for each comparison
-# text(x = 76, y = 43, labels = paste0('Spearman r: ', COGL_spearR_geo), col='darkblue', cex=1.2)
-# # ---- COVERAGE PLOTS
-# # Use the matplot function to plot the matrix of average values, with specified settings
-# matplot(averageValueMat_TG, ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='C. glabra: Coverage values', line=1.5)
-# mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-# mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
-# # Add legend
-# legend(x=350, y=80, inset = 0.05,
-#        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
-#        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
-#        y.intersp = 0.4)
-# # ---- DIFFERENCE PLOTS
-# # Plot difference between geographic and genetic coverage
-# matplot(averageValueMat_TG[[3]], col=plotColors[[6]], pch=16, ylab='Gen-Geo Difference')
-# # Add title and x-axis labels to the graph
-# title(main='C. glabra: Genetic Geographic Coverage Difference', line=1.5)
-# mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+# %%% ANALYZE DATA %%% ----
+# Specify filepath for COGL geographic and genetic data, including resampling data
+COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
+arrayDir <- paste0(COGL_filePath, 'resamplingData/haplotypicData/')
+# Read in the resampling array .Rdata objects, saved to disk. Then, calculate the average 
+# value matrix (across resampling replicates) for each resampling array, and add that 
+# matrix as an item to a list.
+COGL_haplos_output <- list.files(arrayDir, full.names = TRUE); COGL_haplos_averageValueMats <- list()
+for(i in 1:length(COGL_haplos_output)){
+  COGL_haplos_averageValueMats[[i]] <- meanArrayValues(readRDS(COGL_haplos_output[[i]]))
+}
+# Build a summary matrix that consists of the Total allelic representation values for each 
+# haplotype dataset (10 columns) and an average of all Geographic resampling values (1 column).
+COGL_haplos_summaryMat <- array(data=NA, dim=c(nrow(COGL_haplos_averageValueMats[[1]]),11))
+colnames(COGL_haplos_summaryMat) <- c(paste0(rep('Total_Hap', 10),seq(1:10)),'Geo')
+# Total allelic representation values: pull the "Total" columns from each average value matrix,
+# and cbind these together
+COGL_haplos_summaryMat[,1:10] <- do.call(cbind,lapply(COGL_haplos_averageValueMats, function(x) x$Total))
+# For the geographic coverages: build a matrix of the geographic coverage values
+# from each average value matrix (using sapply). Then, calculate the means across the 
+# rows of this matrix (using rowMeans), and pass this to the last column of the summary matrix
+COGL_haplos_summaryMat[,11] <- rowMeans(sapply(COGL_haplos_averageValueMats, function(df) df[, 2]))
+# Convert the summary data into a data.frame
+COGL_haplos_summaryMat <- as.data.frame(COGL_haplos_summaryMat)
+# %%% NORMALIZED ROOT MEAN SQUARE ERROR: calculate the NRMSE for each haplotype length
+COGL_NRMSE_Values <- vector(length=length(COGL_haplos_output))
+for(i in 1:length(COGL_NRMSE_Values)){
+  COGL_NRMSE_Values[i] <- nrmse_func(COGL_haplos_summaryMat$Geo, pred=COGL_haplos_summaryMat[,i]) 
+}
+
+# ---- PLOTTING ----
+hapColors <- c('wheat2','tan','gold2','orange','salmon',
+               'darkorange2','tomato3','red','red4','salmon4','darkblue')
+hapColors_Fade <- alpha(hapColors, 0.5)
+legText <- c(paste0(rep('Hap. length: ', 10), seq(1:10)), 'Geographic coverage (1 km buffer)')
+# ---- COVERAGE PLOTS
+matplot(COGL_haplos_summaryMat, ylim=c(0,110), col=hapColors_Fade, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='C. glabra: Haplotypic Coverages', line=1.5)
+mtext(text='562 Individuals; 1 km Geographic buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
+# Add legend
+legend(x=400, y=87, inset = 0.05, legend = legText, col=hapColors, pch = c(19,19), 
+       cex=1.2, pt.cex = 2, bty='n', y.intersp = 0.5)
