@@ -202,6 +202,13 @@ eco.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj, buffProj,
   return(eco_Coverage)
 }
 
+# WORKER FUNCTION: Dummy function for concatenating individual SNPs together, in order to create
+# multilocus haplotypes. This is in development
+gen.buildMLH <- function(gen_obj){
+  # Process the genetic matrix and return
+  return(new_genMat)
+}
+
 # WORKER FUNCTION: Function for reporting representation rates, using a vector of allele frequencies 
 # and a sample matrix. Assumes that freqVector represents the absolute allele frequencies 
 # for the population of interest (the entire wild population). 
@@ -291,7 +298,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
     geoRate <- geo.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp), radius=geoBuff, 
                                ptProj=ptProj, buffProj=buffProj, boundary=boundary, parFlag=parFlag)
     # If no rasterized SDM is provided, calculate geographic coverage using just the buffer approach (default)
-    if(class(SDMrast)=="logical"){
+    if(class(SDMrast)=='logical'){
       names(geoRate) <- 'Geo'
     } else {
       # If rasterized SDM provided, calculate geo. coverage using SDM approach, and append coverage values together
@@ -539,7 +546,10 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
   return(resamp_DF)
 }
 
-# Function for calculating normalized root mean square error
+# Function for calculating normalized root mean square error. Takes two vectors of equal length
+# (for this project, typically allelic representation values and geographic or ecological coverages)
+# and calculates the root mean square error between them. A lower value indicates similarity between
+# values.
 nrmse_func <-  function(obs, pred, type = 'sd'){
   # Calculate root mean square error
   squared_sums <- sum((obs - pred)^2)
@@ -701,78 +711,3 @@ makeAMap <- function(points,raster,buffer=NA){
   }
   return(map)
 }
-
-# ---- ARCHIVE ----
-# CORE FUNCTION: Old version of calculateCoverage (prior to incorporating SDM alternative) 
-# calculateCoverage_OLD <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, 
-#                                   ptProj='+proj=longlat +datum=WGS84',
-#                                   buffProj='+proj=eqearth +datum=WGS84', boundary,
-#                                   ecoFlag=FALSE, ecoBuff, ecoRegions, ecoLayer=c('US','NA','GL'),
-#                                   parFlag=FALSE, numSamples){
-#   
-#   # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
-#   if(!identical(rownames(gen_mat), coordPts[,1])){
-#     stop('Error: Sample names between the genetic matrix and the first 
-#          column of the coordinate point data.frame do not match.')
-#   }
-#   
-#   # GENETIC PROCESSING
-#   # Calculate a vector of allele frequencies, based on the total sample matrix
-#   freqVector <- colSums(gen_mat, na.rm = TRUE)/(nrow(gen_mat)*2)*100
-#   # Remove any missing alleles (those with frequencies of 0) from the frequency vector
-#   freqVector <- freqVector[which(freqVector != 0)]
-#   # From a matrix of individuals, select a set of random individuals (rows). This is the set of individuals that will
-#   # be used for all downstream coverage calculations within this function (genetic, geographic, and ecological)
-#   samp <- gen_mat[sample(nrow(gen_mat), size=numSamples, replace = FALSE),]
-#   # Remove any missing alleles (those with colSums of 0) from the sample matrix
-#   samp <- samp[,which(colSums(samp, na.rm = TRUE) != 0)]
-#   # Genetic coverage: calculate sample's allelic representation
-#   genRates <- gen.getAlleleCategories(freqVector, samp)
-#   # Subset matrix returned by getAlleleCategories to just 3rd column (representation rates), and return
-#   genRates <- genRates[,3]
-#   
-#   # GEOGRAPHIC PROCESSING
-#   if(geoFlag==TRUE){
-#     # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
-#     if(missing(coordPts)) stop('For geographic coverage, a data.frame of wild coordinates (coordPts) is required')
-#     if(missing(geoBuff)) stop('For geographic coverage, an integer specifying the geographic buffer size (geoBuff) is required')
-#     if(missing(boundary)) stop('For geographic coverage, a SpatVector object of country boundaries (boundary) is required')
-#     # Check that the names of the latitude and longitude columns are properly written (this is unfortunately hard-coded)
-#     if(!identical(colnames(coordPts)[2:3], c('decimalLatitude', 'decimalLongitude'))){
-#       stop('The column names of the geographic coordinates data.frame (coordPts) need to be 
-#            decimalLatitude and decimalLongitude. Please rename your data.frame of geographic coordinates!')
-#     }
-#     # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
-#     # the random subset of points (rownames(samp)) to the geo.compareBuff worker function, which will calculate
-#     # the proportion of area covered in the random sample
-#     geoRate <- geo.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp), radius=geoBuff, 
-#                                ptProj=ptProj, buffProj=buffProj, boundary=boundary, parFlag=parFlag)
-#   } else {
-#     geoRate <- NA
-#   }
-#   names(geoRate) <- 'Geo'
-#   
-#   # ECOLOGICAL PROCESSING
-#   if(ecoFlag==TRUE){
-#     # Match ecoLayer argument, to ensure it is 1 of 3 possible values ('US', 'NA', 'GL)
-#     ecoLayer <- match.arg(ecoLayer)
-#     # Check for the required arguments (ptProj, buffProj, and ecoLayer will use defaults, if not specified)
-#     if(missing(coordPts)) stop('For ecological coverage, a data.frame of wild coordinates (coordPts) is required')
-#     if(missing(ecoBuff)) stop('For ecological coverage, an integer specifying the ecological buffer size (ecoBuff) is required')
-#     if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
-#     if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
-#     # Ecological coverage: calculate sample's ecological representation, by passing all points (coordPts) and 
-#     # the random subset of points (rownames(samp)) to the eco.compareBuff worker function, which will calculate
-#     # the proportion of ecoregions covered in the random sample
-#     ecoRate <- eco.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp), radius=ecoBuff, 
-#                                ptProj=ptProj, buffProj=buffProj, ecoRegion=ecoRegions, 
-#                                layerType=ecoLayer, boundary=boundary, parFlag=parFlag)
-#   } else{
-#     ecoRate <- NA
-#   }
-#   names(ecoRate) <- 'Eco'
-#   
-#   # Combine genetic, geographic, and ecological coverage rates into a vector, and return
-#   covRates <- c(genRates, geoRate, ecoRate)
-#   return(covRates)
-# }
