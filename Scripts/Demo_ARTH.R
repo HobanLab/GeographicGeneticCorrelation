@@ -17,7 +17,6 @@ library(vcfR) # for vcfR2genind function
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
-source('Scripts/worldAdmin.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
