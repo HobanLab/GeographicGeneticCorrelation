@@ -256,6 +256,99 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
 # to match (in order to properly subset across genetic, geographic, and ecological datasets). The SDMrast
 # argument allows users to calculate geographic coverage using a rasterized SDM provided to the function
 # (in addition to the standard approach, which involves using buffered areas)
+calculateCoverage_multBuffers <- 
+  function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=NA,
+           ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
+           boundary, ecoFlag=FALSE, ecoBuff, ecoRegions, ecoLayer=c('US','NA','GL'),
+           parFlag=FALSE, numSamples){
+  # GENETIC PROCESSING
+  # Calculate a vector of allele frequencies, based on the total sample matrix
+  freqVector <- colSums(gen_mat, na.rm = TRUE)/(nrow(gen_mat)*2)*100
+  # Remove any missing alleles (those with frequencies of 0) from the frequency vector
+  freqVector <- freqVector[which(freqVector != 0)]
+  # From a matrix of individuals, select a set of random individuals (rows). This is the set of individuals that will
+  # be used for all downstream coverage calculations within this function (genetic, geographic, and ecological)
+  samp <- gen_mat[sample(nrow(gen_mat), size=numSamples, replace = FALSE),]
+  # Remove any missing alleles (those with colSums of 0) from the sample matrix
+  samp <- samp[,which(colSums(samp, na.rm = TRUE) != 0)]
+  # Genetic coverage: calculate sample's allelic representation
+  genRates <- gen.getAlleleCategories(freqVector, samp)
+  # Subset matrix returned by getAlleleCategories to just 3rd column (representation rates), and return
+  genRates <- genRates[,3]
+  
+  # GEOGRAPHIC PROCESSING
+  if(geoFlag==TRUE){
+    # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
+    if(missing(coordPts)) stop('For geographic coverage, a data.frame of wild coordinates (coordPts) is required')
+    if(missing(geoBuff)) stop('For geographic coverage, an integer specifying the geographic buffer size (geoBuff) is required')
+    if(missing(boundary)) stop('For geographic coverage, a SpatVector object of country boundaries (boundary) is required')
+    # Check that the names of the latitude and longitude columns are properly written (this is unfortunately hard-coded)
+    if(!identical(colnames(coordPts)[2:3], c('decimalLatitude', 'decimalLongitude'))){
+      stop('The column names of the geographic coordinates data.frame (coordPts) need to be 
+           decimalLatitude and decimalLongitude. Please rename your data.frame of geographic coordinates!')
+    }
+    # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
+    if(!identical(rownames(gen_mat), coordPts[,1])){
+      stop('Error: Sample names between the genetic matrix and the first 
+         column of the coordinate point data.frame do not match.')
+    }
+    # Geographic coverage: calculate sample's geographic representation, by passing all points (coordPts) and 
+    # the random subset of points (rownames(samp)) to the geo.compareBuff worker function, which will calculate
+    # the proportion of area covered in the random sample
+    geoRate <- geo.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp), radius=geoBuff, 
+                               ptProj=ptProj, buffProj=buffProj, boundary=boundary, parFlag=parFlag)
+    # If no rasterized SDM is provided, calculate geographic coverage using just the buffer approach (default)
+    if(class(SDMrast)=='logical'){
+      names(geoRate) <- 'Geo'
+    } else {
+      # If rasterized SDM provided, calculate geo. coverage using SDM approach, and append coverage values together
+      geoRate_SDM <- geo.compareBuffSDM(totalWildPoints=coordPts, sampVect=rownames(samp),
+                                        radius=geoBuff, model=SDMrast, ptProj=ptProj,
+                                        buffProj=buffProj, boundary=boundary, 
+                                        parFlag=parFlag)
+      # Combine the two geographic coverage values (one using total buffered area, one using SDM)
+      geoRate <- c(geoRate, geoRate_SDM)
+      names(geoRate) <- c('Geo_Buff', 'Geo_SDM')
+    }
+  } else {
+    # If geographic processing is not occurring, make coverage values NA
+    geoRate <- NA
+  }
+  
+  # ECOLOGICAL PROCESSING
+  if(ecoFlag==TRUE){
+    # Match ecoLayer argument, to ensure it is 1 of 3 possible values ('US', 'NA', 'GL)
+    ecoLayer <- match.arg(ecoLayer)
+    # Check for the required arguments (ptProj, buffProj, and ecoLayer will use defaults, if not specified)
+    if(missing(coordPts)) stop('For ecological coverage, a data.frame of wild coordinates (coordPts) is required')
+    if(missing(ecoBuff)) stop('For ecological coverage, an integer specifying the ecological buffer size (ecoBuff) is required')
+    if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
+    if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
+    # Ecological coverage: calculate sample's ecological representation, by passing all points (coordPts) and 
+    # the random subset of points (rownames(samp)) to the eco.compareBuff worker function, which will calculate
+    # the proportion of ecoregions covered in the random sample
+    ecoRate <- eco.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp), radius=ecoBuff, 
+                               ptProj=ptProj, buffProj=buffProj, ecoRegion=ecoRegions, 
+                               layerType=ecoLayer, boundary=boundary, parFlag=parFlag)
+  } else{
+    # If ecological processing is not occurring, make coverage values NA
+    ecoRate <- NA
+  }
+  names(ecoRate) <- 'Eco'
+  
+  # Combine genetic, geographic, and ecological coverage rates into a vector, and return
+  covRates <- c(genRates, geoRate, ecoRate)
+  return(covRates)
+}
+
+# CORE FUNCTION: Wrapper of gen.getAlleleCategories, geo.compareBuff, and eco.compareBuff worker functions. 
+# Given a genetic matrix (rows are samples, columns are alleles) and a data.frame of coordinates 
+# (3 columns: sample names, latitudes, and longitudes), it calculates the genetic,
+# geographic (if flagged), and ecologcial (if flagged) coverage from a random draw of some amount of 
+# samples (numSamples). The sample names between the genind object and the coordinate data.frame need
+# to match (in order to properly subset across genetic, geographic, and ecological datasets). The SDMrast
+# argument allows users to calculate geographic coverage using a rasterized SDM provided to the function
+# (in addition to the standard approach, which involves using buffered areas)
 calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=NA,
                               ptProj='+proj=longlat +datum=WGS84',
                               buffProj='+proj=eqearth +datum=WGS84', boundary,
