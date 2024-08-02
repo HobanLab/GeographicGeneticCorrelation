@@ -16,7 +16,6 @@ library(scales)
 library(rnaturalearth)
 
 # Read in relevant functions
-# GeoGenCorr_wd <- '~/Documents/GeographicGeneticCorrelation/'
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
@@ -26,7 +25,9 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 1
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-geo_buffSize <- 1000
+# geo_buffSize <- 1000
+# geo_buffSize <- c(0.5,1,2,5,10,25,50,100)
+geo_buffSize <- c(10,100)
 # Specify ecological buffer size in meters 
 eco_buffSize <- 1000
 
@@ -58,7 +59,7 @@ world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion 
 # Perform geographic filter on the admin layer
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = wildPoints) 
 # Read in raster data, for SDM
-sdm <- terra::rast(paste0(GeoGenCorr_wd,'/Datasets/QUAC/Geographic/QUAC_91inds_rast.tif'))
+QUAC_sdm <- terra::rast(paste0(GeoGenCorr_wd,'/Datasets/QUAC/Geographic/QUAC_91inds_rast.tif'))
 
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
 # Dan Carver: no direct way to download so these need to be grabbed from EPA website: 
@@ -112,7 +113,7 @@ if(parFlag==TRUE){
 } else{
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
-    geo.gen.Resample(gen_obj = QUAC_genind, SDMrast = sdm, geoFlag = TRUE, coordPts = wildPoints,
+    geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = QUAC_sdm,
                      geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = num_reps)
 }
 
