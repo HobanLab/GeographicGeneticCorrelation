@@ -31,8 +31,8 @@ Resampling arrays (see [Outputs](https://github.com/HobanLab/GeographicGeneticCo
 In turn, `exSituResample` and `exSituResample.Par` are wrappers that use `sapply` (or `parSapply`) to reiterate the `calculateCoverage` function for every number of samples included in a wild dataset, starting at 2 and ranging all the way up to the total number of samples.
 
 `calculcateCoverage` is the "core function" of the code structure. It is divided into sections that calculate the 
-coverage values (genetic, geographic, and/or ecological) of a randomly selected subset of samples (variable name `samp`) using "worker" functions. The genetic section uses the worker function `gen.getAlleleCategories`; the geographic section uses `geo.compareBuff`; and the ecological section uses `eco.compareBuff`. Beyond these, there are a couple lower level functions, 
-which are used for the geographic/ecological coverage calculations (`eco.intersectBuff` and `createBuffers`).
+coverage values (genetic, geographic, and/or ecological) of a randomly selected subset of samples (variable name `samp`) using "worker" functions. The genetic section uses the worker function `gen.getAlleleCategories`; the geographic section uses `geo.compareBuff` and `geo.compareBuffSDM`; and the ecological section uses `eco.compareBuff`. Beyond these, there are a couple lower level functions, 
+which are used for the geographic/ecological coverage calculations (`eco.intersectBuff`,`geo.checkSDMres`, and `createBuffers`).
 
 ### Inputs
 The most important arguments provided to the resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Par`) are:
@@ -42,7 +42,7 @@ The most important arguments provided to the resampling functions (`geo.gen.Resa
 
 An error will be (intentionally) thrown if sample names/order do not match exactly between these two arguments!
 
-Additionally, the functions require the specification of geographic/ecological buffer sizes, the Spatial Vectors representing the .shp files of polygons representing both national borders and ecoregion data (if available), and the number of resampling replicates. 
+Additionally, the functions require the specification of geographic/ecological buffer sizes (either a single integer or a vector of values), the Spatial Vectors representing the .shp files of polygons representing both national borders and ecoregion data (if available), and the number of resampling replicates. 
 
 ### Outputs
 The uppermost resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Par`) generate a single 3 dimensional array, with the dimensions as follows:
@@ -50,8 +50,7 @@ The uppermost resampling functions (`geo.gen.Resample` and `geo.gen.Resample.Par
 - **columns**: coverage values of different metrics: 
 	- **Column 1**: the Total allelic representation (all categories of alleles)
 	- **Columns 2--5**: the representation values for alleles of different frequency categories (Very common, Common, Low frequency, Rare) 
-	- **Column 6**: the geographic coverage values (optional) 
-	- **Column 7**: the ecological coverage values (optional)
+	- **Columns 6 and up**: the geographic coverage values (for each specified buffer size) followed by the ecological coverage values (for each specified buffer size)
 - **slices**: each array slice (3rd dimension) represents a different, independent resampling replicate. Averaging results across resampling replicates allows us to calculate summary statistics.
 
 ## Analysis
