@@ -25,9 +25,7 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 1
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-# geo_buffSize <- 1000
-# geo_buffSize <- c(0.5,1,2,5,10,25,50,100)
-geo_buffSize <- c(10,100)
+geo_buffSize <- 1000
 # Specify ecological buffer size in meters 
 eco_buffSize <- 1000
 
@@ -52,7 +50,6 @@ pop(QUAC_genind) <-
 # The sample names (and order) have to match the sample names/order of the genind object 
 # (rownams of the genetic matrix) read in below.
 wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coord_ind.csv'), header=TRUE)
-
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = TRUE)
@@ -60,12 +57,7 @@ world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion 
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = wildPoints) 
 # Read in raster data, for SDM
 QUAC_sdm <- terra::rast(paste0(GeoGenCorr_wd,'/Datasets/QUAC/Geographic/QUAC_91inds_rast.tif'))
-
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
-# Dan Carver: no direct way to download so these need to be grabbed from EPA website: 
-# https://www.epa.gov/eco-research/level-iii-and-iv-ecoregions-continental-united-states
-# Seems like the data with states was used originally, I don't think that reference is utilizee 
-# so it might be better to use the smaller file. 
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 
@@ -114,7 +106,9 @@ if(parFlag==TRUE){
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
     geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = QUAC_sdm,
-                     geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = num_reps)
+                     geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, 
+                     ecoBuff = NA, ecoRegions = NA, ecoLayer = 'US',
+                     reps = num_reps)
 }
 
 # %%% ANALYZE DATA %%% ----
@@ -126,19 +120,8 @@ QUAC_demoArray_IND_Par <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 QUAC_DF <- resample.array2dataframe(QUAC_demoArray_IND_Par)
-# # Calculate Spearman's r for geographic coverage
-# QUAC_spearR_geo <- round(cor(QUAC_DF$Geo, QUAC_DF$Total, method = 'spearman'),3) ; QUAC_spearR_geo
 # Calculate normalized root mean square value
 QUAC_nrmse_geo <- nrmse_func(obs=QUAC_DF$Geo, pred=QUAC_DF$Total) ; QUAC_nrmse_geo
-
-# # ---- LINEAR MODELS
-# # Generate linear models, using Total allelic coverage as the response variable
-# # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
-# QUAC_geoModel <- lm (Total ~ Geo_Buff, data=QUAC_DF)
-# QUAC_geoModel_summary <- summary(QUAC_geoModel) ; QUAC_geoModel_summary
-# # Pull R-squared estimate from model
-# QUAC_geoModel_rSquared <- round(QUAC_geoModel_summary$adj.r.squared,2)
-# # (Ecological coverage is 100% for a single sample, so not included in  these analyses)
 
 # ---- PLOTTING ----
 # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
