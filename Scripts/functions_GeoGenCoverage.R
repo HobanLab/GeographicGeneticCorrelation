@@ -72,7 +72,6 @@ geo.compareBuff <- function(totalWildPoints, sampVect, radius, ptProj,
   geo_totalArea <- expanse(geo_total)/1000000
   # Calculate the proportion of the ex situ buffer areas to the total buffer area (percent geographic coverage)
   geo_Coverage <- (geo_exSituArea/geo_totalArea)*100
-
   return(geo_Coverage)
 }
 
