@@ -182,11 +182,6 @@ QULO_geoComp_50km_array <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 QULO_geoComp_50km_DF <- resample.array2dataframe(QULO_geoComp_50km_array)
-# # Calculate Spearman's r for total buffer/SDM coverage
-# QULO_spearR_geo_totalBuff <-
-#   round(cor(QULO_geoComp_50km_DF$Geo_Buff, QULO_geoComp_50km_DF$Total, method = 'spearman'),3)
-# QULO_spearR_geo_SDM <-
-#   round(cor(QULO_geoComp_50km_DF$Geo_SDM, QULO_geoComp_50km_DF$Total, method = 'spearman'),3)
 # Calculate normalized root mean square value
 QULO_nrmse_geo_totalBuff <-
   nrmse_func(obs=QULO_geoComp_50km_DF$Geo_Buff, pred=QULO_geoComp_50km_DF$Total) ; QULO_nrmse_geo_totalBuff
