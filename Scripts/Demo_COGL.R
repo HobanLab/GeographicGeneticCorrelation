@@ -90,9 +90,9 @@ COGL_coordinates<- COGL_coordinates[-grep('_rep', COGL_coordinates$Sample.Name),
 clusterExport(cl, varlist = c('COGL_coordinates','COGL_genind','num_reps','geo_buffSize', 'eco_buffSize',
                               'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
-                              'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
-                              'geo.gen.Resample.Par'))
+clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
+                              'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
+                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
 arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_50km_GE_5r_resampArr.Rdata')
 

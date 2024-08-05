@@ -88,10 +88,9 @@ if(parFlag==TRUE){
   clusterExport(cl, varlist = c('wildPoints','QUAC_genind','num_reps','geo_buffSize', 'eco_buffSize',
                                 'world_poly_clip_W', 'ecoregion_poly_W', 'sdm_W'))
   # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-  clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', "geo.compareBuffSDM",
-                                'geo.checkSDMres', 'eco.intersectBuff', 'eco.compareBuff',
-                                'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
-                                'geo.gen.Resample.Par'))
+  clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
+                                'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
+                                'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata')
   # Run resampling in parallel

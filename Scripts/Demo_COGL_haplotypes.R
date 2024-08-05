@@ -102,9 +102,9 @@ COGL_coordinates<- COGL_coordinates[-grep('_rep', COGL_coordinates$Sample.Name),
 clusterExport(cl, varlist = c('COGL_coordinates','COGL_genList','num_reps','geo_buffSize', 'eco_buffSize',
                               'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'eco.intersectBuff', 'eco.compareBuff',
-                              'gen.getAlleleCategories','calculateCoverage', 'exSituResample.Par', 
-                              'geo.gen.Resample.Par'))
+clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
+                              'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
+                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file paths, for saving resampling arrays (if/else statement is for leading zeros)
 COGL_haplos_output <- dirname(gsub("Genetic", "resamplingData", COGL_haplos_input))
 for(i in 1:length(COGL_haplos_output)){
