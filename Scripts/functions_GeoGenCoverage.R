@@ -130,8 +130,8 @@ geo.checkSDMres <- function(buffSize, raster, parFlag=FALSE){
   sdmDegree <- terra::res(raster)[1]
   # If geographic buffer less than SDM resolution, give a warning and resample SDM to smaller resolution
   if(buffSizeDegree < sdmDegree){
-    warning("SDM provided has a resolution larger than geographic buffer size.
-                SDM will be resampled to a smaller resolution.")
+    warning(paste0('SDM provided has a resolution larger than geographic buffer size (',
+                buffSize, ' km). SDM will be resampled to a smaller resolution.'))
     # Resample the raster to a smaller cell size, based on scaling factor
     scaleFactor <- ceiling(sdmDegree / buffSizeDegree)
     raster <- terra::disagg(raster, scaleFactor) 
