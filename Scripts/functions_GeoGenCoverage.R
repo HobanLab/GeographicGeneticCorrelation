@@ -309,12 +309,13 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
                                                 parFlag=parFlag), b=geoBuff, r=SDMrast)
       # Combine the geographic coverage values (total buffered area approach and SDM approach)
       geoRates <- c(geoRates, geoRates_SDM)
+      # Name geographic coverage values, according to buffer size
       names(geoRates) <- c(paste0(rep('Geo_Buff_',), geoBuff/1000, 'km'),
                            paste0(rep('Geo_SDM_',), geoBuff/1000, 'km'))
     }
   } else {
     # If geographic processing is not occurring, make coverage values NA
-    geoRates <- NA
+    geoRates <- NA ; names(geoRates) <- 'Geo'
   }
   
   # ECOLOGICAL PROCESSING
@@ -327,22 +328,23 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
                               the ecological buffer size(s)  is required (ecoBuff argument)')
     if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
     if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
-    # Ecological coverage: calculate sample's ecological representation, by passing all points (coordPts) and 
-    # the random subset of points (rownames(samp)) to the eco.compareBuff worker function, which will calculate
-    # the proportion of ecoregions covered in the random sample
+    # Ecological coverage: for each buffer size, calculate sample's ecological representation, by passing all 
+    # points (coordPts) and the random subset of points (rownames(samp)) to the eco.compareBuff worker function, 
+    # which will calculate the proportion of ecoregions covered in the random sample
     ecoRates <- 
       lapply(ecoBuff, function(x) eco.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp),
                                                   radius=x, ptProj=ptProj, buffProj=buffProj, 
                                                   ecoRegion=ecoRegions, layerType=ecoLayer,
                                                   boundary=boundary, parFlag=parFlag))
+    # Name ecological coverage values, according to buffer size
+    names(ecoRates) <- paste0(rep('Eco_Buff_',), ecoBuff/1000, 'km')
   } else {
     # If ecological processing is not occurring, make coverage values NA
-    ecoRates <- NA
+    ecoRates <- NA ; names(ecoRates) <- 'Eco'
   }
-  names(ecoRates) <- paste0(rep('Eco_Buff_',), ecoBuff/1000, 'km')
   
-  # Combine genetic, geographic, and ecological coverage rates into a vector, and return
-  covRates <- c(genRates, geoRates, ecoRates)
+  # Combine genetic, geographic, and ecological coverage rates into a vector (not a list), and return
+  covRates <- unlist(c(genRates, geoRates, ecoRates))
   return(covRates)
 }
 
@@ -384,14 +386,14 @@ exSituResample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, S
   gen_mat <- gen_obj@tab[which(pop(gen_obj) == 'wild'),]
   # Apply the calculateCoverage function to all rows of the wild matrix using parSapply
   # (except row 1, because we need at least 2 individuals to sample)
-  # The resulting matrix needs to be transposed, in order to keep columns as different coverage categor(parSapply(cluster, 2:nrow(gen_mat), 
+  # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
   cov_matrix <-
-    t(parSapply(cluster, 2:nrow(gen_mat),
-                            function(x) calculateCoverage(gen_mat=gen_mat, geoFlag=geoFlag, coordPts=coordPts,
-                                                          geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, buffProj=buffProj,
-                                                          boundary=boundary, ecoFlag=ecoFlag, ecoBuff=ecoBuff,
-                                                          ecoRegions=ecoRegions, ecoLayer=ecoLayer,
-                                                          parFlag=parFlag, numSamples=x)))
+    t(parSapply(cluster, 2:nrow(gen_mat), 
+                function(x) calculateCoverage(gen_mat=gen_mat, geoFlag=geoFlag, coordPts=coordPts,
+                                              geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, buffProj=buffProj,
+                                              boundary=boundary, ecoFlag=ecoFlag, ecoBuff=ecoBuff,
+                                              ecoRegions=ecoRegions, ecoLayer=ecoLayer,
+                                              parFlag=parFlag, numSamples=x)))
   # Return the matrix of coverage values
   return(cov_matrix)
 }
@@ -431,13 +433,13 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
                                  ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
                                  ecoLayer=c('US','NA','GL'), reps=5,
                                  arrayFilepath='~/resamplingArray.Rdata', cluster){
-  # Print starting time
-  startTime <- Sys.time() 
-  print(paste0('%%% RUNTIME START: ', startTime))
   # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, and fix if not
   if(!class(SDMrast)=='logical'){
     SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=TRUE))
   }
+  # Print starting time
+  startTime <- Sys.time() 
+  print(paste0('%%% RESAMPLING START: ', startTime))
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- 
     sapply(1:reps, function(x) exSituResample.Par(gen_obj=gen_obj, geoFlag=geoFlag, 
@@ -450,7 +452,7 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
            simplify = 'array')
   # Print ending time and total runtime
   endTime <- Sys.time() 
-  print(paste0('%%% RUNTIME END: ', endTime))
+  print(paste0('%%% RESAMPLING END: ', endTime))
   cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
   # Save the resampling array object to disk, for later usage
   saveRDS(resamplingArray, file = arrayFilepath)
@@ -528,6 +530,30 @@ meanArrayValues <- function(resamplingArray, allValues=FALSE){
   # Reformat the matrix as a data.frame, and return
   meanValues <- as.data.frame(meanValues_mat)
   return(meanValues)
+}
+
+# From resampling array, generate a data.frame by collapsing values across replicates into vectors
+# allValues flag indicates whether or not to include categories of alleles other that 'Total'
+resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
+  browser()
+  # Create a vector of sample numbers. The values in this vector range from 2:total number
+  # of samples (at least 2 samples are required in order for sample function to work; see above).
+  # These values are repeated for the number of replicates in the resampling array (3rd dimension)
+  sampleNumbers <- rep(2:(nrow(resamplingArray)+1), dim(resamplingArray)[[3]])
+  # Convert the resampling array to a matrix, where the array slices are added as rows
+  resamp_DF <- 
+    as.matrix(resamplingArray, nrow = dim(resamplingArray)[[1]]*dim(resamplingArray)[[3]], ncol=ncol(resamplingArray))
+  # Rename the data.frame values according to the column names of the array
+  colnames(resamp_DF) <- dimnames(resamplingArray)[[2]]
+  resamp_DF <- as.data.frame(resamp_DF)
+  # Add the sample numbers corresponding to each row of the data.frame, as the first column
+  resamp_DF <- cbind(sampleNumbers, resamp_DF)
+  # If allValues flag is FALSE, remove the allele categories other than 'Total'
+  if(allValues==FALSE){
+    # resamp_DF <- resamp_DF[,-(3:6)]
+    resamp_DF <- resamp_DF[-c('V. common','Common','Low freq.','Rare')]
+  }
+  return(resamp_DF)
 }
 
 # From resampling array, generate a data.frame by collapsing values across replicates into vectors
