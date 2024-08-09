@@ -23,9 +23,11 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters
-geo_buffSize <- 1000
+# geo_buffSize <- 1000
+geo_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
 # Specify ecological buffer size in meters
-eco_buffSize <- 1000
+# eco_buffSize <- 1000
+eco_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
 
 # ---- PARALLELIZATION
 # Set up relevant cores
@@ -116,7 +118,7 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                               'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_1km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_MultBuff_G2E_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 YUBR_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = YUBR_genind, geoFlag = TRUE, coordPts = YUBR_coordinates, 
@@ -142,25 +144,9 @@ YUBR_demoArray_Par <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 YUBR_DF <- resample.array2dataframe(YUBR_demoArray_Par)
-# # Calculate Spearman's r for geographic/ecological coverage
-# YUBR_spearR_geo <- round(cor(YUBR_DF$Geo, YUBR_DF$Total, method = 'spearman'),3) ; YUBR_spearR_geo
-# YUBR_spearR_eco <- round(cor(YUBR_DF$Eco, YUBR_DF$Total, method = 'spearman'),3) ; YUBR_spearR_eco
 # Calculate normalized root mean square value
 YUBR_nrmse_geo <- nrmse_func(obs=YUBR_DF$Geo, pred=YUBR_DF$Total) ; YUBR_nrmse_geo
 YUBR_nrmse_eco <- nrmse_func(obs=YUBR_DF$Eco, pred=YUBR_DF$Total) ; YUBR_nrmse_eco
-
-# # ---- LINEAR MODELS
-# # Generate linear models, using Total allelic coverage as the response variable
-# # GEOGRAPHIC COVERAGE AS PREDICTOR VARIABLE
-# YUBR_geoModel <- lm (Total ~ Geo, data=YUBR_DF)
-# YUBR_geoModel_summary <- summary(YUBR_geoModel) ; YUBR_geoModel_summary
-# # Pull R-squared estimate from model
-# YUBR_geoModel_rSquared <- round(YUBR_geoModel_summary$adj.r.squared,2) ; YUBR_geoModel_rSquared
-# # ECOLOGICAL COVERAGE AS PREDICTOR VARIABLE
-# YUBR_ecoModel <- lm (Total ~ Eco, data=YUBR_DF)
-# YUBR_ecoModel_summary <- summary(YUBR_ecoModel) ; YUBR_ecoModel_summary
-# # Pull R-squared estimate from model
-# YUBR_ecoModel_rSquared <- round(YUBR_ecoModel_summary$adj.r.squared, 2) ; YUBR_ecoModel_rSquared
 
 # ---- PLOTTING ----
 # Generate the average values (across replicates) for all proportions
@@ -181,7 +167,7 @@ plotColors_Sub <- plotColors_Fade[-(2:4)]
 par(mfrow=c(2,1))
 # ---- CORRELATION PLOTS
 plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     main='Y. brevifolia: Geographic by genetic coverage',xlab='', ylab='', 
+     main='Y. brevifolia: Geographic by genetic coverage',xlab='', ylab='',
      col=plotColors_Fade[[5]])
 mtext(text='319 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
@@ -194,7 +180,7 @@ text(x = 76, y = 8, labels = paste0('NRMSE: ', YUBR_nrmse_eco), col='purple', ce
 # Add legend
 legend(x=57, y=41, inset = 0.05, xpd=TRUE,
        legend = c('Geographic', 'Ecological'),
-       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', 
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 0.8)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
@@ -220,7 +206,7 @@ mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
 mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
 legend(x=200, y=35, inset = 0.05,
-       legend = c('Genographic coverage difference', 'Ecological coverage difference'), 
+       legend = c('Genographic coverage difference', 'Ecological coverage difference'),
        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 1)
 
@@ -234,40 +220,22 @@ YUBR_geoComp_1km_array <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 YUBR_geoComp_1km_DF <- resample.array2dataframe(YUBR_geoComp_1km_array)
-# # Calculate Spearman's R for total buffer/SDM coverage
-# YUBR_spearR_geo_totalBuff <- 
-#   round(cor(YUBR_geoComp_1km_DF$Geo_Buff, YUBR_geoComp_1km_DF$Total, method = 'spearman'),3)
-# YUBR_spearR_geo_SDM <- 
-#   round(cor(YUBR_geoComp_1km_DF$Geo_SDM, YUBR_geoComp_1km_DF$Total, method = 'spearman'),3)
 # Calculate normalized root mean square value
-YUBR_nrmse_geo_totalBuff <- 
+YUBR_nrmse_geo_totalBuff <-
   nrmse_func(obs=YUBR_geoComp_1km_DF$Geo_Buff, pred=YUBR_geoComp_1km_DF$Total) ; YUBR_nrmse_geo_totalBuff
-YUBR_nrmse_geo_SDM <- 
+YUBR_nrmse_geo_SDM <-
   nrmse_func(obs=YUBR_geoComp_1km_DF$Geo_SDM, pred=YUBR_geoComp_1km_DF$Total) ; YUBR_nrmse_geo_SDM
-
-# # ---- LINEAR MODELS
-# # Generate linear models, using Total allelic coverage as the response variable
-# # Use either the total buffer (Buff) or SDM (SDM) geographic coverage approach for the predictor variable
-# # Also extract R squared values
-# # Total buffer approach
-# YUBR_geoComp_1km_geoModelBuff <- lm (Total ~ Geo_Buff, data=YUBR_geoComp_1km_DF)
-# YUBR_geoComp_1km_geoModelBuff_summary <- summary(YUBR_geoComp_1km_geoModelBuff) ; YUBR_geoComp_1km_geoModelBuff_summary
-# YUBR_geoComp_1km_geoModelBuff_rSquared <- round(YUBR_geoComp_1km_geoModelBuff_summary$adj.r.squared,2)
-# # SDM approach
-# YUBR_geoComp_1km_geoModelSDM <- lm (Total ~ Geo_SDM, data=YUBR_geoComp_1km_DF)
-# YUBR_geoComp_1km_geoModelSDM_summary <- summary(YUBR_geoComp_1km_geoModelSDM) ; YUBR_geoComp_1km_geoModelSDM_summary
-# YUBR_geoComp_1km_geoModelSDM_rSquared <- round(YUBR_geoComp_1km_geoModelSDM_summary$adj.r.squared,2)
 
 # ---- PLOTTING
 # Generate the average values (across replicates) for all proportions
 # This function has default arguments for returning just Total allelic and geographic proportions
 YUBR_geoComp_1km_averageValueMat <- meanArrayValues(YUBR_geoComp_1km_array)
 # Calculate the absolute difference between genetic and geographic approaches, and add to data.frame
-YUBR_geoComp_1km_averageValueMat <- 
+YUBR_geoComp_1km_averageValueMat <-
   cbind(YUBR_geoComp_1km_averageValueMat, abs(YUBR_geoComp_1km_averageValueMat$Total-YUBR_geoComp_1km_averageValueMat$Geo_Buff))
-YUBR_geoComp_1km_averageValueMat <- 
+YUBR_geoComp_1km_averageValueMat <-
   cbind(YUBR_geoComp_1km_averageValueMat, abs(YUBR_geoComp_1km_averageValueMat$Total-YUBR_geoComp_1km_averageValueMat$Geo_SDM))
-names(YUBR_geoComp_1km_averageValueMat) <- 
+names(YUBR_geoComp_1km_averageValueMat) <-
   c(names(YUBR_geoComp_1km_averageValueMat)[1:4],'Geo_Buff_Difference', 'Geo_SDM_Difference')
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
@@ -315,6 +283,6 @@ mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
 mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
 legend(x=200, y=50, inset = 0.05,
-       legend = c('Total buffer approach', 'SDM approach'), 
+       legend = c('Total buffer approach', 'SDM approach'),
        col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 1)

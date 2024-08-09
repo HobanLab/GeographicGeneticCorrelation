@@ -26,9 +26,11 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-geo_buffSize <- 50000
+# geo_buffSize <- 50000
+geo_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
 # Specify ecological buffer size in meters 
-eco_buffSize <- 50000
+# eco_buffSize <- 50000
+eco_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -93,13 +95,13 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                               'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_50km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_MultBuff_GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 print("%%% BEGINNING RESAMPLING %%%")
 MIGU_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = MIGU_genind, geoFlag = TRUE, coordPts = MIGU_coordinates, 
-                       geoBuff = geo_buffSize, SDMrast = MIGU_sdm_W, 
+                       geoBuff = geo_buffSize, SDMrast = NA, 
                        boundary=world_poly_clip_W, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
                        ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', reps = num_reps, 
                        arrayFilepath = arrayDir, cluster = cl)
@@ -116,9 +118,6 @@ MIGU_demoArray_Par <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 MIGU_DF <- resample.array2dataframe(MIGU_demoArray_Par)
-# # Calculate Spearman's r for geographic/ecological coverage
-# MIGU_spearR_geo <- round(cor(MIGU_DF$Geo, MIGU_DF$Total, method = 'spearman'),3) ; MIGU_spearR_geo
-# MIGU_spearR_eco <- round(cor(MIGU_DF$Eco, MIGU_DF$Total, method = 'spearman'),3) ; MIGU_spearR_eco
 # Calculate normalized root mean square value
 MIGU_nrmse_geo <- nrmse_func(obs=MIGU_DF$Geo, pred=MIGU_DF$Total) ; MIGU_nrmse_geo
 MIGU_nrmse_eco <- nrmse_func(obs=MIGU_DF$Eco, pred=MIGU_DF$Total) ; MIGU_nrmse_eco
@@ -154,7 +153,7 @@ text(x = 76, y = 20, labels = paste0('NRMSE: ', MIGU_nrmse_eco), col='purple', c
 # Add legend
 legend(x=58, y=54, inset = 0.05, xpd=TRUE,
        legend = c('Geographic', 'Ecological'),
-       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', 
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 0.8)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
@@ -166,7 +165,7 @@ mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
 legend(x=160, y=68, inset = 0.05,
-       legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)', 
+       legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)',
                   'Ecological coverage (50 km buffer, EPA Level III)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 0.8)
@@ -180,7 +179,7 @@ mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
 mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
 legend(x=160, y=50, inset = 0.05,
-       legend = c('Genographic coverage difference', 'Ecological coverage difference'), 
+       legend = c('Genographic coverage difference', 'Ecological coverage difference'),
        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 1)
 
@@ -194,15 +193,10 @@ MIGU_geoComp_50km_array <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 MIGU_geoComp_50km_DF <- resample.array2dataframe(MIGU_geoComp_50km_array)
-# # Calculate Spearman's R for total buffer/SDM coverage
-# MIGU_spearR_geo_totalBuff <- 
-#   round(cor(MIGU_geoComp_50km_DF$Geo_Buff, MIGU_geoComp_50km_DF$Total, method = 'spearman'),3)
-# MIGU_spearR_geo_SDM <- 
-#   round(cor(MIGU_geoComp_50km_DF$Geo_SDM, MIGU_geoComp_50km_DF$Total, method = 'spearman'),3)
 # Calculate normalized root mean square value
-MIGU_nrmse_geo_totalBuff <- 
+MIGU_nrmse_geo_totalBuff <-
   nrmse_func(obs=MIGU_geoComp_50km_DF$Geo_Buff, pred=MIGU_geoComp_50km_DF$Total) ; MIGU_nrmse_geo_totalBuff
-MIGU_nrmse_geo_SDM <- 
+MIGU_nrmse_geo_SDM <-
   nrmse_func(obs=MIGU_geoComp_50km_DF$Geo_SDM, pred=MIGU_geoComp_50km_DF$Total) ; MIGU_nrmse_geo_SDM
 
 # ---- PLOTTING
@@ -210,11 +204,11 @@ MIGU_nrmse_geo_SDM <-
 # This function has default arguments for returning just Total allelic and geographic proportions
 MIGU_geoComp_50km_averageValueMat <- meanArrayValues(MIGU_geoComp_50km_array)
 # Calculate the absolute difference between genetic and geographic approaches, and add to data.frame
-MIGU_geoComp_50km_averageValueMat <- 
+MIGU_geoComp_50km_averageValueMat <-
   cbind(MIGU_geoComp_50km_averageValueMat, abs(MIGU_geoComp_50km_averageValueMat$Total-MIGU_geoComp_50km_averageValueMat$Geo_Buff))
-MIGU_geoComp_50km_averageValueMat <- 
+MIGU_geoComp_50km_averageValueMat <-
   cbind(MIGU_geoComp_50km_averageValueMat, abs(MIGU_geoComp_50km_averageValueMat$Total-MIGU_geoComp_50km_averageValueMat$Geo_SDM))
-names(MIGU_geoComp_50km_averageValueMat) <- 
+names(MIGU_geoComp_50km_averageValueMat) <-
   c(names(MIGU_geoComp_50km_averageValueMat)[1:4],'Geo_Buff_Difference', 'Geo_SDM_Difference')
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
@@ -242,7 +236,7 @@ legend(x=57, y=78, inset = 0.05, xpd=TRUE,
        col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 # ---- COVERAGE PLOT
 # Use the matplot function to plot the matrix of average values, with specified settings
-matplot(MIGU_geoComp_50km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors_fade, 
+matplot(MIGU_geoComp_50km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors_fade,
         pch=16, ylab='Coverage (%)')
 # Add title and x-axis labels to the graph
 title(main='M. guttatus: Coverage Values by Sample Size', line=1.5)
@@ -262,6 +256,6 @@ mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
 mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
 legend(x=160, y=45, inset = 0.05,
-       legend = c('Total buffer approach', 'SDM approach'), 
+       legend = c('Total buffer approach', 'SDM approach'),
        col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 1)

@@ -107,169 +107,167 @@ arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_MultBuff_GE_5r_resampArr.
 print("%%% BEGINNING RESAMPLING %%%")
 PICO_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = PICO_genind, geoFlag = TRUE, coordPts = PICO_coordinates, 
-                       geoBuff = geo_buffSize, SDMrast = PICO_sdm_W, boundary=world_poly_clip_W, 
+                       geoBuff = geo_buffSize, SDMrast = NA, boundary=world_poly_clip_W, 
                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
                        ecoLayer = 'NA', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
 
-# # %%% ANALYZE DATA %%% ----
-# # Specify filepath for PICO geographic and genetic data, including resampling array
-# PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
-# arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_50km_GE_5r_resampArr.Rdata')
-# # Read in the resampling array .Rdata object, saved to disk
-# PICO_demoArray_Par <- readRDS(arrayDir)
-# 
-# # ---- CORRELATION ----
-# # Build a data.frame from array values
-# PICO_DF <- resample.array2dataframe(PICO_demoArray_Par)
-# # # Calculate Spearman's r for geographic/ecological coverage
-# # PICO_spearR_geo <- round(cor(PICO_DF$Geo, PICO_DF$Total, method = 'spearman'),3) ; PICO_spearR_geo
-# # PICO_spearR_eco <- round(cor(PICO_DF$Eco, PICO_DF$Total, method = 'spearman'),3) ; PICO_spearR_eco
-# # Calculate normalized root mean square value
-# PICO_nrmse_geo <- nrmse_func(obs=PICO_DF$Geo, pred=PICO_DF$Total) ; PICO_nrmse_geo
-# PICO_nrmse_eco <- nrmse_func(obs=PICO_DF$Eco, pred=PICO_DF$Total) ; PICO_nrmse_eco
-# 
-# # ---- PLOTTING ----
-# # Generate the average values (across replicates) for all proportions
-# # This function has default arguments for returning just Total allelic geographic proportions
-# averageValueMat <- meanArrayValues(PICO_demoArray_Par, allValues = TRUE)
-# # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
-# averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
-# # Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
-# averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
-# averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
-# names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
-# 
-# # Specify plot colors
-# plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
-# plotColors_Fade <- alpha(plotColors, 0.45)
-# plotColors_Sub <- plotColors_Fade[-(2:4)]
-# # Two plots in a single window
-# par(mfrow=c(2,1))
-# # ---- CORRELATION PLOTS
-# plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-#      main='P. contorta: Geographic by genetic coverage',xlab='', ylab='', 
-#      col=plotColors_Fade[[5]])
-# mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
-# mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add points for ecological coverage
-# points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
-# # Add Spearman's r values for each comparison
-# text(x = 76, y = 35, labels = paste0('NRMSE: ', PICO_nrmse_geo), col='darkblue', cex=0.9)
-# text(x = 76, y = 20, labels = paste0('NRMSE: ', PICO_nrmse_eco), col='purple', cex=0.9)
-# # Add legend
-# legend(x=57, y=53, inset = 0.05, xpd=TRUE,
-#        legend = c('Geographic', 'Ecological'),
-#        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', 
-#        y.intersp = 0.8)
-# # ---- COVERAGE PLOTS
-# # Use the matplot function to plot the matrix of average values, with specified settings
-# matplot(averageValueMat_TEG[,1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='P. contorta: Geo-Eco-Gen Coverage', line=1.5)
-# mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
-# mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=580, y=70, inset = 0.05,
-#        legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)', 
-#                   'Ecological coverage (50 km buffer, EPA Level III)'),
-#        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 0.8)
-# # ---- DIFFERENCE PLOTS
-# # Plot difference between geographic and genetic coverage
-# matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='P. contorta: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
-# mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-# mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=275, y=45, inset = 0.05,
-#        legend = c('Genographic coverage difference', 'Ecological coverage difference'), 
-#        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 1)
-# 
-# # %%%% SDM AND TOTAL BUFFER COMPARISON ----
-# # Specify filepath for PICO geographic and genetic data, including resampling array
-# PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
-# arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_50km_G2E_5r_resampArr.Rdata')
-# # Read in the resampling array .Rdata object, saved to disk
-# PICO_geoComp_50km_array <- readRDS(arrayDir)
-# 
-# # ---- CORRELATION ----
-# # Build a data.frame from array values
-# PICO_geoComp_50km_DF <- resample.array2dataframe(PICO_geoComp_50km_array)
-# # # Calculate Spearman's R for total buffer/SDM coverage
-# # PICO_spearR_geo_totalBuff <- 
-# #   round(cor(PICO_geoComp_50km_DF$Geo_Buff, PICO_geoComp_50km_DF$Total, method = 'spearman'),3)
-# # PICO_spearR_geo_SDM <- 
-# #   round(cor(PICO_geoComp_50km_DF$Geo_SDM, PICO_geoComp_50km_DF$Total, method = 'spearman'),3)
-# # Calculate normalized root mean square value
-# PICO_nrmse_geo_totalBuff <- 
-#   nrmse_func(obs=PICO_geoComp_50km_DF$Geo_Buff, pred=PICO_geoComp_50km_DF$Total) ; PICO_nrmse_geo_totalBuff
-# PICO_nrmse_geo_SDM <- 
-#   nrmse_func(obs=PICO_geoComp_50km_DF$Geo_SDM, pred=PICO_geoComp_50km_DF$Total) ; PICO_nrmse_geo_SDM
-# 
-# # ---- PLOTTING
-# # Generate the average values (across replicates) for all proportions
-# # This function has default arguments for returning just Total allelic and geographic proportions
-# PICO_geoComp_50km_averageValueMat <- meanArrayValues(PICO_geoComp_50km_array)
-# # Calculate the absolute difference between genetic and geographic approaches, and add to data.frame
-# PICO_geoComp_50km_averageValueMat <- 
-#   cbind(PICO_geoComp_50km_averageValueMat, abs(PICO_geoComp_50km_averageValueMat$Total-PICO_geoComp_50km_averageValueMat$Geo_Buff))
-# PICO_geoComp_50km_averageValueMat <- 
-#   cbind(PICO_geoComp_50km_averageValueMat, abs(PICO_geoComp_50km_averageValueMat$Total-PICO_geoComp_50km_averageValueMat$Geo_SDM))
-# names(PICO_geoComp_50km_averageValueMat) <- 
-#   c(names(PICO_geoComp_50km_averageValueMat)[1:4],'Geo_Buff_Difference', 'Geo_SDM_Difference')
-# # Specify plot colors
-# plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
-# plotColors_fade <- alpha(c('red','red4','darkorange3','coral','purple', 'darkblue'), 0.45)
-# # Set plotting window to stack 2 graphs vertically
-# par(mfcol=c(2,1))
-# 
-# # ---- CORRELATION PLOT
-# # Plot genetic coverage against geographic coverage using total buffer approach
-# plot(PICO_geoComp_50km_averageValueMat$Geo_Buff, PICO_geoComp_50km_averageValueMat$Total, pch=20,
-#      main='P. contorta: Geographic by genetic coverage',
-#      xlab='Geographic coverage (%)', ylab='Genetic coverage (%)',
-#      col=plotColors_fade[[2]])
-# # Add points for SDM approach
-# points(x=PICO_geoComp_50km_averageValueMat$Geo_SDM, y=PICO_geoComp_50km_averageValueMat$Total,
-#        pch=20, col=plotColors_fade[[3]])
-# # Subtitle
-# mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
-# # Add Spearman's r values for each comparison
-# text(x = 82, y = 62, labels = paste0('NRMSE: ', PICO_nrmse_geo_totalBuff), col='red4', cex=0.9)
-# text(x = 82, y = 56, labels = paste0('NRMSE: ', PICO_nrmse_geo_SDM), col='darkorange3', cex=0.9)
-# # Add legend
-# legend(x=57, y=71, inset = 0.05, xpd=TRUE,
-#        legend = c('Total buffer approach', 'SDM approach'),
-#        col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
-# # ---- COVERAGE PLOT
-# # Use the matplot function to plot the matrix of average values, with specified settings
-# matplot(PICO_geoComp_50km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors_fade, 
-#         pch=16, ylab='Coverage (%)')
-# # Add title and x-axis labels to the graph
-# title(main='P. contorta: Coverage Values by Sample Size', line=1.5)
-# mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
-# mtext(text='Number of individuals', side=1, line=2.4)
-# # Add legend
-# legend(x=500, y=54, inset = 0.05, xpd=TRUE,
-#        legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
-#        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
-# # ---- DIFFERENCE PLOTS
-# # Plot difference between geographic and genetic coverage
-# matplot(PICO_geoComp_50km_averageValueMat[5:6], col=plotColors_fade[2:3], pch=16, ylab='')
-# # Add title, subtitle, and x-axis labels to the graph
-# title(main='P. contorta: Genetic-Geographic Coverage Difference', line=1.5)
-# mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.1)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-# mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=275, y=30, inset = 0.05,
-#        legend = c('Total buffer approach', 'SDM approach'), 
-#        col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 1)
+# Run resampling not in parallel (for function testing purposes)
+# PICO_demoArray_IND <-
+#   geo.gen.Resample(gen_obj = PICO_genind, SDMrast = PICO_sdm, geoFlag = TRUE, coordPts = PICO_coordinates,
+#                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = TRUE, ecoBuff=eco_buffSize,
+#                    ecoRegions = ecoregion_poly, ecoLayer = 'NA', reps = 1)
+
+# %%% ANALYZE DATA %%% ----
+# Specify filepath for PICO geographic and genetic data, including resampling array
+PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
+arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_50km_GE_5r_resampArr.Rdata')
+# Read in the resampling array .Rdata object, saved to disk
+PICO_demoArray_Par <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
+# Build a data.frame from array values
+PICO_DF <- resample.array2dataframe(PICO_demoArray_Par)
+# Calculate normalized root mean square value
+PICO_nrmse_geo <- nrmse_func(obs=PICO_DF$Geo, pred=PICO_DF$Total) ; PICO_nrmse_geo
+PICO_nrmse_eco <- nrmse_func(obs=PICO_DF$Eco, pred=PICO_DF$Total) ; PICO_nrmse_eco
+
+# ---- PLOTTING ----
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic geographic proportions
+averageValueMat <- meanArrayValues(PICO_demoArray_Par, allValues = TRUE)
+# Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
+averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
+names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
+
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
+plotColors_Fade <- alpha(plotColors, 0.45)
+plotColors_Sub <- plotColors_Fade[-(2:4)]
+# Two plots in a single window
+par(mfrow=c(2,1))
+# ---- CORRELATION PLOTS
+plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
+     main='P. contorta: Geographic by genetic coverage',xlab='', ylab='',
+     col=plotColors_Fade[[5]])
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
+mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add points for ecological coverage
+points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
+# Add Spearman's r values for each comparison
+text(x = 76, y = 35, labels = paste0('NRMSE: ', PICO_nrmse_geo), col='darkblue', cex=0.9)
+text(x = 76, y = 20, labels = paste0('NRMSE: ', PICO_nrmse_eco), col='purple', cex=0.9)
+# Add legend
+legend(x=57, y=53, inset = 0.05, xpd=TRUE,
+       legend = c('Geographic', 'Ecological'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.8)
+# ---- COVERAGE PLOTS
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat_TEG[,1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='P. contorta: Geo-Eco-Gen Coverage', line=1.5)
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=580, y=70, inset = 0.05,
+       legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)',
+                  'Ecological coverage (50 km buffer, EPA Level III)'),
+       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.8)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='P. contorta: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=275, y=45, inset = 0.05,
+       legend = c('Genographic coverage difference', 'Ecological coverage difference'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)
+
+# %%%% SDM AND TOTAL BUFFER COMPARISON ----
+# Specify filepath for PICO geographic and genetic data, including resampling array
+PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
+arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_50km_G2E_5r_resampArr.Rdata')
+# Read in the resampling array .Rdata object, saved to disk
+PICO_geoComp_50km_array <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
+# Build a data.frame from array values
+PICO_geoComp_50km_DF <- resample.array2dataframe(PICO_geoComp_50km_array)
+# Calculate normalized root mean square value
+PICO_nrmse_geo_totalBuff <-
+  nrmse_func(obs=PICO_geoComp_50km_DF$Geo_Buff, pred=PICO_geoComp_50km_DF$Total) ; PICO_nrmse_geo_totalBuff
+PICO_nrmse_geo_SDM <-
+  nrmse_func(obs=PICO_geoComp_50km_DF$Geo_SDM, pred=PICO_geoComp_50km_DF$Total) ; PICO_nrmse_geo_SDM
+
+# ---- PLOTTING
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic and geographic proportions
+PICO_geoComp_50km_averageValueMat <- meanArrayValues(PICO_geoComp_50km_array)
+# Calculate the absolute difference between genetic and geographic approaches, and add to data.frame
+PICO_geoComp_50km_averageValueMat <-
+  cbind(PICO_geoComp_50km_averageValueMat, abs(PICO_geoComp_50km_averageValueMat$Total-PICO_geoComp_50km_averageValueMat$Geo_Buff))
+PICO_geoComp_50km_averageValueMat <-
+  cbind(PICO_geoComp_50km_averageValueMat, abs(PICO_geoComp_50km_averageValueMat$Total-PICO_geoComp_50km_averageValueMat$Geo_SDM))
+names(PICO_geoComp_50km_averageValueMat) <-
+  c(names(PICO_geoComp_50km_averageValueMat)[1:4],'Geo_Buff_Difference', 'Geo_SDM_Difference')
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
+plotColors_fade <- alpha(c('red','red4','darkorange3','coral','purple', 'darkblue'), 0.45)
+# Set plotting window to stack 2 graphs vertically
+par(mfcol=c(2,1))
+
+# ---- CORRELATION PLOT
+# Plot genetic coverage against geographic coverage using total buffer approach
+plot(PICO_geoComp_50km_averageValueMat$Geo_Buff, PICO_geoComp_50km_averageValueMat$Total, pch=20,
+     main='P. contorta: Geographic by genetic coverage',
+     xlab='Geographic coverage (%)', ylab='Genetic coverage (%)',
+     col=plotColors_fade[[2]])
+# Add points for SDM approach
+points(x=PICO_geoComp_50km_averageValueMat$Geo_SDM, y=PICO_geoComp_50km_averageValueMat$Total,
+       pch=20, col=plotColors_fade[[3]])
+# Subtitle
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
+# Add NRMSE values for each comparison
+text(x = 82, y = 62, labels = paste0('NRMSE: ', PICO_nrmse_geo_totalBuff), col='red4', cex=0.9)
+text(x = 82, y = 56, labels = paste0('NRMSE: ', PICO_nrmse_geo_SDM), col='darkorange3', cex=0.9)
+# Add legend
+legend(x=57, y=71, inset = 0.05, xpd=TRUE,
+       legend = c('Total buffer approach', 'SDM approach'),
+       col=plotColors[2:3], pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
+# ---- COVERAGE PLOT
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(PICO_geoComp_50km_averageValueMat[,1:3], ylim=c(0,100), col=plotColors_fade,
+        pch=16, ylab='Coverage (%)')
+# Add title and x-axis labels to the graph
+title(main='P. contorta: Coverage Values by Sample Size', line=1.5)
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3)
+mtext(text='Number of individuals', side=1, line=2.4)
+# Add legend
+legend(x=500, y=54, inset = 0.05, xpd=TRUE,
+       legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
+       col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(PICO_geoComp_50km_averageValueMat[5:6], col=plotColors_fade[2:3], pch=16, ylab='')
+# Add title, subtitle, and x-axis labels to the graph
+title(main='P. contorta: Genetic-Geographic Coverage Difference', line=1.5)
+mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.1)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=275, y=30, inset = 0.05,
+       legend = c('Total buffer approach', 'SDM approach'),
+       col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)

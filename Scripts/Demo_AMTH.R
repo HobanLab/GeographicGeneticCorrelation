@@ -25,9 +25,11 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-geo_buffSize <- 1000
+# geo_buffSize <- 1000
+geo_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
 # Specify ecological buffer size in meters 
-eco_buffSize <- 1000
+# eco_buffSize <- 1000
+eco_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -108,7 +110,7 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                               'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_1km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_MultBuff_GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 print("%%% BEGINNING RESAMPLING %%%")

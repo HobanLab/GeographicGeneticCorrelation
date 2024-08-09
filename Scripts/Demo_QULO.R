@@ -83,7 +83,7 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                               'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_MultBuff_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_MultBuff_G2E_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 QULO_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
@@ -252,3 +252,22 @@ legend(x=275, y=30, inset = 0.05,
        y.intersp = 1)
 # # ---- MAP OF SDM AND SAMPLED POINTS
 # makeAMap(QULO_points, raster = QULO_sdm, buffer = geo_buffSize)
+
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for QULO geographic and genetic data, including resampling array
+QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_MultBuff_G2E_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+QULO_MultBuff_array <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
+# Build a data.frame from array values, to pass to linear models
+QULO_MultBuff_DF <- resample.array2dataframe(QULO_MultBuff_array)
+# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+# predictve variable (genetic coverages)
+for(i in 3:ncol(QULO_MultBuff_DF)){
+  # Calculate NRMSE for the current column in the data.frame
+  QULO_NRMSEvalue <- nrmse_func(QULO_MultBuff_DF[,i], pred = QULO_MultBuff_DF$Total)
+  # Print result, for each explanatory variable in data.frame
+  print(paste0(names(QULO_MultBuff_DF)[[i]], ': ', QULO_NRMSEvalue))
+}
