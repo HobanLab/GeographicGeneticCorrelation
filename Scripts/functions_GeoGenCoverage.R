@@ -583,7 +583,7 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
 # (for this project, typically allelic representation values and geographic or ecological coverages)
 # and calculates the root mean square error between them. A lower value indicates similarity between
 # values.
-nrmse_func <-  function(obs, pred, type = 'sd'){
+nrmse.func <-  function(obs, pred, type='sd'){
   # Calculate root mean square error
   squared_sums <- sum((obs - pred)^2)
   mse <- squared_sums/length(obs)
