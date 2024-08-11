@@ -108,79 +108,98 @@ ARTH_demoArray_Par <-
 # Close cores
 stopCluster(cl)
 
-# # %%% ANALYZE DATA %%% ----
-# # Specify filepath for ARTH geographic and genetic data, including resampling array
-# ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
-# arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_50km_GE_5r_resampArr.Rdata')
-# # Read in the resampling array .Rdata object, saved to disk
-# ARTH_demoArray_Par <- readRDS(arrayDir)
-# 
-# # ---- CORRELATION ----
-# # Build a data.frame from array values, to pass to linear models
-# ARTH_DF <- resample.array2dataframe(ARTH_demoArray_Par)
-# # # Calculate Spearman's r for geographic/ecological coverage
-# # ARTH_spearR_geo <- round(cor(ARTH_DF$Geo, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_geo
-# # ARTH_spearR_eco <- round(cor(ARTH_DF$Eco, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_eco
-# # Calculate normalized root mean square value
-# ARTH_nrmse_geo <- nrmse_func(obs=ARTH_DF$Geo, pred=ARTH_DF$Total) ; ARTH_nrmse_geo
-# ARTH_nrmse_eco <- nrmse_func(obs=ARTH_DF$Eco, pred=ARTH_DF$Total) ; ARTH_nrmse_eco
-# 
-# # ---- PLOTTING ----
-# # Generate the average values (across replicates) for all proportions
-# # This function has default arguments for returning just Total allelic geographic proportions
-# averageValueMat <- meanArrayValues(ARTH_demoArray_Par, allValues = TRUE)
-# # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
-# averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
-# # Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
-# averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
-# averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
-# names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
-# 
-# # Specify plot colors
-# plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
-# plotColors <- alpha(plotColors, 0.45)
-# plotColors_Sub <- plotColors[-(2:4)]
-# # Two plots in a single window
-# par(mfrow=c(2,1))
-# # ---- CORRELATION PLOTS
-# plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-#      main='A. thaliana: Geographic by genetic coverage',xlab='', ylab='', col=plotColors[[5]])
-# mtext(text='1,010 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
-# mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add points for ecological coverage
-# points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
-# # Add NRMSE values for each comparison
-# text(x = 76, y = 35, labels = paste0('NRMSE: ', ARTH_nrmse_geo), col='darkblue', cex=0.9)
-# text(x = 76, y = 20, labels = paste0('NRMSE: ', ARTH_nrmse_eco), col='purple', cex=0.9)
-# # Add legend
-# legend(x=55, y=55, inset = 0.05, xpd=TRUE,
-#        legend = c('Geographic', 'Ecological'),
-#        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
-# # ---- COVERAGE PLOTS
-# # Use the matplot function to plot the matrix of average values, with specified settings
-# matplot(averageValueMat_TEG[1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='A. thaliana: Geo-Eco-Gen Coverage', line=1.5)
-# mtext(text='1,010 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
-# mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=600, y=65, inset = 0.05,
-#        legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)',
-#                   'Ecological coverage (TNC global ecoregions)'),
-#        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 0.8)
-# # ---- DIFFERENCE PLOTS
-# # Plot difference between geographic and genetic coverage
-# matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='A. thaliana: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
-# mtext(text='1,010 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-# mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=650, y=45, inset = 0.05,
-#        legend = c('Genographic coverage difference', 'Ecological coverage difference'),
-#        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 1)
+# %%% ANALYZE DATA %%% ----
+# Specify filepath for ARTH geographic and genetic data, including resampling array
+ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
+arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_50km_GE_5r_resampArr.Rdata')
+# Read in the resampling array .Rdata object, saved to disk
+ARTH_demoArray_Par <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
+# Build a data.frame from array values, to pass to linear models
+ARTH_DF <- resample.array2dataframe(ARTH_demoArray_Par)
+# # Calculate Spearman's r for geographic/ecological coverage
+# ARTH_spearR_geo <- round(cor(ARTH_DF$Geo, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_geo
+# ARTH_spearR_eco <- round(cor(ARTH_DF$Eco, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_eco
+# Calculate normalized root mean square value
+ARTH_nrmse_geo <- nrmse_func(obs=ARTH_DF$Geo, pred=ARTH_DF$Total) ; ARTH_nrmse_geo
+ARTH_nrmse_eco <- nrmse_func(obs=ARTH_DF$Eco, pred=ARTH_DF$Total) ; ARTH_nrmse_eco
+
+# ---- PLOTTING ----
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic geographic proportions
+averageValueMat <- meanArrayValues(ARTH_demoArray_Par, allValues = TRUE)
+# Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
+averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
+names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
+
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
+plotColors <- alpha(plotColors, 0.45)
+plotColors_Sub <- plotColors[-(2:4)]
+# Two plots in a single window
+par(mfrow=c(2,1))
+# ---- CORRELATION PLOTS
+plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
+     main='A. thaliana: Geographic by genetic coverage',xlab='', ylab='', col=plotColors[[5]])
+mtext(text='1,010 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
+mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add points for ecological coverage
+points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
+# Add NRMSE values for each comparison
+text(x = 76, y = 35, labels = paste0('NRMSE: ', ARTH_nrmse_geo), col='darkblue', cex=0.9)
+text(x = 76, y = 20, labels = paste0('NRMSE: ', ARTH_nrmse_eco), col='purple', cex=0.9)
+# Add legend
+legend(x=55, y=55, inset = 0.05, xpd=TRUE,
+       legend = c('Geographic', 'Ecological'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
+# ---- COVERAGE PLOTS
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat_TEG[1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='A. thaliana: Geo-Eco-Gen Coverage', line=1.5)
+mtext(text='1,010 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=600, y=65, inset = 0.05,
+       legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)',
+                  'Ecological coverage (TNC global ecoregions)'),
+       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.8)
+# ---- DIFFERENCE PLOTS
+# Plot difference between geographic and genetic coverage
+matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='A. thaliana: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
+mtext(text='1,010 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=650, y=45, inset = 0.05,
+       legend = c('Genographic coverage difference', 'Ecological coverage difference'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 1)
+
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for ARTH geographic and genetic data, including resampling array
+ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
+arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_MultBuff_GE_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+ARTH_MultBuff_array <- readRDS(arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values, to pass to linear models
+ARTH_MultBuff_DF <- resample.array2dataframe(ARTH_MultBuff_array)
+# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+# predictve variable (genetic coverages)
+for(i in 3:ncol(ARTH_MultBuff_DF)){
+  # Calculate NRMSE for the current column in the data.frame
+  ARTH_NRMSEvalue <- nrmse.func(ARTH_MultBuff_DF[,i], pred = ARTH_MultBuff_DF$Total)
+  # Print result, for each explanatory variable in data.frame
+  print(paste0(names(ARTH_MultBuff_DF)[[i]], ': ', ARTH_NRMSEvalue))
+}

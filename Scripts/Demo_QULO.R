@@ -260,14 +260,14 @@ arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_MultBuff_G2E_5r_resampArr
 # Read in array and build a data.frame of values
 QULO_MultBuff_array <- readRDS(arrayDir)
 
-# ---- CORRELATION ----
+# ---- CALCULATIONS ----
 # Build a data.frame from array values, to pass to linear models
 QULO_MultBuff_DF <- resample.array2dataframe(QULO_MultBuff_array)
 # Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
 # predictve variable (genetic coverages)
 for(i in 3:ncol(QULO_MultBuff_DF)){
   # Calculate NRMSE for the current column in the data.frame
-  QULO_NRMSEvalue <- nrmse_func(QULO_MultBuff_DF[,i], pred = QULO_MultBuff_DF$Total)
+  QULO_NRMSEvalue <- nrmse.func(QULO_MultBuff_DF[,i], pred = QULO_MultBuff_DF$Total)
   # Print result, for each explanatory variable in data.frame
   print(paste0(names(QULO_MultBuff_DF)[[i]], ': ', QULO_NRMSEvalue))
 }
