@@ -22,12 +22,14 @@ source('Scripts/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
-num_reps <- 1
+num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-geo_buffSize <- 1000
+# geo_buffSize <- 1000
+geo_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
 # Specify ecological buffer size in meters 
-eco_buffSize <- 1000
+# eco_buffSize <- 1000
+eco_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
 
 # %%%% INDIVIDUAL-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that specify the location of each individual
@@ -63,7 +65,7 @@ ecoregion_poly <-
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel
-parFlag <- FALSE
+parFlag <- TRUE
 
 # If running in parallel, set up cores and export required libraries
 if(parFlag==TRUE){
@@ -79,23 +81,23 @@ if(parFlag==TRUE){
   # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
   world_poly_clip_W <- wrap(world_poly_clip)
   ecoregion_poly_W <- wrap(ecoregion_poly)
-  sdm_W <- wrap(sdm)
+  QUAC_sdm_W <- wrap(QUAC_sdm)
 }
 
 # ---- RESAMPLING ----
 if(parFlag==TRUE){
   # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
   clusterExport(cl, varlist = c('wildPoints','QUAC_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                                'world_poly_clip_W', 'ecoregion_poly_W', 'sdm_W'))
+                                'world_poly_clip_W', 'ecoregion_poly_W', 'QUAC_sdm_W'))
   # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
   clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
                                 'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                                 'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
-  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_GE_3r_resampArr.Rdata')
+  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_MultBuff_G2E_5r_resampArr.Rdata')
   # Run resampling in parallel
   QUAC_demoArray_IND_Par <- 
-    geo.gen.Resample.Par(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = sdm_W,
+    geo.gen.Resample.Par(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = QUAC_sdm_W,
                          geoBuff = geo_buffSize, boundary = world_poly_clip_W, ecoFlag = TRUE,
                          ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US',
                          reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
@@ -104,7 +106,7 @@ if(parFlag==TRUE){
 } else{
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
-    geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = QUAC_sdm,
+    geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = QUAC_sdm_W,
                      geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, 
                      ecoBuff = NA, ecoRegions = NA, ecoLayer = 'US',
                      reps = num_reps)
@@ -170,7 +172,26 @@ title(main='Q. acerifolia: Genetic Geographic Coverage Difference', line=1.5)
 mtext(text='91 Individuals; 1 km buffer; 3 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
 
-# %%% ARCHIVE CODE %%% ----
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for QUAC geographic and genetic data, including resampling array
+QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
+arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_MultBuff_G2E_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+QUAC_MultBuff_array <- readRDS(arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values, to pass to linear models
+QUAC_MultBuff_DF <- resample.array2dataframe(QUAC_MultBuff_array)
+# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+# predictve variable (genetic coverages)
+for(i in 3:ncol(QUAC_MultBuff_DF)){
+  # Calculate NRMSE for the current column in the data.frame
+  QUAC_NRMSEvalue <- nrmse.func(QUAC_MultBuff_DF[,i], pred = QUAC_MultBuff_DF$Total)
+  # Print result, for each explanatory variable in data.frame
+  print(paste0(names(QUAC_MultBuff_DF)[[i]], ': ', QUAC_NRMSEvalue))
+}
+
+# %%% ARCHIVE %%% ----
 # # %%%% 2023-09-27 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS ----
 # # (For IMLS NLG subgroup presentation, 2023-09-27)
 # # Alter the values in the averageValueMat, to correspond with the presentation

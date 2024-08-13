@@ -23,9 +23,11 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-geo_buffSize <- 1000
+# geo_buffSize <- 1000
+geo_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
 # Specify ecological buffer size in meters 
-eco_buffSize <- 1000
+# eco_buffSize <- 1000
+eco_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -70,7 +72,7 @@ colnames(COGL_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = FALSE)
 # Perform geographic filter on the admin layer. 
-world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = COGL_points)
+world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = COGL_coordinates)
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 
 # (solely in the U.S.)
 ecoregion_poly <- 
@@ -94,7 +96,7 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
                               'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                               'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_50km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_MultBuff_GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 print("%%% BEGINNING RESAMPLING %%%")
@@ -174,3 +176,22 @@ matplot(averageValueMat_TG[[3]], col=plotColors[[6]], pch=16, ylab='Gen-Geo Diff
 title(main='C. glabra: Genetic Geographic Coverage Difference', line=1.5)
 mtext(text='562 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for COGL geographic and genetic data, including resampling array
+COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
+arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_MultBuff_GE_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+COGL_MultBuff_array <- readRDS(arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values, to pass to linear models
+COGL_MultBuff_DF <- resample.array2dataframe(COGL_MultBuff_array)
+# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+# predictve variable (genetic coverages)
+for(i in 3:ncol(COGL_MultBuff_DF)){
+  # Calculate NRMSE for the current column in the data.frame
+  COGL_NRMSEvalue <- nrmse.func(COGL_MultBuff_DF[,i], pred = COGL_MultBuff_DF$Total)
+  # Print result, for each explanatory variable in data.frame
+  print(paste0(names(COGL_MultBuff_DF)[[i]], ': ', COGL_NRMSEvalue))
+}

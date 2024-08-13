@@ -202,3 +202,22 @@ legend(x=160, y=50, inset = 0.05,
        legend = c('Genographic coverage difference', 'Ecological coverage difference'),
        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 1)
+
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for AMTH geographic and genetic data, including resampling array
+AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
+arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_MultBuff_GE_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+AMTH_MultBuff_array <- readRDS(arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values, to pass to linear models
+AMTH_MultBuff_DF <- resample.array2dataframe(AMTH_MultBuff_array)
+# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+# predictve variable (genetic coverages)
+for(i in 3:ncol(AMTH_MultBuff_DF)){
+  # Calculate NRMSE for the current column in the data.frame
+  AMTH_NRMSEvalue <- nrmse.func(AMTH_MultBuff_DF[,i], pred = AMTH_MultBuff_DF$Total)
+  # Print result, for each explanatory variable in data.frame
+  print(paste0(names(AMTH_MultBuff_DF)[[i]], ': ', AMTH_NRMSEvalue))
+}

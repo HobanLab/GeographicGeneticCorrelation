@@ -271,3 +271,22 @@ legend(x=275, y=30, inset = 0.05,
        legend = c('Total buffer approach', 'SDM approach'),
        col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 1)
+
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for PICO geographic and genetic data, including resampling array
+PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
+arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_MultBuff_GE_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+PICO_MultBuff_array <- readRDS(arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values, to pass to linear models
+PICO_MultBuff_DF <- resample.array2dataframe(PICO_MultBuff_array)
+# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+# predictve variable (genetic coverages)
+for(i in 3:ncol(PICO_MultBuff_DF)){
+  # Calculate NRMSE for the current column in the data.frame
+  PICO_NRMSEvalue <- nrmse.func(PICO_MultBuff_DF[,i], pred = PICO_MultBuff_DF$Total)
+  # Print result, for each explanatory variable in data.frame
+  print(paste0(names(PICO_MultBuff_DF)[[i]], ': ', PICO_NRMSEvalue))
+}

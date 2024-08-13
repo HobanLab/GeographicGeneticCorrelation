@@ -259,3 +259,22 @@ legend(x=160, y=45, inset = 0.05,
        legend = c('Total buffer approach', 'SDM approach'),
        col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 1)
+
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for MIGU geographic and genetic data, including resampling array
+MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_MultBuff_GE_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+MIGU_MultBuff_array <- readRDS(arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values, to pass to linear models
+MIGU_MultBuff_DF <- resample.array2dataframe(MIGU_MultBuff_array)
+# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+# predictve variable (genetic coverages)
+for(i in 3:ncol(MIGU_MultBuff_DF)){
+  # Calculate NRMSE for the current column in the data.frame
+  MIGU_NRMSEvalue <- nrmse.func(MIGU_MultBuff_DF[,i], pred = MIGU_MultBuff_DF$Total)
+  # Print result, for each explanatory variable in data.frame
+  print(paste0(names(MIGU_MultBuff_DF)[[i]], ': ', MIGU_NRMSEvalue))
+}

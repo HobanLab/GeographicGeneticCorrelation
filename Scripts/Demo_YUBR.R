@@ -122,7 +122,7 @@ arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_MultBuff_G2E_5r_resampArr
 # Run resampling (in parallel)
 YUBR_demoArray_Par <- 
   geo.gen.Resample.Par(gen_obj = YUBR_genind, geoFlag = TRUE, coordPts = YUBR_coordinates, 
-                       geoBuff = geo_buffSize, boundary=world_poly_clip_W, 
+                       geoBuff = geo_buffSize,SDMrast = YUBR_sdm_W, boundary=world_poly_clip_W, 
                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
                        ecoLayer = 'US', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
@@ -286,3 +286,22 @@ legend(x=200, y=50, inset = 0.05,
        legend = c('Total buffer approach', 'SDM approach'),
        col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 1)
+
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for YUBR geographic and genetic data, including resampling array
+YUBR_filePath <- paste0(GeoGenCorr_wd, 'Datasets/YUBR/')
+arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_MultBuff_G2E_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+YUBR_MultBuff_array <- readRDS(arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values, to pass to linear models
+YUBR_MultBuff_DF <- resample.array2dataframe(YUBR_MultBuff_array)
+# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+# predictve variable (genetic coverages)
+for(i in 3:ncol(YUBR_MultBuff_DF)){
+  # Calculate NRMSE for the current column in the data.frame
+  YUBR_NRMSEvalue <- nrmse.func(YUBR_MultBuff_DF[,i], pred = YUBR_MultBuff_DF$Total)
+  # Print result, for each explanatory variable in data.frame
+  print(paste0(names(YUBR_MultBuff_DF)[[i]], ': ', YUBR_NRMSEvalue))
+}
