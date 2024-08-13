@@ -468,7 +468,7 @@ gen.min95Mean <- function(resamplingArray){
   # apply(resamplingArray[,1,],1,mean): calculates the average across replicates for each row
   # which(apply(resamplingArray[,1,],1,mean) > 95): returns the rows with averages greater than 95
   # min(which(apply(resamplingArray[,1,],1,mean) > 95)): the lowest row with an average greater than 95
-  meanValue <- min(which(apply(resamplingArray[,1,],1, mean, na.rm=TRUE) > 95))
+  meanValue <- min(which(apply(resamplingArray[,2,],1, mean, na.rm=TRUE) > 95))
   return(meanValue)
 }
 
@@ -478,36 +478,6 @@ gen.min95SD <- function(resamplingArray){
   meanValue <- gen_min95Mean(resamplingArray)
   # Calculate the standard deviation, at that mean value, and return
   sdValue <- apply(resamplingArray[,1,],1,sd)[meanValue]
-  return(sdValue)
-}
-
-# From resampling array, calculate the mean minimum sample size to represent 95% of the Total wild diversity
-geo.min95Mean <- function(resamplingArray){
-  meanValue <- min(which(apply(resamplingArray[,6,],1, mean, na.rm=TRUE) > 95))
-  return(meanValue)
-}
-
-# From resampling array, calculate the standard deviation, at the mean 95% value
-geo.min95SD <- function(resamplingArray){
-  # Determine the mean value for representing 95% of allelic diversity
-  meanValue <- geo_min95Mean(resamplingArray)
-  # Calculate the standard deviation, at that mean value, and return
-  sdValue <- apply(resamplingArray[,6,],1,sd)[meanValue]
-  return(sdValue)
-}
-
-# From resampling array, calculate the mean minimum sample size to represent 95% of the Total wild diversity
-eco.min95Mean <- function(resamplingArray){
-  meanValue <- min(which(apply(resamplingArray[,7,],1, mean, na.rm=TRUE) > 95))
-  return(meanValue)
-}
-
-# From resampling array, calculate the standard deviation, at the mean 95% value
-eco.min95SD <- function(resamplingArray){
-  # Determine the mean value for representing 95% of allelic diversity
-  meanValue <- eco_min95Mean(resamplingArray)
-  # Calculate the standard deviation, at that mean value, and return
-  sdValue <- apply(resamplingArray[,7,],1,sd)[meanValue]
   return(sdValue)
 }
 
@@ -535,7 +505,6 @@ meanArrayValues <- function(resamplingArray, allValues=FALSE){
 # From resampling array, generate a data.frame by collapsing values across replicates into vectors
 # allValues flag indicates whether or not to include categories of alleles other that 'Total'
 resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
-  browser()
   # Create a vector of sample numbers. The values in this vector range from 2:total number
   # of samples (at least 2 samples are required in order for sample function to work; see above).
   # These values are repeated for the number of replicates in the resampling array (3rd dimension)
@@ -580,23 +549,33 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
 }
 
 # Function for calculating normalized root mean square error. Takes two vectors of equal length
-# (for this project, typically allelic representation values and geographic or ecological coverages)
-# and calculates the root mean square error between them. A lower value indicates similarity between
-# values.
-nrmse.func <-  function(obs, pred, type='sd'){
-  # Calculate root mean square error
-  squared_sums <- sum((obs - pred)^2)
-  mse <- squared_sums/length(obs)
+# (for this project, typically geographic or ecological coverages and allelic representation values)
+# and calculates the root mean square error between them, and then normalizes that value based on the 
+# 'type' argument. A lower value indicates similarity between values. In the context of this project, 
+# 'obs_var' is the explanatory variable (what we're using as a 'proxy' for genetic coverage), 
+# and 'pred_var' is what we're trying to predict (genetic coverage).
+nrmse.func <-  function(obs_var, pred_var, norm_type='sd'){
+  # Check that lengths of observed and predicted variables match, and error if not
+  if(length(obs_var) != length(pred_var)) stop('Lengths of observed and predicted variables do not match!')
+  # Calculate root mean square error 
+  squared_sums <- sum((obs_var - pred_var)^2)
+  mse <- squared_sums/length(obs_var)
   rmse <- sqrt(mse)
-  # Normalize, based on type argument
-  if (type == 'sd') nrmse <- rmse/sd(obs)
-  if (type == 'mean') nrmse <- rmse/mean(obs)
-  if (type == 'maxmin') nrmse <- rmse/ (max(obs) - min(obs))
-  if (type == 'iq') nrmse <- rmse/ (quantile(obs, 0.75) - quantile(obs, 0.25))
-  if (!type %in% c('mean', 'sd', 'maxmin', 'iq')) message('Wrong type argument!')
-  # Round result and return
-  nrmse <- round(nrmse, 3)
-  return(nrmse)
+  # Check that type argument matches preset options; if not, return the non-normalized RMSE value
+  if (!norm_type %in% c('mean', 'sd', 'maxmin', 'iq')){
+    message('Wrong type argument for how to normalize! Non-normalized root mean square error value returned.')
+    rmse <- round(rmse, 3)
+    return(rmse)
+  } else {
+    # Normalize RMSE, based on type argument
+    if (norm_type == 'sd') nrmse <- rmse/sd(obs_var)
+    if (norm_type == 'mean') nrmse <- rmse/mean(obs_var)
+    if (norm_type == 'maxmin') nrmse <- rmse/(max(obs_var) - min(obs_var))
+    if (norm_type == 'iq') nrmse <- rmse/(quantile(obs_var, 0.75) - quantile(obs_var, 0.25))
+    # Round result and return
+    nrmse <- round(nrmse, 3)
+    return(nrmse)
+  }
 }
 
 # ---- DATA EXPLORATION FUNCTIONS ----
@@ -654,6 +633,13 @@ getTotalAlleleFreqProportions <- function(gen.obj){
   names(freqProportions) <- c('Very common (>10%)','Low frequency (1% -- 10%)','Rare (<1%)')
   return(freqProportions)
 }
+
+# ---- SDM GEOGRAPHIC COVERAGE FUNCTIONS ----
+# The functions in this section are associated with the SDM approach to calculated geographic coverage,
+# but are not used in the geographic genetic resampling process. Instead, they are used to process the
+# data layers (e.g. country borders) prior to resampling, as well as to explore the results of geographic 
+# resampling analyses (using both the total buffer and the SDM approach). These functions were written by
+# Dan Carver.
 
 #' grabWorldAdmin -- Dan Carver
 #'
@@ -734,13 +720,6 @@ prepWorldAdmin <- function(world_poly_clip, wildPoints){
   return(admin)
 }
 
-# ---- SDM GEOGRAPHIC COVERAGE FUNCTIONS ----
-# The functions in this section are associated with the SDM approach to calculated geographic coverage,
-# but are not used in the geographic genetic resampling process. Instead, they are used to process the
-# data layers (e.g. country borders) prior to resampling, as well as to explore the results of geographic 
-# resampling analyses (using both the total buffer and the SDM approach). These functions were written by
-# Dan Carver.
-
 #' Make a map command 
 #'
 #' @param points : sf point object  
@@ -749,7 +728,6 @@ prepWorldAdmin <- function(world_poly_clip, wildPoints){
 #'
 #' @return one of two maps depending on if a buffer input object was defined or not.
 makeAMap <- function(points,raster,buffer=NA){
-  # browser()
   # Create the centroid
   centroid <- points |>
     dplyr::mutate(group = 1)|>
