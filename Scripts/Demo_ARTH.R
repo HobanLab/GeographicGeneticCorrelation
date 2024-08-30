@@ -118,9 +118,6 @@ ARTH_demoArray_Par <- readRDS(arrayDir)
 # ---- CORRELATION ----
 # Build a data.frame from array values, to pass to linear models
 ARTH_DF <- resample.array2dataframe(ARTH_demoArray_Par)
-# # Calculate Spearman's r for geographic/ecological coverage
-# ARTH_spearR_geo <- round(cor(ARTH_DF$Geo, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_geo
-# ARTH_spearR_eco <- round(cor(ARTH_DF$Eco, ARTH_DF$Total, method = 'spearman'),3) ; ARTH_spearR_eco
 # Calculate normalized root mean square value
 ARTH_nrmse_geo <- nrmse_func(obs=ARTH_DF$Geo, pred=ARTH_DF$Total) ; ARTH_nrmse_geo
 ARTH_nrmse_eco <- nrmse_func(obs=ARTH_DF$Eco, pred=ARTH_DF$Total) ; ARTH_nrmse_eco
