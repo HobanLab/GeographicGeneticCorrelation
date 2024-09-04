@@ -26,9 +26,10 @@ Datasets/PICO/Genetic/Pine_NaturalComp_85SNPfilter.stru
 # (> 50 MB) to be included on the repository.
 Datasets/ARTH/Genetic/ARTH_10k.vcf
 
-# VCF file for Hibiscus waimeae (HIWA). This file is referenced in the Demo_HIWA.R script, but is too large
-# (> 50 MB) to be included on the repository.
-Datasets/HIWA/Genetic/hawaii.populations.snps.vcf
+# Data inputs (both genetic and geographic) for Hibiscus waimeae. The genetic data cannot be shared on GitHub because
+# the VCF size is greater than 50 MB. The geographic data cannot be shared because coordinates are protected (as this
+# is a threatened, rare plant)
+Datasets/HIWA/*
 
 # Data inputs (both genetic and geographic) for Conradina glabra. The genetic data cannot be shared on GitHub because
 # the VCF size is greater than 50 MB. The geographic data cannot be shared because coordinates are protected (as this
