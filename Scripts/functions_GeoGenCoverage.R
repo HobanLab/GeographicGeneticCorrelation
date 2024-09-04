@@ -753,7 +753,7 @@ prepWorldAdmin <- function(world_poly_clip, wildPoints){
   return(admin)
 }
 
-#' Make a map command 
+#' Make a map command -- Dan Carver
 #'
 #' @param points : sf point object  
 #' @param raster : terra raster object... converted to raster within the function. 
