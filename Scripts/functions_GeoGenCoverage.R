@@ -241,10 +241,10 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
 }
 
 # CORE FUNCTION: Wrapper of gen.getAlleleCategories, geo.compareBuff, and eco.compareBuff worker functions. 
-# Given a genetic matrix (rows are samples, columns are alleles) and a data.frame of coordinates 
+# Given a genetic matrix (rows are samples, columns are alleles) and a dataframe of coordinates 
 # (3 columns: sample names, latitudes, and longitudes), it calculates the genetic,
 # geographic (if flagged), and ecologcial (if flagged) coverage from a random draw of some amount of 
-# samples (numSamples). The sample names between the genind object and the coordinate data.frame need
+# samples (numSamples). The sample names between the genind object and the coordinate dataframe need
 # to match (in order to properly subset across genetic, geographic, and ecological datasets). 
 
 # The SDMrast argument allows users to calculate geographic coverage using a 
@@ -273,17 +273,7 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
   
   # GEOGRAPHIC PROCESSING
   if(geoFlag==TRUE){
-    # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
-    if(missing(coordPts)) stop('For geographic coverage, a data.frame of wild coordinates (coordPts) is required')
-    if(missing(geoBuff)) stop('For geographic coverage, an integer (or vector of integers) specifying the geographic 
-                              buffer size(s) is required (geoBuff argument)')
-    if(missing(boundary)) stop('For geographic coverage, a SpatVector object of country boundaries (boundary) is required')
-    # Check that the names of the latitude and longitude columns are properly written (this is unfortunately hard-coded)
-    if(!identical(colnames(coordPts)[2:3], c('decimalLatitude', 'decimalLongitude'))){
-      stop('The column names of the geographic coordinates data.frame (coordPts) need to be 
-           decimalLatitude and decimalLongitude. Please rename your data.frame of geographic coordinates!')
-    }
-    # Check that sample names in genetic matrix match the column of sample names in the coordinate data.frame
+    # Check that sample names in genetic matrix match the column of sample names in the coordinate dataframe
     if(!identical(rownames(gen_mat), coordPts[,1])){
       stop('Error: Sample names between the genetic matrix and the first 
          column of the coordinate point data.frame do not match.')
@@ -320,14 +310,6 @@ calculateCoverage <- function(gen_mat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=
   
   # ECOLOGICAL PROCESSING
   if(ecoFlag==TRUE){
-    # Match ecoLayer argument, to ensure it is 1 of 3 possible values ('US', 'NA', 'GL)
-    ecoLayer <- match.arg(ecoLayer)
-    # Check for the required arguments (ptProj, buffProj, and ecoLayer will use defaults, if not specified)
-    if(missing(coordPts)) stop('For ecological coverage, a data.frame of wild coordinates (coordPts) is required')
-    if(missing(ecoBuff)) stop('For ecological coverage, an integer (or vector of integers) specifying 
-                              the ecological buffer size(s)  is required (ecoBuff argument)')
-    if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
-    if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
     # Ecological coverage: for each buffer size, calculate sample's ecological representation, by passing all 
     # points (coordPts) and the random subset of points (rownames(samp)) to the eco.compareBuff worker function, 
     # which will calculate the proportion of ecoregions covered in the random sample
@@ -398,18 +380,43 @@ exSituResample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, S
   return(cov_matrix)
 }
 
-# WRAPPER FUNCTION: iterates exSituResample, which will generate an array of values from a single genind object
-# This function doesn't run in parallel, so it's primarily used for testing/demonstration purposes
+# WRAPPER FUNCTION: iterates exSituResample, which will generate an array of values from a single genind object. 
+# Checks for arguments are also performed. This function doesn't run in parallel, so it's  primarily used 
+# for testing/demonstration purposes
 geo.gen.Resample <-
   function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA,
            ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84',
            boundary, ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
            ecoLayer=c('US', 'NA', 'GL'), reps=5){
-    # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, 
-    # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
-    # multiple times, and return a list
-    if(!class(SDMrast)=='logical'){
-      SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=FALSE))
+    # If calculating geographic coverage, check for arguments
+    if(geoFlag==TRUE){
+      # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
+      if(missing(coordPts)) stop('For geographic coverage, a data.frame of wild coordinates (coordPts) is required')
+      if(missing(geoBuff)) stop('For geographic coverage, an integer (or vector of integers) specifying the geographic 
+                              buffer size(s) is required (geoBuff argument)')
+      if(missing(boundary)) stop('For geographic coverage, a SpatVector object of country boundaries (boundary) is required')
+      # Check that the names of the latitude and longitude columns are properly written (this is unfortunately hard-coded)
+      if(!identical(colnames(coordPts)[2:3], c('decimalLatitude', 'decimalLongitude'))){
+        stop('The column names of the geographic coordinates dataframe (coordPts) need to be 
+           decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
+      }
+      # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, 
+      # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
+      # multiple times, and return a list
+      if(!class(SDMrast)=='logical'){
+        SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=FALSE))
+      }
+    }
+    # If calculating ecological coverage, check for arguments
+    if(ecoFlag==TRUE){
+      # Match ecoLayer argument, to ensure it is 1 of 3 possible values ('US', 'NA', 'GL)
+      ecoLayer <- match.arg(ecoLayer)
+      # Check for the required arguments (ptProj, buffProj, and ecoLayer will use defaults, if not specified)
+      if(missing(coordPts)) stop('For ecological coverage, a data.frame of wild coordinates (coordPts) is required')
+      if(missing(ecoBuff)) stop('For ecological coverage, an integer (or vector of integers) specifying 
+                              the ecological buffer size(s)  is required (ecoBuff argument)')
+      if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
+      if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
     }
     # Run resampling for all replicates, using sapply and lambda function
     resamplingArray <- 
@@ -433,9 +440,35 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
                                  ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
                                  ecoLayer=c('US','NA','GL'), reps=5,
                                  arrayFilepath='~/resamplingArray.Rdata', cluster){
-  # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, and fix if not
-  if(!class(SDMrast)=='logical'){
-    SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=TRUE))
+  # If calculating geographic coverage, check for arguments
+  if(geoFlag==TRUE){
+    # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
+    if(missing(coordPts)) stop('For geographic coverage, a data.frame of wild coordinates (coordPts) is required')
+    if(missing(geoBuff)) stop('For geographic coverage, an integer (or vector of integers) specifying the geographic 
+                              buffer size(s) is required (geoBuff argument)')
+    if(missing(boundary)) stop('For geographic coverage, a SpatVector object of country boundaries (boundary) is required')
+    # Check that the names of the latitude and longitude columns are properly written (this is unfortunately hard-coded)
+    if(!identical(colnames(coordPts)[2:3], c('decimalLatitude', 'decimalLongitude'))){
+      stop('The column names of the geographic coordinates dataframe (coordPts) need to be 
+           decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
+    }
+    # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, 
+    # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
+    # multiple times, and return a list
+    if(!class(SDMrast)=='logical'){
+      SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=TRUE))
+    }
+  }
+  # If calculating ecological coverage, check for arguments
+  if(ecoFlag==TRUE){
+    # Match ecoLayer argument, to ensure it is 1 of 3 possible values ('US', 'NA', 'GL)
+    ecoLayer <- match.arg(ecoLayer)
+    # Check for the required arguments (ptProj, buffProj, and ecoLayer will use defaults, if not specified)
+    if(missing(coordPts)) stop('For ecological coverage, a data.frame of wild coordinates (coordPts) is required')
+    if(missing(ecoBuff)) stop('For ecological coverage, an integer (or vector of integers) specifying 
+                              the ecological buffer size(s)  is required (ecoBuff argument)')
+    if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
+    if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
   }
   # Print starting time
   startTime <- Sys.time() 
