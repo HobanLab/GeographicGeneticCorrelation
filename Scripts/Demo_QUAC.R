@@ -25,11 +25,9 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-# geo_buffSize <- 1000
-geo_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Specify ecological buffer size in meters 
-# eco_buffSize <- 1000
-eco_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
+eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # %%%% INDIVIDUAL-LEVEL GEOGRAPHIC COORDINATES %%%% ----
 # In this analysis, we utilize a CSV file of lat/longs that specify the location of each individual
@@ -94,7 +92,7 @@ if(parFlag==TRUE){
                                 'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
                                 'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
-  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_MultBuff_G2E_5r_resampArr.Rdata')
+  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata')
   # Run resampling in parallel
   QUAC_demoArray_IND_Par <- 
     geo.gen.Resample.Par(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = QUAC_sdm_W,
@@ -164,13 +162,6 @@ legend(x=60, y=75, inset = 0.05,
        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
        y.intersp = 0.8)
-# ---- DIFFERENCE PLOTS
-# Plot difference between geographic and genetic coverage
-matplot(averageValueMat_TG[[3]], col='darkblue', pch=16, ylab='Gen-Geo Difference')
-# Add title and x-axis labels to the graph
-title(main='Q. acerifolia: Genetic Geographic Coverage Difference', line=1.5)
-mtext(text='91 Individuals; 1 km buffer; 3 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
 
 # %%%% SMBO: MULTIPLE BUFFER SIZES ----
 # Specify filepath for QUAC geographic and genetic data, including resampling array
