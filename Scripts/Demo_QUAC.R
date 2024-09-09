@@ -166,21 +166,37 @@ legend(x=60, y=75, inset = 0.05,
 # %%%% SMBO: MULTIPLE BUFFER SIZES ----
 # Specify filepath for QUAC geographic and genetic data, including resampling array
 QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
-arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_MultBuff_G2E_5r_resampArr.Rdata')
+arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata')
 # Read in array and build a data.frame of values
 QUAC_MultBuff_array <- readRDS(arrayDir)
+# Specify geographic buffer size in meters (used above)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values, to pass to linear models
 QUAC_MultBuff_DF <- resample.array2dataframe(QUAC_MultBuff_array)
-# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+# Build a matrix to capture NRMSE values
+QUAC_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=3)
+# The names of this matrix match the different parts of the dataframe names
+colnames(QUAC_NRMSE_Mat) <- c('Geo_Buff','Geo_SDM','Eco_Buff')
+rownames(QUAC_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
+# Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
 # predictve variable (genetic coverages)
 for(i in 3:ncol(QUAC_MultBuff_DF)){
-  # Calculate NRMSE for the current column in the data.frame
+  # Calculate NRMSE for the current column in the dataframe
   QUAC_NRMSEvalue <- nrmse.func(QUAC_MultBuff_DF[,i], pred = QUAC_MultBuff_DF$Total)
-  # Print result, for each explanatory variable in data.frame
-  print(paste0(names(QUAC_MultBuff_DF)[[i]], ': ', QUAC_NRMSEvalue))
+  # Get the name of the current dataframe column
+  dataName <- unlist(strsplit(names(QUAC_MultBuff_DF)[[i]],'_'))
+  # Match the data name to the relevant rows/columns of the receiving matrix
+  matRow <- which(rownames(QUAC_NRMSE_Mat) == dataName[[3]])
+  matCol <- which(colnames(QUAC_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
+  # Locate the NRMSE value accordingly
+  QUAC_NRMSE_Mat[matRow,matCol] <- QUAC_NRMSEvalue
 }
+print(QUAC_NRMSE_Mat)
+# Store the matrix as a CSV to disk
+write.csv2(QUAC_NRMSE_Mat,
+           file=paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_NRMSE.csv'))
 
 # %%% ARCHIVE %%% ----
 # # %%%% 2023-09-27 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS ----
