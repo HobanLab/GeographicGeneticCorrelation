@@ -427,6 +427,9 @@ geo.gen.Resample <-
       cat(paste0('\n', '--- ecoFlag ON, WILL CALCULATE ECOLOGICAL COVERAGE ---'))
       cat(paste0('\n', '--- NUMBER OF ECO_BUFF SIZES: ', length(ecoBuff), ' ---'))
     }
+    # Print starting time
+    startTime <- Sys.time() 
+    cat(paste0('\n', '%%% RESAMPLING START: ', startTime))
     # Run resampling for all replicates, using sapply and lambda function
     resamplingArray <- 
       sapply(1:reps, function(x) exSituResample(gen_obj=gen_obj,geoFlag=geoFlag,
@@ -436,6 +439,10 @@ geo.gen.Resample <-
                                                 ecoFlag=ecoFlag, ecoBuff=ecoBuff,
                                                 ecoRegions=ecoRegions, ecoLayer=ecoLayer,
                                                 parFlag=FALSE), simplify = 'array')
+    # Print ending time and total runtime
+    endTime <- Sys.time() 
+    cat(paste0('%%% RESAMPLING END: ', endTime))
+    cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
     # Return array
     return(resamplingArray)
   }
@@ -490,7 +497,7 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
   }
   # Print starting time
   startTime <- Sys.time() 
-  cat(paste0('%%% RESAMPLING START: ', startTime))
+  cat(paste0('\n', '%%% RESAMPLING START: ', startTime))
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- 
     sapply(1:reps, function(x) exSituResample.Par(gen_obj=gen_obj, geoFlag=geoFlag, 
