@@ -400,11 +400,17 @@ geo.gen.Resample <-
         stop('The column names of the geographic coordinates dataframe (coordPts) need to be 
            decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
       }
+      # Print out message stating what coverages are being calculated, and how many buffer sizes
+      cat('--- geoFlag ON, WILL CALCULATE GEOGRAPHIC COVERAGE (TOTAL BUFFER) ---')
+      cat(paste0('\n', '--- NUMBER OF GEO_BUFF SIZES: ', length(geoBuff), ' ---'))
       # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, 
       # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
       # multiple times, and return a list
       if(!class(SDMrast)=='logical'){
         SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=FALSE))
+        # Print out message stating what coverages are being calculated, and how many buffer sizes
+        cat(paste0('\n', '--- SDM PROVIDED, WILL CALCULATE GEOGRAPHIC COVERAGE (SDM) ---'))
+        cat(paste0('\n', '--- NUMBER OF GEO_SDM SIZES: ', length(geoBuff), ' ---'))
       }
     }
     # If calculating ecological coverage, check for arguments
@@ -417,6 +423,9 @@ geo.gen.Resample <-
                               the ecological buffer size(s)  is required (ecoBuff argument)')
       if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
       if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
+      # Print out message stating what coverages are being calculated, and how many buffer sizes
+      cat(paste0('\n', '--- ecoFlag ON, WILL CALCULATE ECOLOGICAL COVERAGE ---'))
+      cat(paste0('\n', '--- NUMBER OF ECO_BUFF SIZES: ', length(ecoBuff), ' ---'))
     }
     # Run resampling for all replicates, using sapply and lambda function
     resamplingArray <- 
@@ -452,11 +461,17 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
       stop('The column names of the geographic coordinates dataframe (coordPts) need to be 
            decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
     }
+    # Print out message stating what coverages are being calculated, and how many buffer sizes
+    cat('--- geoFlag ON, WILL CALCULATE GEOGRAPHIC COVERAGE (TOTAL BUFFER) ---')
+    cat(paste0('\n', '--- NUMBER OF GEO_BUFF SIZES: ', length(geoBuff), ' ---'))
     # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, 
     # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
     # multiple times, and return a list
     if(!class(SDMrast)=='logical'){
       SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=TRUE))
+      # Print out message stating what coverages are being calculated, and how many buffer sizes
+      cat(paste0('\n', '--- SDM PROVIDED, WILL CALCULATE GEOGRAPHIC COVERAGE (SDM) ---'))
+      cat(paste0('\n', '--- NUMBER OF GEO_SDM SIZES: ', length(geoBuff), ' ---'))
     }
   }
   # If calculating ecological coverage, check for arguments
@@ -469,10 +484,13 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
                               the ecological buffer size(s)  is required (ecoBuff argument)')
     if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
     if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
+    # Print out message stating what coverages are being calculated, and how many buffer sizes
+    cat(paste0('\n', '--- ecoFlag ON, WILL CALCULATE ECOLOGICAL COVERAGE ---'))
+    cat(paste0('\n', '--- NUMBER OF ECO_BUFF SIZES: ', length(ecoBuff), ' ---'))
   }
   # Print starting time
   startTime <- Sys.time() 
-  print(paste0('%%% RESAMPLING START: ', startTime))
+  cat(paste0('%%% RESAMPLING START: ', startTime))
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- 
     sapply(1:reps, function(x) exSituResample.Par(gen_obj=gen_obj, geoFlag=geoFlag, 
@@ -485,7 +503,7 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
            simplify = 'array')
   # Print ending time and total runtime
   endTime <- Sys.time() 
-  print(paste0('%%% RESAMPLING END: ', endTime))
+  cat(paste0('%%% RESAMPLING END: ', endTime))
   cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
   # Save the resampling array object to disk, for later usage
   saveRDS(resamplingArray, file = arrayFilepath)
