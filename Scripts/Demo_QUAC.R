@@ -195,8 +195,8 @@ for(i in 3:ncol(QUAC_MultBuff_DF)){
 }
 print(QUAC_NRMSE_Mat)
 # Store the matrix as a CSV to disk
-write.csv2(QUAC_NRMSE_Mat,
-           file=paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_NRMSE.csv'))
+write.table(QUAC_NRMSE_Mat,
+            file=paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_NRMSE.csv'), sep=',')
 
 # %%% ARCHIVE %%% ----
 # # %%%% 2023-09-27 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS ----
