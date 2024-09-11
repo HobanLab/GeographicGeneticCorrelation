@@ -426,7 +426,7 @@ geo.gen.Resample <-
            decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
       }
       # Print out message stating what coverages are being calculated, and how many buffer sizes
-      cat('--- geoFlag ON, WILL CALCULATE GEOGRAPHIC COVERAGE (TOTAL BUFFER) ---')
+      cat('\n', '--- geoFlag ON, WILL CALCULATE GEOGRAPHIC COVERAGE (TOTAL BUFFER) ---')
       cat(paste0('\n', '--- NUMBER OF GEO_BUFF SIZES: ', length(geoBuff), ' ---'))
       # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, 
       # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
@@ -466,7 +466,7 @@ geo.gen.Resample <-
                                                 parFlag=FALSE), simplify = 'array')
     # Print ending time and total runtime
     endTime <- Sys.time() 
-    cat(paste0('%%% RESAMPLING END: ', endTime))
+    cat(paste0('\n', '%%% RESAMPLING END: ', endTime))
     cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
     # Return array
     return(resamplingArray)
@@ -494,7 +494,7 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
            decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
     }
     # Print out message stating what coverages are being calculated, and how many buffer sizes
-    cat('--- geoFlag ON, WILL CALCULATE GEOGRAPHIC COVERAGE (TOTAL BUFFER) ---')
+    cat('\n', '--- geoFlag ON, WILL CALCULATE GEOGRAPHIC COVERAGE (TOTAL BUFFER) ---')
     cat(paste0('\n', '--- NUMBER OF GEO_BUFF SIZES: ', length(geoBuff), ' ---'))
     # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, 
     # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
