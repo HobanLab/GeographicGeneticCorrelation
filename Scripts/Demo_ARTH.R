@@ -22,12 +22,10 @@ source('Scripts/functions_GeoGenCoverage.R')
 # Specify number of resampling replicates
 num_reps <- 5
 # ---- BUFFER SIZES
-# Specify geographic buffer size in meters 
-geo_buffSize <- 1000*(c(110,500))
-# geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+# Specify geographic buffer size in meters
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Specify ecological buffer size in meters 
-# eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
-eco_buffSize <- 1000*(c(110,500))
+eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- READ IN DATA ----
 # Specify filepath for ARTH geographic and genetic data
@@ -49,11 +47,9 @@ ARTH_coordinates <- ARTH_coordinates[-which(ARTH_coordinates$Country == 'JPN'),]
 # Remove the country column, and reformat sample names as characters (rather than numeric)
 ARTH_coordinates <- ARTH_coordinates[,-2]
 ARTH_coordinates[,1] <- as.character(ARTH_coordinates[,1])
-
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
-world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = TRUE)
 # Perform geographic filter on the admin layer. 
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = ARTH_coordinates)
 # Read in the TNC global ecoregion shapefile, which is used for calculating ecological coverage 
@@ -75,7 +71,7 @@ ARTH_genind <- ARTH_genind_global[ARTH_coordinates[,1], drop=TRUE]
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel
-parFlag <- FALSE
+parFlag <- TRUE
 
 # If running in parallel, set up cores and export required libraries
 if(parFlag==TRUE){
@@ -103,7 +99,7 @@ if(parFlag==TRUE){
                                 'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
   # arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata')
-  arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO-TEST2_GE_5r_resampArr.Rdata')
+  arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata')
   
   # Run resampling (in parallel)
   print("%%% BEGINNING RESAMPLING %%%")
@@ -116,7 +112,7 @@ if(parFlag==TRUE){
   stopCluster(cl)
 } else {
   # Specify file path, for saving resampling array
-  arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO-TEST3_GE_5r_resampArr.Rdata')
+  arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata')
   # Print starting time
   startTime <- Sys.time() 
   cat(paste0('\n', '%%% RESAMPLING START: ', startTime))
@@ -198,7 +194,7 @@ if(parFlag==TRUE){
 # # %%%% SMBO: MULTIPLE BUFFER SIZES ----
 # # Specify filepath for ARTH geographic and genetic data, including resampling array
 # ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
-# arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO-TEST2_GE_5r_resampArr.Rdata')
+# arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO-TEST3_GE_5r_resampArr.Rdata')
 # # Read in array and build a data.frame of values
 # ARTH_MultBuff_array <- readRDS(arrayDir)
 # # Specify geographic buffer size in meters (used above)
