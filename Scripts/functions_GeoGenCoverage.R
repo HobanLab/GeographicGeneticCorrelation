@@ -350,13 +350,38 @@ exSituResample <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMra
                                            geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, 
                                            buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag, 
                                            ecoBuff=ecoBuff, ecoRegions=ecoRegions, ecoLayer=ecoLayer,
-                                           parFlag=FALSE, numSamples=x)))
+                                           parFlag=FALSE, numSamples=x), simplify = 'array'))
   # Return the matrix of coverage values
   return(cov_matrix)
 }
 
 # WRAPPER FUNCTION: iterates calculateCoverage over the entire matrix of samples, in parallel
 exSituResample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
+                               buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=FALSE, ecoBuff=50000,
+                               ecoRegions, ecoLayer='US', parFlag=TRUE, cluster){
+  # Check populations of samples: if NULL, provide all samples with the popname 'wild' 
+  # This means that if no populations are specified in the genind object, all samples will be used!
+  if(is.null(pop(gen_obj))){
+    pop(gen_obj) <- rep('wild', nInd(gen_obj))
+  }
+  # Create a matrix of wild individuals (those with population 'wild') from genind object
+  gen_mat <- gen_obj@tab[which(pop(gen_obj) == 'wild'),]
+  # Apply the calculateCoverage function to all rows of the wild matrix using parSapply
+  # (except row 1, because we need at least 2 individuals to sample)
+  # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
+  cov_matrix <-
+    t(parSapply(cluster, 2:nrow(gen_mat), 
+                function(x) calculateCoverage(gen_mat=gen_mat, geoFlag=geoFlag, coordPts=coordPts,
+                                              geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, 
+                                              buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag, 
+                                              ecoBuff=ecoBuff, ecoRegions=ecoRegions, ecoLayer=ecoLayer,
+                                              parFlag=parFlag, numSamples=x), simplify = 'array'))
+  # Return the matrix of coverage values
+  return(cov_matrix)
+}
+
+# WRAPPER FUNCTION: iterates calculateCoverage over the entire matrix of samples, in parallel
+exSituResample.Par_OLD <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
                                buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=FALSE, ecoBuff=50000,
                                ecoRegions, ecoLayer='US', parFlag=TRUE, cluster){
   # Check populations of samples: if NULL, provide all samples with the popname 'wild' 
@@ -429,7 +454,7 @@ geo.gen.Resample <-
     }
     # Print starting time
     startTime <- Sys.time() 
-    cat(paste0('\n', '%%% RESAMPLING START: ', startTime))
+    cat(paste0('\n', '%%% RESAMPLING START: ', startTime, '\n'))
     # Run resampling for all replicates, using sapply and lambda function
     resamplingArray <- 
       sapply(1:reps, function(x) exSituResample(gen_obj=gen_obj,geoFlag=geoFlag,
@@ -506,11 +531,10 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
                                                   buffProj=buffProj, boundary=boundary, 
                                                   ecoFlag=ecoFlag, ecoBuff=ecoBuff, 
                                                   ecoRegions=ecoRegions, ecoLayer=ecoLayer, 
-                                                  parFlag=TRUE, cluster), 
-           simplify = 'array')
+                                                  parFlag=TRUE, cluster), simplify = 'array')
   # Print ending time and total runtime
   endTime <- Sys.time() 
-  cat(paste0('%%% RESAMPLING END: ', endTime))
+  cat(paste0('\n', '%%% RESAMPLING END: ', endTime))
   cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
   # Save the resampling array object to disk, for later usage
   saveRDS(resamplingArray, file = arrayFilepath)
@@ -612,7 +636,7 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
 # 'type' argument. A lower value indicates similarity between values. In the context of this project, 
 # 'obs_var' is the explanatory variable (what we're using as a 'proxy' for genetic coverage), 
 # and 'pred_var' is what we're trying to predict (genetic coverage).
-nrmse.func <-  function(obs_var, pred_var, norm_type='sd'){
+nrmse.func <-  function(obs_var, pred_var, norm_type='mean'){
   # Check that lengths of observed and predicted variables match, and error if not
   if(length(obs_var) != length(pred_var)) stop('Lengths of observed and predicted variables do not match!')
   # Calculate root mean square error 
