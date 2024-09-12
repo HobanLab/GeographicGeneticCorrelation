@@ -380,31 +380,6 @@ exSituResample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, S
   return(cov_matrix)
 }
 
-# WRAPPER FUNCTION: iterates calculateCoverage over the entire matrix of samples, in parallel
-exSituResample.Par_OLD <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
-                               buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=FALSE, ecoBuff=50000,
-                               ecoRegions, ecoLayer='US', parFlag=TRUE, cluster){
-  # Check populations of samples: if NULL, provide all samples with the popname 'wild' 
-  # This means that if no populations are specified in the genind object, all samples will be used!
-  if(is.null(pop(gen_obj))){
-    pop(gen_obj) <- rep('wild', nInd(gen_obj))
-  }
-  # Create a matrix of wild individuals (those with population 'wild') from genind object
-  gen_mat <- gen_obj@tab[which(pop(gen_obj) == 'wild'),]
-  # Apply the calculateCoverage function to all rows of the wild matrix using parSapply
-  # (except row 1, because we need at least 2 individuals to sample)
-  # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
-  cov_matrix <-
-    t(parSapply(cluster, 2:nrow(gen_mat), 
-                function(x) calculateCoverage(gen_mat=gen_mat, geoFlag=geoFlag, coordPts=coordPts,
-                                              geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, buffProj=buffProj,
-                                              boundary=boundary, ecoFlag=ecoFlag, ecoBuff=ecoBuff,
-                                              ecoRegions=ecoRegions, ecoLayer=ecoLayer,
-                                              parFlag=parFlag, numSamples=x)))
-  # Return the matrix of coverage values
-  return(cov_matrix)
-}
-
 # WRAPPER FUNCTION: iterates exSituResample, which will generate an array of values from a single genind object. 
 # Checks for arguments are also performed. This function doesn't run in parallel, so it's  primarily used 
 # for testing/demonstration purposes
@@ -501,6 +476,8 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
     # multiple times, and return a list
     if(!class(SDMrast)=='logical'){
       SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=TRUE))
+      # Export list of raster objects to the cluster
+      clusterExport(cl=cluster, varlist=SDMrast)
       # Print out message stating what coverages are being calculated, and how many buffer sizes
       cat(paste0('\n', '--- SDM PROVIDED, WILL CALCULATE GEOGRAPHIC COVERAGE (SDM) ---'))
       cat(paste0('\n', '--- NUMBER OF GEO_SDM SIZES: ', length(geoBuff), ' ---'))
@@ -542,6 +519,78 @@ geo.gen.Resample.Par <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000,
   # Return array
   return(resamplingArray)
 }
+
+# # WRAPPER FUNCTION: iterates exSituResample.Par, which will generate an array of values from a single genind object
+# # This function iterates the parallelized version of exSituResample, such that each different sample size for a 
+# # single resampling replicate is processed on a single core. Results (resampling array) are saved to a specified file path.
+# geo.gen.Resample.Par_OLD <- function(gen_obj, geoFlag=TRUE, coordPts, geoBuff=50000, 
+#                                  SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
+#                                  buffProj='+proj=eqearth +datum=WGS84', boundary, 
+#                                  ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
+#                                  ecoLayer=c('US','NA','GL'), reps=5,
+#                                  arrayFilepath='~/resamplingArray.Rdata', cluster){
+#   # If calculating geographic coverage, check for arguments
+#   if(geoFlag==TRUE){
+#     # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
+#     if(missing(coordPts)) stop('For geographic coverage, a data.frame of wild coordinates (coordPts) is required')
+#     if(missing(geoBuff)) stop('For geographic coverage, an integer (or vector of integers) specifying the geographic 
+#                               buffer size(s) is required (geoBuff argument)')
+#     if(missing(boundary)) stop('For geographic coverage, a SpatVector object of country boundaries (boundary) is required')
+#     # Check that the names of the latitude and longitude columns are properly written (this is unfortunately hard-coded)
+#     if(!identical(colnames(coordPts)[2:3], c('decimalLatitude', 'decimalLongitude'))){
+#       stop('The column names of the geographic coordinates dataframe (coordPts) need to be 
+#            decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
+#     }
+#     # Print out message stating what coverages are being calculated, and how many buffer sizes
+#     cat('\n', '--- geoFlag ON, WILL CALCULATE GEOGRAPHIC COVERAGE (TOTAL BUFFER) ---')
+#     cat(paste0('\n', '--- NUMBER OF GEO_BUFF SIZES: ', length(geoBuff), ' ---'))
+#     # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, 
+#     # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
+#     # multiple times, and return a list
+#     if(!class(SDMrast)=='logical'){
+#       SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=TRUE))
+#       
+#       # Print out message stating what coverages are being calculated, and how many buffer sizes
+#       cat(paste0('\n', '--- SDM PROVIDED, WILL CALCULATE GEOGRAPHIC COVERAGE (SDM) ---'))
+#       cat(paste0('\n', '--- NUMBER OF GEO_SDM SIZES: ', length(geoBuff), ' ---'))
+#     }
+#   }
+#   # If calculating ecological coverage, check for arguments
+#   if(ecoFlag==TRUE){
+#     # Match ecoLayer argument, to ensure it is 1 of 3 possible values ('US', 'NA', 'GL)
+#     ecoLayer <- match.arg(ecoLayer)
+#     # Check for the required arguments (ptProj, buffProj, and ecoLayer will use defaults, if not specified)
+#     if(missing(coordPts)) stop('For ecological coverage, a data.frame of wild coordinates (coordPts) is required')
+#     if(missing(ecoBuff)) stop('For ecological coverage, an integer (or vector of integers) specifying 
+#                               the ecological buffer size(s)  is required (ecoBuff argument)')
+#     if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
+#     if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
+#     # Print out message stating what coverages are being calculated, and how many buffer sizes
+#     cat(paste0('\n', '--- ecoFlag ON, WILL CALCULATE ECOLOGICAL COVERAGE ---'))
+#     cat(paste0('\n', '--- NUMBER OF ECO_BUFF SIZES: ', length(ecoBuff), ' ---'))
+#   }
+#   # Print starting time
+#   startTime <- Sys.time() 
+#   cat(paste0('\n', '%%% RESAMPLING START: ', startTime))
+#   # Run resampling for all replicates, using sapply and lambda function
+#   resamplingArray <- 
+#     sapply(1:reps, function(x) exSituResample.Par(gen_obj=gen_obj, geoFlag=geoFlag, 
+#                                                   coordPts=coordPts, geoBuff=geoBuff, 
+#                                                   SDMrast=SDMrast, ptProj=ptProj, 
+#                                                   buffProj=buffProj, boundary=boundary, 
+#                                                   ecoFlag=ecoFlag, ecoBuff=ecoBuff, 
+#                                                   ecoRegions=ecoRegions, ecoLayer=ecoLayer, 
+#                                                   parFlag=TRUE, cluster), simplify = 'array')
+#   # Print ending time and total runtime
+#   endTime <- Sys.time() 
+#   cat(paste0('\n', '%%% RESAMPLING END: ', endTime))
+#   cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
+#   # Save the resampling array object to disk, for later usage
+#   saveRDS(resamplingArray, file = arrayFilepath)
+#   cat(paste0('\n', '%%% Resampling array object saved to: ', arrayFilepath, '\n'))
+#   # Return array
+#   return(resamplingArray)
+# }
 
 # ---- PROCESSING THE RESAMPLING ARRAY ----
 # From resampling array, calculate the mean minimum sample size to represent 95% of the Total wild diversity
