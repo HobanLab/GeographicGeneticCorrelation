@@ -60,6 +60,11 @@ world_poly_clip_W <- wrap(world_poly_clip)
 ecoregion_poly_W <- wrap(ecoregion_poly)
 
 # ---- GENETIC MATRIX
+# # Read in the genepop file provided for this dataset
+# HIWA_all_genind <- read.genepop(paste0(HIWA_filePath,'Genetic/final.recode.p.snps.gen'))
+# # Using sample names, create a new genind object that doesn't include the ex situ samples
+# HIWA_genind <- HIWA_all_genind[HIWA_points[,1], drop=TRUE]
+# 
 # Read in the VCF file containing Hibiscus individuals
 HIWA_vcf <- read.vcfR(paste0(HIWA_filePath,'Genetic/hawaii.populations.snps.vcf'))
 # Convert the vcf to a genind; the return.alleles TRUE value is suggested in the function's help file
