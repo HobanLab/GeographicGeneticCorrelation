@@ -25,8 +25,7 @@ num_reps <- 2
 # Specify geographic buffer size in meters 
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Specify ecological buffer size in meters 
-eco_buffSize <- 1000*(c(5,40))
-# eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- READ IN DATA ----
 # Specify filepath for QULO geographic and genetic data
