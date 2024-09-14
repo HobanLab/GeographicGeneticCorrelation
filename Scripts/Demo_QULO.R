@@ -20,7 +20,7 @@ source('Scripts/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
-num_reps <- 2
+num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
@@ -58,7 +58,7 @@ ecoregion_poly <-
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel
-parFlag <- FALSE
+parFlag <- TRUE
 
 # If running in parallel, set up cores and export required libraries
 if(parFlag==TRUE){
@@ -83,14 +83,15 @@ clusterExport(cl, varlist = c('QULO_points','QULO_genind','QULO_sdm', 'num_reps'
                               'eco_buffSize', 'world_poly_clip_W', 'ecoregion_poly_W', 'QULO_sdm_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
-                              'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
-                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
+                              'eco.intersectBuff', 'eco.compareBuff', 'eco.eco.totalEcoregionCount', 
+                              'gen.getAlleleCategories', 'calculateCoverage', 'exSituResample.Par', 
+                              'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO2_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO2_G2E_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 QULO_demoArray_Par <- 
   geo.gen.Resample.Par(genObj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
-                       geoBuff = geo_buffSize, SDMrast=NA, boundary=world_poly_clip_W, 
+                       geoBuff = geo_buffSize, SDMrast=QULO_sdm_W, boundary=world_poly_clip_W, 
                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
                        ecoLayer = 'US', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
