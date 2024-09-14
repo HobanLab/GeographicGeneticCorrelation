@@ -22,7 +22,7 @@ source('Scripts/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
-num_reps <- 5
+num_reps <- 1
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
@@ -74,7 +74,6 @@ if(parFlag==TRUE){
   clusterEvalQ(cl, library('adegenet'))
   clusterEvalQ(cl, library('terra'))
   clusterEvalQ(cl, library('parallel'))
-  
   # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
   # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
   world_poly_clip_W <- wrap(world_poly_clip)
@@ -95,7 +94,7 @@ if(parFlag==TRUE){
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata')
   # Run resampling in parallel
   QUAC_demoArray_IND_Par <- 
-    geo.gen.Resample.Par(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = QUAC_sdm_W,
+    geo.gen.Resample.Par(genObj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = QUAC_sdm_W,
                          geoBuff = geo_buffSize, boundary = world_poly_clip_W, ecoFlag = TRUE,
                          ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US',
                          reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
@@ -104,9 +103,9 @@ if(parFlag==TRUE){
 } else{
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
-    geo.gen.Resample(gen_obj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = QUAC_sdm,
-                     geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, 
-                     ecoBuff = NA, ecoRegions = NA, ecoLayer = 'US',
+    geo.gen.Resample(genObj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = NA,
+                     geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = TRUE, 
+                     ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = 'US',
                      reps = num_reps)
 }
 
@@ -381,7 +380,7 @@ write.table(QUAC_NRMSE_Mat,
 # arrayDir <- paste0(QUAC.filePath, 'resamplingData/QUAC_1kmPOP_GE_5r_resampArr.Rdata')
 # # Run resampling
 # QUAC_demoArray_POP_Par <-
-#   geo.gen.Resample.Parallel(gen_obj = QUAC.genind, geoFlag = TRUE, coordPts = wildPoints,
+#   geo.gen.Resample.Parallel(genObj = QUAC.genind, geoFlag = TRUE, coordPts = wildPoints,
 #                             geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE,
 #                             ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US',
 #                             reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
