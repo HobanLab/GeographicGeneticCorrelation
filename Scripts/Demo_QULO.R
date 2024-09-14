@@ -83,7 +83,7 @@ clusterExport(cl, varlist = c('QULO_points','QULO_genind','QULO_sdm', 'num_reps'
                               'eco_buffSize', 'world_poly_clip_W', 'ecoregion_poly_W', 'QULO_sdm_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
-                              'eco.intersectBuff', 'eco.compareBuff', 'eco.eco.totalEcoregionCount', 
+                              'eco.intersectBuff', 'eco.compareBuff', 'eco.totalEcoregionCount', 
                               'gen.getAlleleCategories', 'calculateCoverage', 'exSituResample.Par', 
                               'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
