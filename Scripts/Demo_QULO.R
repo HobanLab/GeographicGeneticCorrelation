@@ -25,18 +25,9 @@ num_reps <- 2
 # Specify geographic buffer size in meters 
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Specify ecological buffer size in meters 
-eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+eco_buffSize <- 1000*(c(5,40))
+# eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
-# ---- PARALLELIZATION
-# Set up relevant cores 
-num_cores <- detectCores() - 4 
-cl <- makeCluster(num_cores)
-# Make sure libraries (adegenet + terra) are on cluster
-clusterEvalQ(cl, library('adegenet'))
-clusterEvalQ(cl, library('terra'))
-clusterEvalQ(cl, library('parallel'))
-
-# %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
 # Specify filepath for QULO geographic and genetic data
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
@@ -55,7 +46,6 @@ QULO_genind <- df2genind(QULO_tab, ncode = 3, ploidy = 2)
 # The sample names (and order) have to match the sample names/order of the genind object 
 # (rownams of the genetic matrix) read in below.
 QULO_points <- read.csv(paste0(QULO_filePath, 'Geographic/Quercus_lobata.csv'), header=TRUE)
-
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = FALSE)
 # Perform geographic filter on the admin layer. 
@@ -66,13 +56,29 @@ QULO_sdm <- terra::rast(paste0(QULO_filePath,'Geographic/QULO_436inds_rast_Loza_
 # (solely in the U.S.)
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
-# Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
-# exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
-world_poly_clip_W <- wrap(world_poly_clip)
-ecoregion_poly_W <- wrap(ecoregion_poly)
-QULO_sdm_W <- wrap(QULO_sdm)
+
+# ---- PARALLELIZATION
+# Flag for running resampling steps in parallel
+parFlag <- FALSE
+
+# If running in parallel, set up cores and export required libraries
+if(parFlag==TRUE){
+  # Set up relevant cores 
+  num_cores <- detectCores() - 4 
+  cl <- makeCluster(num_cores)
+  # Make sure libraries (adegenet + terra) are on cluster
+  clusterEvalQ(cl, library('adegenet'))
+  clusterEvalQ(cl, library('terra'))
+  clusterEvalQ(cl, library('parallel'))
+  # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
+  # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
+  world_poly_clip_W <- wrap(world_poly_clip)
+  ecoregion_poly_W <- wrap(ecoregion_poly)
+  QULO_sdm_W <- wrap(QULO_sdm)
+}
 
 # ---- RESAMPLING ----
+if(parFlag==TRUE){
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
 clusterExport(cl, varlist = c('QULO_points','QULO_genind','QULO_sdm', 'num_reps','geo_buffSize', 
                               'eco_buffSize', 'world_poly_clip_W', 'ecoregion_poly_W', 'QULO_sdm_W'))
@@ -84,23 +90,25 @@ clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBu
 arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO2_GE_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 QULO_demoArray_Par <- 
-  geo.gen.Resample.Par(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
+  geo.gen.Resample.Par(genObj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
                        geoBuff = geo_buffSize, SDMrast=NA, boundary=world_poly_clip_W, 
                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
                        ecoLayer = 'US', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
-
-# QULO_demoArray_Par <- 
-#   geo.gen.Resample.Par(gen_obj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points, 
-#                        geoBuff = geo_buffSize, SDMrast=QULO_sdm_W, boundary=world_poly_clip_W, 
-#                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
-#                        ecoLayer = 'US', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
-
-# Run resampling not in parallel (for function testing purposes)
-# QULO_demoArray_IND <-
-#   geo.gen.Resample(gen_obj = QULO_genind, SDMrast = QULO_sdm, geoFlag = TRUE, coordPts = QULO_points,
-#                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = 1)
+} else {
+  # Reduce the number of samples, to allow for more efficient testing
+  randomSamp <- sample(indNames(QULO_genind), size=10)
+  # Subset geographic coordinate dataframe
+  QULO_points_small <- QULO_points[which(QULO_points$sampleID %in% randomSamp),]
+  # Subset genind object, based on smaller geo coordinates dataframe
+  QULO_genind_small <- QULO_genind[QULO_points_small[,1], drop=TRUE]
+  # Run resampling not in parallel (for function testing purposes)
+  QULO_demoArray_IND <-
+    geo.gen.Resample(genObj = QULO_genind_small, SDMrast = NA, geoFlag = FALSE, coordPts = QULO_points_small,
+                     geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = TRUE, 
+                     ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = 'US', reps = 1)
+}
 
 # # %%% ANALYZE DATA %%% ----
 # # Specify filepath for QULO geographic and genetic data, including resampling array
