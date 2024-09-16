@@ -680,7 +680,7 @@ nrmse.func <-  function(obs_var, pred_var, norm_type='mean'){
     if (norm_type == 'maxmin') nrmse <- rmse/(max(obs_var) - min(obs_var))
     if (norm_type == 'iq') nrmse <- rmse/(quantile(obs_var, 0.75) - quantile(obs_var, 0.25))
     # Round result and return
-    nrmse <- round(nrmse, 3)
+    nrmse <- round(nrmse, 5)
     return(nrmse)
   }
 }
