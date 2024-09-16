@@ -63,7 +63,7 @@ ecoregion_poly <-
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel
-parFlag <- FALSE
+parFlag <- TRUE
 
 # If running in parallel, set up cores and export required libraries
 if(parFlag==TRUE){
@@ -100,10 +100,10 @@ if(parFlag==TRUE){
                          reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
   # Close cores
   stopCluster(cl)
-} else{
+} else {
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
-    geo.gen.Resample(genObj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = NA,
+    geo.gen.Resample(genObj = QUAC_genind, geoFlag = TRUE, coordPts = wildPoints, SDMrast = QUAC_sdm_W,
                      geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = TRUE, 
                      ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = 'US',
                      reps = num_reps)
