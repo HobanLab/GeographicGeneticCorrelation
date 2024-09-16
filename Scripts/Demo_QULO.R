@@ -50,7 +50,7 @@ world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion 
 # Perform geographic filter on the admin layer. 
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = QULO_points)
 # Read in raster data, for SDM
-QULO_sdm <- terra::rast(paste0(QULO_filePath,'Geographic/QULO_436inds_rast_Loza_MX.tif'))
+QULO_sdm <- terra::rast(paste0(QULO_filePath,'Geographic/QULO_436inds_rast_Carver.tif'))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 
 # (solely in the U.S.)
 ecoregion_poly <- 
@@ -79,8 +79,8 @@ if(parFlag==TRUE){
 # ---- RESAMPLING ----
 if(parFlag==TRUE){
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
-clusterExport(cl, varlist = c('QULO_points','QULO_genind','QULO_sdm', 'num_reps','geo_buffSize', 
-                              'eco_buffSize', 'world_poly_clip_W', 'ecoregion_poly_W', 'QULO_sdm_W'))
+clusterExport(cl, varlist = c('QULO_points','QULO_genind','QULO_sdm_W', 'num_reps','geo_buffSize', 
+                              'eco_buffSize', 'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
                               'eco.intersectBuff', 'eco.compareBuff', 'eco.totalEcoregionCount', 
@@ -105,7 +105,7 @@ stopCluster(cl)
   QULO_genind_small <- QULO_genind[QULO_points_small[,1], drop=TRUE]
   # Run resampling not in parallel (for function testing purposes)
   QULO_demoArray_IND <-
-    geo.gen.Resample(genObj = QULO_genind_small, SDMrast = NA, geoFlag = FALSE, coordPts = QULO_points_small,
+    geo.gen.Resample(genObj = QULO_genind_small, SDMrast = QULO_sdm, geoFlag = TRUE, coordPts = QULO_points_small,
                      geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = TRUE, 
                      ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = 'US', reps = 1)
 }
