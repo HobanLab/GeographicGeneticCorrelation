@@ -517,7 +517,7 @@ geo.gen.Resample.Par <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000,
     if(!class(SDMrast)=='logical'){
       SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=TRUE))
       # Export list of raster objects to the cluster
-      clusterExport(cl=cluster, varlist=SDMrast)
+      clusterExport(cl=cluster, varlist='SDMrast', envir=environment())
       # Print out message stating what coverages are being calculated, and how many buffer sizes
       cat(paste0('\n', '--- SDM provided: will calculate geographic coverage (SDM) ---'))
       cat(paste0('\n', '--- Number of buffer sizes (Geo, SDM): ', length(geoBuff), ' ---'))
