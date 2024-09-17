@@ -655,6 +655,7 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
   return(resamp_DF)
 }
 
+# ---- DATA EXPLORATION FUNCTIONS ----
 # Function for calculating normalized root mean square error. Takes two vectors of equal length
 # (for this project, typically geographic or ecological coverages and allelic representation values)
 # and calculates the root mean square error between them, and then normalizes that value based on the 
@@ -685,7 +686,6 @@ nrmse.func <-  function(obs_var, pred_var, norm_type='mean'){
   }
 }
 
-# ---- DATA EXPLORATION FUNCTIONS ----
 # Function for generating a vector of wild allele frequencies from a genind object
 getWildFreqs <- function(gen.obj){
   # Build a vector of rows corresponding to wild individuals (those that do not have a population of 'garden')
