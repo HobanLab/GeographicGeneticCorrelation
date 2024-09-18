@@ -435,14 +435,15 @@ geo.gen.Resample <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMr
       # Print out message stating what coverages are being calculated, and how many buffer sizes
       cat('\n', '--- geoFlag ON: will calculate geographic coverage (total buffer) ---')
       cat(paste0('\n', '--- Number of buffer sizes (Geo, Total buffer): ', length(geoBuff), ' ---'))
-      # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution,
-      # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
-      # multiple times, and return a list
+      # If SDM is provided: 
       if(!class(SDMrast)=='logical'){
-        SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=FALSE))
         # Print out message stating what coverages are being calculated, and how many buffer sizes
         cat(paste0('\n', '--- SDM provided: will calculate geographic coverage (SDM) ---'))
         cat(paste0('\n', '--- Number of buffer sizes (Geo, SDM): ', length(geoBuff), ' ---'))
+        # Check that geographic buffer size is greater than SDM raster resolution,
+        # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
+        # multiple times, and return a list
+        SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=FALSE))
       }
     }
     # If calculating ecological coverage, check for arguments
@@ -511,16 +512,17 @@ geo.gen.Resample.Par <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000,
     # Print out message stating what coverages are being calculated, and how many buffer sizes
     cat('\n', '--- geoFlag ON: will calculate geographic coverage (total buffer) ---')
     cat(paste0('\n', '--- Number of buffer sizes (Geo, Total buffer): ', length(geoBuff), ' ---'))
-    # If SDM is provided: check that geographic buffer size is greater than SDM raster resolution, 
-    # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
-    # multiple times, and return a list
+    # If SDM is provided:
     if(!class(SDMrast)=='logical'){
-      SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=TRUE))
-      # Export list of raster objects to the cluster
-      clusterExport(cl=cluster, varlist='SDMrast', envir=environment())
       # Print out message stating what coverages are being calculated, and how many buffer sizes
       cat(paste0('\n', '--- SDM provided: will calculate geographic coverage (SDM) ---'))
       cat(paste0('\n', '--- Number of buffer sizes (Geo, SDM): ', length(geoBuff), ' ---'))
+      # Check that geographic buffer size is greater than SDM raster resolution, 
+      # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
+      # multiple times, and return a list
+      SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=TRUE))
+      # Export list of raster objects to the cluster
+      clusterExport(cl=cluster, varlist='SDMrast', envir=environment())
     }
   }
   # If calculating ecological coverage, check for arguments
@@ -547,7 +549,7 @@ geo.gen.Resample.Par <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000,
   }
   # Print starting time
   startTime <- Sys.time() 
-  cat(paste0('\n', '%%% RESAMPLING START: ', startTime))
+  cat(paste0('\n', '%%% RESAMPLING START: ', startTime, '\n'))
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- 
     sapply(1:reps, function(x) exSituResample.Par(genObj=genObj, geoFlag=geoFlag, 
