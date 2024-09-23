@@ -25,11 +25,9 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-# geo_buffSize <- 1000
-geo_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Specify ecological buffer size in meters 
-# eco_buffSize <- 1000
-eco_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
+eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -106,16 +104,16 @@ ecoregion_poly_W <- wrap(ecoregion_poly)
 clusterExport(cl, varlist = c('AMTH_coordinates','AMTH_genind','num_reps','geo_buffSize', 'eco_buffSize',
                               'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
-                              'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
-                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
+clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
+                              'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories',
+                              'eco.totalEcoregionCount','calculateCoverage','exSituResample.Par',
+                              'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_MultBuff_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
-print("%%% BEGINNING RESAMPLING %%%")
 AMTH_demoArray_Par <- 
-  geo.gen.Resample.Par(gen_obj = AMTH_genind, geoFlag = TRUE, coordPts = AMTH_coordinates, 
+  geo.gen.Resample.Par(genObj = AMTH_genind, geoFlag = TRUE, coordPts = AMTH_coordinates, 
                        geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
                        ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
                        reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
@@ -189,35 +187,38 @@ legend(x=85, y=180, inset = 0.05,
                   'Ecological coverage (1 km buffer, EPA Level IV)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 0.08)
-# ---- DIFFERENCE PLOTS
-# Plot difference between geographic and genetic coverage
-matplot(averageValueMat_TEG[4:5], col=plotColors_Fade[5:6], pch=16, ylab='')
-# Add title and x-axis labels to the graph
-title(main='A. tharpii: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
-mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Add legend
-legend(x=160, y=50, inset = 0.05,
-       legend = c('Genographic coverage difference', 'Ecological coverage difference'),
-       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-       y.intersp = 1)
 
 # %%%% SMBO: MULTIPLE BUFFER SIZES ----
 # Specify filepath for AMTH geographic and genetic data, including resampling array
 AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
-arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_MultBuff_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata')
 # Read in array and build a data.frame of values
-AMTH_MultBuff_array <- readRDS(arrayDir)
+AMTH_SMBO2_array <- readRDS(arrayDir)
+# Specify geographic buffer size in meters (used above)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values, to pass to linear models
-AMTH_MultBuff_DF <- resample.array2dataframe(AMTH_MultBuff_array)
-# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+AMTH_SMBO2_DF <- resample.array2dataframe(AMTH_SMBO2_array)
+# Build a matrix to capture NRMSE values
+AMTH_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
+# The names of this matrix match the different parts of the dataframe names
+colnames(AMTH_NRMSE_Mat) <- c('Geo_Buff','Eco_Buff')
+rownames(AMTH_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
+# Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
 # predictve variable (genetic coverages)
-for(i in 3:ncol(AMTH_MultBuff_DF)){
-  # Calculate NRMSE for the current column in the data.frame
-  AMTH_NRMSEvalue <- nrmse.func(AMTH_MultBuff_DF[,i], pred = AMTH_MultBuff_DF$Total)
-  # Print result, for each explanatory variable in data.frame
-  print(paste0(names(AMTH_MultBuff_DF)[[i]], ': ', AMTH_NRMSEvalue))
+for(i in 3:ncol(AMTH_SMBO2_DF)){
+  # Calculate NRMSE for the current column in the dataframe
+  AMTH_NRMSEvalue <- nrmse.func(AMTH_SMBO2_DF[,i], pred = AMTH_SMBO2_DF$Total)
+  # Get the name of the current dataframe column
+  dataName <- unlist(strsplit(names(AMTH_SMBO2_DF)[[i]],'_'))
+  # Match the data name to the relevant rows/columns of the receiving matrix
+  matRow <- which(rownames(AMTH_NRMSE_Mat) == dataName[[3]])
+  matCol <- which(colnames(AMTH_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
+  # Locate the NRMSE value accordingly
+  AMTH_NRMSE_Mat[matRow,matCol] <- AMTH_NRMSEvalue
 }
+print(AMTH_NRMSE_Mat)
+# Store the matrix as a CSV to disk
+write.table(AMTH_NRMSE_Mat,
+            file=paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_NRMSE.csv'), sep=',')

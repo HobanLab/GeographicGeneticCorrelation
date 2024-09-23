@@ -26,11 +26,9 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-# geo_buffSize <- 50000
-geo_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Specify ecological buffer size in meters 
-# eco_buffSize <- 50000
-eco_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
+eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -88,19 +86,19 @@ MIGU_genind <- MIGU_genind_global[MIGU_coordinates[,1], drop=TRUE]
 
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
-clusterExport(cl, varlist = c('MIGU_coordinates','MIGU_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                              'world_poly_clip_W', 'ecoregion_poly_W', 'MIGU_sdm_W'))
+clusterExport(cl, varlist = c('MIGU_coordinates','MIGU_genind','num_reps','geo_buffSize','eco_buffSize',
+                              'world_poly_clip_W','ecoregion_poly_W','MIGU_sdm_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
-                              'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
-                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
+clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
+                              'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories',
+                              'eco.totalEcoregionCount','calculateCoverage','exSituResample.Par',
+                              'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_MultBuff_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_SMBO2_GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
-print("%%% BEGINNING RESAMPLING %%%")
 MIGU_demoArray_Par <- 
-  geo.gen.Resample.Par(gen_obj = MIGU_genind, geoFlag = TRUE, coordPts = MIGU_coordinates, 
+  geo.gen.Resample.Par(genObj = MIGU_genind, geoFlag = TRUE, coordPts = MIGU_coordinates, 
                        geoBuff = geo_buffSize, SDMrast = NA, 
                        boundary=world_poly_clip_W, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
                        ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', reps = num_reps, 
@@ -169,19 +167,6 @@ legend(x=160, y=68, inset = 0.05,
                   'Ecological coverage (50 km buffer, EPA Level III)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 0.8)
-# ---- DIFFERENCE PLOTS
-# Plot difference between geographic and genetic coverage
-matplot(averageValueMat_TEG[4:5], col=plotColors_Fade[5:6], pch=16, ylab='')
-# Add title and x-axis labels to the graph
-title(main='M. guttatus: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
-mtext(text='255 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Add legend
-legend(x=160, y=50, inset = 0.05,
-       legend = c('Genographic coverage difference', 'Ecological coverage difference'),
-       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-       y.intersp = 1)
 
 # %%%% SDM AND TOTAL BUFFER COMPARISON ----
 # Specify filepath for MIGU geographic and genetic data, including resampling array
@@ -246,35 +231,38 @@ mtext(text='Number of individuals', side=1, line=2.4)
 legend(x=175, y=50, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
-# ---- DIFFERENCE PLOTS
-# Plot difference between geographic and genetic coverage
-matplot(MIGU_geoComp_50km_averageValueMat[5:6], col=plotColors_fade[2:3], pch=16, ylab='')
-# Add title, subtitle, and x-axis labels to the graph
-title(main='M. guttatus: Genetic-Geographic Coverage Difference', line=1.5)
-mtext(text='255 Individuals; 50 km buffer; 5 replicates', side=3, line=0.1)
-mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Add legend
-legend(x=160, y=45, inset = 0.05,
-       legend = c('Total buffer approach', 'SDM approach'),
-       col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-       y.intersp = 1)
 
 # %%%% SMBO: MULTIPLE BUFFER SIZES ----
 # Specify filepath for MIGU geographic and genetic data, including resampling array
 MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
-arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_MultBuff_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_SMBO2_GE_5r_resampArr.Rdata')
 # Read in array and build a data.frame of values
-MIGU_MultBuff_array <- readRDS(arrayDir)
+MIGU_SMBO2_array <- readRDS(arrayDir)
+# Specify geographic buffer size in meters (used above)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values, to pass to linear models
-MIGU_MultBuff_DF <- resample.array2dataframe(MIGU_MultBuff_array)
-# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+MIGU_SMBO2_DF <- resample.array2dataframe(MIGU_SMBO2_array)
+# Build a matrix to capture NRMSE values
+MIGU_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
+# The names of this matrix match the different parts of the dataframe names
+colnames(MIGU_NRMSE_Mat) <- c('Geo_Buff','Eco_Buff')
+rownames(MIGU_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
+# Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
 # predictve variable (genetic coverages)
-for(i in 3:ncol(MIGU_MultBuff_DF)){
-  # Calculate NRMSE for the current column in the data.frame
-  MIGU_NRMSEvalue <- nrmse.func(MIGU_MultBuff_DF[,i], pred = MIGU_MultBuff_DF$Total)
-  # Print result, for each explanatory variable in data.frame
-  print(paste0(names(MIGU_MultBuff_DF)[[i]], ': ', MIGU_NRMSEvalue))
+for(i in 3:ncol(MIGU_SMBO2_DF)){
+  # Calculate NRMSE for the current column in the dataframe
+  MIGU_NRMSEvalue <- nrmse.func(MIGU_SMBO2_DF[,i], pred = MIGU_SMBO2_DF$Total)
+  # Get the name of the current dataframe column
+  dataName <- unlist(strsplit(names(MIGU_SMBO2_DF)[[i]],'_'))
+  # Match the data name to the relevant rows/columns of the receiving matrix
+  matRow <- which(rownames(MIGU_NRMSE_Mat) == dataName[[3]])
+  matCol <- which(colnames(MIGU_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
+  # Locate the NRMSE value accordingly
+  MIGU_NRMSE_Mat[matRow,matCol] <- MIGU_NRMSEvalue
 }
+print(MIGU_NRMSE_Mat)
+# Store the matrix as a CSV to disk
+write.table(MIGU_NRMSE_Mat,
+            file=paste0(MIGU_filePath, 'resamplingData/MIGU_SMBO2_NRMSE.csv'), sep=',')

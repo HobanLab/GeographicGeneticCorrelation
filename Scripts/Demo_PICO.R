@@ -24,15 +24,13 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-# geo_buffSize <- 50000
-geo_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Specify ecological buffer size in meters 
-# eco_buffSize <- 50000
-eco_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
+eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
-num_cores <- detectCores() - 4 
+num_cores <- detectCores() - 4
 cl <- makeCluster(num_cores)
 # Make sure libraries (adegenet + terra) are on cluster
 clusterEvalQ(cl, library('adegenet'))
@@ -97,16 +95,16 @@ PICO_sdm_W <- wrap(PICO_sdm)
 clusterExport(cl, varlist = c('PICO_coordinates','PICO_genind','num_reps','geo_buffSize', 'eco_buffSize',
                               'world_poly_clip_W', 'ecoregion_poly_W', 'PICO_sdm_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
-                              'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
-                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
+clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
+                              'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories',
+                              'eco.totalEcoregionCount','calculateCoverage','exSituResample.Par',
+                              'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_MultBuff_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_SMBO2_GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
-print("%%% BEGINNING RESAMPLING %%%")
 PICO_demoArray_Par <- 
-  geo.gen.Resample.Par(gen_obj = PICO_genind, geoFlag = TRUE, coordPts = PICO_coordinates, 
+  geo.gen.Resample.Par(genObj = PICO_genind, geoFlag = TRUE, coordPts = PICO_coordinates, 
                        geoBuff = geo_buffSize, SDMrast = NA, boundary=world_poly_clip_W, 
                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
                        ecoLayer = 'NA', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
@@ -181,19 +179,6 @@ legend(x=580, y=70, inset = 0.05,
                   'Ecological coverage (50 km buffer, EPA Level III)'),
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 0.8)
-# ---- DIFFERENCE PLOTS
-# Plot difference between geographic and genetic coverage
-matplot(averageValueMat_TEG[4:5], col=plotColors[5:6], pch=16, ylab='')
-# Add title and x-axis labels to the graph
-title(main='P. contorta: Genetic-Geographic-Ecological Coverage Difference', line=1.5)
-mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Add legend
-legend(x=275, y=45, inset = 0.05,
-       legend = c('Genographic coverage difference', 'Ecological coverage difference'),
-       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-       y.intersp = 1)
 
 # %%%% SDM AND TOTAL BUFFER COMPARISON ----
 # Specify filepath for PICO geographic and genetic data, including resampling array
@@ -258,35 +243,38 @@ mtext(text='Number of individuals', side=1, line=2.4)
 legend(x=500, y=54, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
-# ---- DIFFERENCE PLOTS
-# Plot difference between geographic and genetic coverage
-matplot(PICO_geoComp_50km_averageValueMat[5:6], col=plotColors_fade[2:3], pch=16, ylab='')
-# Add title, subtitle, and x-axis labels to the graph
-title(main='P. contorta: Genetic-Geographic Coverage Difference', line=1.5)
-mtext(text='929 Individuals; 50 km buffer; 5 replicates', side=3, line=0.1)
-mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-mtext(text='Difference in Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Add legend
-legend(x=275, y=30, inset = 0.05,
-       legend = c('Total buffer approach', 'SDM approach'),
-       col=c('red4', 'darkorange3'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-       y.intersp = 1)
 
 # %%%% SMBO: MULTIPLE BUFFER SIZES ----
 # Specify filepath for PICO geographic and genetic data, including resampling array
 PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
-arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_MultBuff_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(PICO_filePath, 'resamplingData/PICO_SMBO2_GE_5r_resampArr.Rdata')
 # Read in array and build a data.frame of values
-PICO_MultBuff_array <- readRDS(arrayDir)
+PICO_SMBO2_array <- readRDS(arrayDir)
+# Specify geographic buffer size in meters (used above)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values, to pass to linear models
-PICO_MultBuff_DF <- resample.array2dataframe(PICO_MultBuff_array)
-# Loop through the data.frame columns. The first two columns are skipped, as they're sampleNumber and the
+PICO_SMBO2_DF <- resample.array2dataframe(PICO_SMBO2_array)
+# Build a matrix to capture NRMSE values
+PICO_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
+# The names of this matrix match the different parts of the dataframe names
+colnames(PICO_NRMSE_Mat) <- c('Geo_Buff','Eco_Buff')
+rownames(PICO_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
+# Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
 # predictve variable (genetic coverages)
-for(i in 3:ncol(PICO_MultBuff_DF)){
-  # Calculate NRMSE for the current column in the data.frame
-  PICO_NRMSEvalue <- nrmse.func(PICO_MultBuff_DF[,i], pred = PICO_MultBuff_DF$Total)
-  # Print result, for each explanatory variable in data.frame
-  print(paste0(names(PICO_MultBuff_DF)[[i]], ': ', PICO_NRMSEvalue))
+for(i in 3:ncol(PICO_SMBO2_DF)){
+  # Calculate NRMSE for the current column in the dataframe
+  PICO_NRMSEvalue <- nrmse.func(PICO_SMBO2_DF[,i], pred = PICO_SMBO2_DF$Total)
+  # Get the name of the current dataframe column
+  dataName <- unlist(strsplit(names(PICO_SMBO2_DF)[[i]],'_'))
+  # Match the data name to the relevant rows/columns of the receiving matrix
+  matRow <- which(rownames(PICO_NRMSE_Mat) == dataName[[3]])
+  matCol <- which(colnames(PICO_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
+  # Locate the NRMSE value accordingly
+  PICO_NRMSE_Mat[matRow,matCol] <- PICO_NRMSEvalue
 }
+print(PICO_NRMSE_Mat)
+# Store the matrix as a CSV to disk
+write.table(PICO_NRMSE_Mat,
+            file=paste0(PICO_filePath, 'resamplingData/PICO_SMBO2_NRMSE.csv'), sep=',')
