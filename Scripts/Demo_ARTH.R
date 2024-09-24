@@ -130,7 +130,7 @@ arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_50km_GE_5r_resampArr.Rdat
 ARTH_demoArray_Par <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 ARTH_DF <- resample.array2dataframe(ARTH_demoArray_Par)
 # Calculate normalized root mean square value
 ARTH_nrmse_geo <- nrmse_func(obs=ARTH_DF$Geo, pred=ARTH_DF$Total) ; ARTH_nrmse_geo
@@ -193,7 +193,7 @@ ARTH_SMBO2_array <- readRDS(arrayDir)
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 ARTH_SMBO2_DF <- resample.array2dataframe(ARTH_SMBO2_array)
 # Build a matrix to capture NRMSE values
 ARTH_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)

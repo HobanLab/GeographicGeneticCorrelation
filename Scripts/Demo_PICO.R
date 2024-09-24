@@ -254,7 +254,7 @@ PICO_SMBO2_array <- readRDS(arrayDir)
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 PICO_SMBO2_DF <- resample.array2dataframe(PICO_SMBO2_array)
 # Build a matrix to capture NRMSE values
 PICO_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)

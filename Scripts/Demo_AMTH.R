@@ -134,7 +134,7 @@ arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_1km_GE_5r_resampArr.Rdata
 AMTH_demoArray_Par <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 AMTH_DF <- resample.array2dataframe(AMTH_demoArray_Par)
 # Calculate normalized root mean square value
 AMTH_nrmse_geo <- nrmse_func(obs=AMTH_DF$Geo, pred=AMTH_DF$Total) ; AMTH_nrmse_geo
@@ -198,7 +198,7 @@ AMTH_SMBO2_array <- readRDS(arrayDir)
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 AMTH_SMBO2_DF <- resample.array2dataframe(AMTH_SMBO2_array)
 # Build a matrix to capture NRMSE values
 AMTH_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)

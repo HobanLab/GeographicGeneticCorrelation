@@ -117,7 +117,7 @@ arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_G_5r_resampArr.Rda
 QUAC_demoArray_IND_Par <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 QUAC_DF <- resample.array2dataframe(QUAC_demoArray_IND_Par)
 # Calculate normalized root mean square value
 QUAC_nrmse_geo <- nrmse_func(obs=QUAC_DF$Geo, pred=QUAC_DF$Total) ; QUAC_nrmse_geo
@@ -173,7 +173,7 @@ QUAC_MultBuff_array <- readRDS(arrayDir)
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 QUAC_MultBuff_DF <- resample.array2dataframe(QUAC_MultBuff_array)
 # Build a matrix to capture NRMSE values
 QUAC_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=3)

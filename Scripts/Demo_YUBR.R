@@ -140,7 +140,7 @@ arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_1km_GE_5r_resampArr.Rdata
 YUBR_demoArray_Par <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 YUBR_DF <- resample.array2dataframe(YUBR_demoArray_Par)
 # Calculate normalized root mean square value
 YUBR_nrmse_geo <- nrmse_func(obs=YUBR_DF$Geo, pred=YUBR_DF$Total) ; YUBR_nrmse_geo
@@ -216,7 +216,7 @@ arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_1km_G2E_5r_resampArr.Rdat
 YUBR_geoComp_1km_array <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 YUBR_geoComp_1km_DF <- resample.array2dataframe(YUBR_geoComp_1km_array)
 # Calculate normalized root mean square value
 YUBR_nrmse_geo_totalBuff <-
@@ -282,7 +282,7 @@ YUBR_MultBuff_array <- readRDS(arrayDir)
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 YUBR_MultBuff_DF <- resample.array2dataframe(YUBR_MultBuff_array)
 # Build a matrix to capture NRMSE values
 YUBR_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=3)

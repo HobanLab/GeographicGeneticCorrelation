@@ -118,7 +118,7 @@ arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_GE_5r_resampArr.Rdat
 QULO_demoArray_Par <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 QULO_DF <- resample.array2dataframe(QULO_demoArray_Par)
 # Calculate normalized root mean square value
 QULO_nrmse_geo <- nrmse_func(obs=QULO_DF$Geo, pred=QULO_DF$Total) ; QULO_nrmse_geo
@@ -179,7 +179,7 @@ arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_LozaMX_5r_resamp
 QULO_geoComp_50km_array <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 QULO_geoComp_50km_DF <- resample.array2dataframe(QULO_geoComp_50km_array)
 # Calculate normalized root mean square value
 QULO_nrmse_geo_totalBuff <-
@@ -249,7 +249,7 @@ QULO_MultBuff_array <- readRDS(arrayDir)
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 QULO_MultBuff_DF <- resample.array2dataframe(QULO_MultBuff_array)
 # Build a matrix to capture NRMSE values
 QULO_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=3)

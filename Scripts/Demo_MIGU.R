@@ -114,7 +114,7 @@ arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_50km_GE_5r_resampArr.Rdat
 MIGU_demoArray_Par <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 MIGU_DF <- resample.array2dataframe(MIGU_demoArray_Par)
 # Calculate normalized root mean square value
 MIGU_nrmse_geo <- nrmse_func(obs=MIGU_DF$Geo, pred=MIGU_DF$Total) ; MIGU_nrmse_geo
@@ -176,7 +176,7 @@ arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_50km_G2E_5r_resampArr.Rda
 MIGU_geoComp_50km_array <- readRDS(arrayDir)
 
 # ---- CORRELATION ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 MIGU_geoComp_50km_DF <- resample.array2dataframe(MIGU_geoComp_50km_array)
 # Calculate normalized root mean square value
 MIGU_nrmse_geo_totalBuff <-
@@ -242,7 +242,7 @@ MIGU_SMBO2_array <- readRDS(arrayDir)
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
-# Build a data.frame from array values, to pass to linear models
+# Build a data.frame from array values
 MIGU_SMBO2_DF <- resample.array2dataframe(MIGU_SMBO2_array)
 # Build a matrix to capture NRMSE values
 MIGU_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
