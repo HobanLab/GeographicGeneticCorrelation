@@ -109,7 +109,7 @@ clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuff
 # Specify file paths, for saving resampling arrays 
 MIGU_haplos_output <- dirname(gsub("Genetic", "resamplingData", MIGU_haplos_input))
 for(i in 1:length(MIGU_haplos_output)){
-    MIGU_haplos_output[[i]] <- paste0(MIGU_haplos_output[[i]],'/MIGU_SMBO2_GE_5r_Hap-', i, '_resampArr.Rdata')
+    MIGU_haplos_output[[i]] <- paste0(MIGU_haplos_output[[i]],'SMBO2_GE/MIGU_SMBO2_GE_5r_Hap-', i, '_resampArr.Rdata')
 }
 
 # Run resampling (in parallel). Use a loop to iterate through the different haplotype lengths
@@ -125,53 +125,92 @@ for(i in 1:length(MIGU_haplos_output)){
 # Close cores
 stopCluster(cl)
 
-# # %%% ANALYZE DATA %%% ----
-# # Specify filepath for MIGU geographic and genetic data, including resampling data
-# MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
-# arrayDir <- paste0(MIGU_filePath, 'resamplingData/haplotypicData/')
-# # Read in the resampling array .Rdata objects, saved to disk. Then, calculate the average 
-# # value matrix (across resampling replicates) for each resampling array, and add that 
-# # matrix as an item to a list.
-# MIGU_haplos_output <- list.files(arrayDir, full.names = TRUE); MIGU_haplos_averageValueMats <- list()
-# for(i in 1:length(MIGU_haplos_output)){
-#   MIGU_haplos_averageValueMats[[i]] <- meanArrayValues(readRDS(MIGU_haplos_output[[i]]))
-# }
-# # Build a summary matrix that consists of the Total allelic representation values for each 
-# # haplotype dataset (5 columns), average Geographic representation values (1 column), and average
-# # Ecological representation values (1 column)
-# MIGU_haplos_summaryMat <- array(data=NA, dim=c(nrow(MIGU_haplos_averageValueMats[[1]]),7))
-# colnames(MIGU_haplos_summaryMat) <- c(paste0(rep('Total_Hap', 5),seq(1:5)),'Geo', 'Eco')
-# # Total allelic representation values: pull the "Total" columns from each average value matrix,
-# # and cbind these together
-# MIGU_haplos_summaryMat[,1:5] <- do.call(cbind,lapply(MIGU_haplos_averageValueMats, function(x) x$Total))
-# # For the geographic/ecological coverages: build a matrix of the coverage values
-# # from each average value matrix (using sapply). Then, calculate the means across the 
-# # rows of this matrix (using rowMeans), and pass this to the last column of the summary matrix
-# MIGU_haplos_summaryMat[,6] <- rowMeans(sapply(MIGU_haplos_averageValueMats, function(df) df[, 2]))
-# MIGU_haplos_summaryMat[,7] <- rowMeans(sapply(MIGU_haplos_averageValueMats, function(df) df[, 3]))
-# # Convert the summary data into a data.frame
-# MIGU_haplos_summaryMat <- as.data.frame(MIGU_haplos_summaryMat)
-# # %%% NORMALIZED ROOT MEAN SQUARE ERROR: calculate the NRMSE for each haplotype length, for both
-# # geographic and ecological coverage
-# MIGU_NRMSE_Values <- matrix(nrow=length(MIGU_haplos_output), ncol=2)
-# 
-# for(i in 1:nrow(MIGU_NRMSE_Values)){
-#   MIGU_NRMSE_Values[i,1] <- nrmse_func(MIGU_haplos_summaryMat$Geo, pred=MIGU_haplos_summaryMat[,i])
-#   MIGU_NRMSE_Values[i,2] <- nrmse_func(MIGU_haplos_summaryMat$Eco, pred=MIGU_haplos_summaryMat[,i]) 
-# }
-# 
-# # ---- PLOTTING ----
-# hapColors <- c('gold2','orange','salmon','darkorange2','tomato3','darkblue','purple')
-# hapColors_Fade <- alpha(hapColors, 0.5)
-# legText <- c(paste0(rep('Hap. length: ', 5), seq(1:5)), 'Geographic coverage (50 km buffer)', 
-#              'Ecological coverage (50 km buffer, EPA Level III)')
-# # ---- COVERAGE PLOTS
-# matplot(MIGU_haplos_summaryMat, ylim=c(0,110), col=hapColors_Fade, pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='M. guttatus: Haplotypic Coverages', line=1.5)
-# mtext(text='255 Individuals; 50 km Geographic buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-# mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
-# # Add legend
-# legend(x=120, y=60, inset = 0.05, legend = legText, col=hapColors, pch = c(19,19), 
-#        cex=1.2, pt.cex = 2, bty='n', y.intersp = 0.5)
+# %%% ANALYZE DATA %%% ----
+# Specify filepath for MIGU geographic and genetic data, including resampling data
+MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/haplotypicData/')
+# Read in the resampling array .Rdata objects, saved to disk. Then, calculate the average
+# value matrix (across resampling replicates) for each resampling array, and add that
+# matrix as an item to a list.
+MIGU_haplos_output <- list.files(arrayDir, full.names = TRUE); MIGU_haplos_averageValueMats <- list()
+for(i in 1:length(MIGU_haplos_output)){
+  MIGU_haplos_averageValueMats[[i]] <- meanArrayValues(readRDS(MIGU_haplos_output[[i]]))
+}
+# Build a summary matrix that consists of the Total allelic representation values for each
+# haplotype dataset (5 columns), average Geographic representation values (1 column), and average
+# Ecological representation values (1 column)
+MIGU_haplos_summaryMat <- array(data=NA, dim=c(nrow(MIGU_haplos_averageValueMats[[1]]),7))
+colnames(MIGU_haplos_summaryMat) <- c(paste0(rep('Total_Hap', 5),seq(1:5)),'Geo', 'Eco')
+# Total allelic representation values: pull the "Total" columns from each average value matrix,
+# and cbind these together
+MIGU_haplos_summaryMat[,1:5] <- do.call(cbind,lapply(MIGU_haplos_averageValueMats, function(x) x$Total))
+# For the geographic/ecological coverages: build a matrix of the coverage values
+# from each average value matrix (using sapply). Then, calculate the means across the
+# rows of this matrix (using rowMeans), and pass this to the last column of the summary matrix
+MIGU_haplos_summaryMat[,6] <- rowMeans(sapply(MIGU_haplos_averageValueMats, function(df) df[, 2]))
+MIGU_haplos_summaryMat[,7] <- rowMeans(sapply(MIGU_haplos_averageValueMats, function(df) df[, 3]))
+# Convert the summary data into a data.frame
+MIGU_haplos_summaryMat <- as.data.frame(MIGU_haplos_summaryMat)
+# %%% NORMALIZED ROOT MEAN SQUARE ERROR: calculate the NRMSE for each haplotype length, for both
+# geographic and ecological coverage
+MIGU_NRMSE_Values <- matrix(nrow=length(MIGU_haplos_output), ncol=2)
+
+for(i in 1:nrow(MIGU_NRMSE_Values)){
+  MIGU_NRMSE_Values[i,1] <- nrmse_func(MIGU_haplos_summaryMat$Geo, pred=MIGU_haplos_summaryMat[,i])
+  MIGU_NRMSE_Values[i,2] <- nrmse_func(MIGU_haplos_summaryMat$Eco, pred=MIGU_haplos_summaryMat[,i])
+}
+
+# ---- PLOTTING ----
+hapColors <- c('gold2','orange','salmon','darkorange2','tomato3','darkblue','purple')
+hapColors_Fade <- alpha(hapColors, 0.5)
+legText <- c(paste0(rep('Hap. length: ', 5), seq(1:5)), 'Geographic coverage (50 km buffer)',
+             'Ecological coverage (50 km buffer, EPA Level III)')
+# ---- COVERAGE PLOTS
+matplot(MIGU_haplos_summaryMat, ylim=c(0,110), col=hapColors_Fade, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='M. guttatus: Haplotypic Coverages', line=1.5)
+mtext(text='255 Individuals; 50 km Geographic buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
+# Add legend
+legend(x=120, y=60, inset = 0.05, legend = legText, col=hapColors, pch = c(19,19),
+       cex=1.2, pt.cex = 2, bty='n', y.intersp = 0.5)
+
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for SMBO2 resampling arrays
+MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/resamplingData/haplotypicData/SMBO2_GE/')
+# Specify geographic buffer size in meters (used above)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+# Declare a list of the resampling array objects stored in the data directory
+MIGU_SMBO2_arrays <- grep('.Rdata', list.files(MIGU_filePath, full.names = TRUE), value = TRUE, )
+# ---- CALCULATIONS ----
+# Loop through the list of arrays
+for(i in 1:length(MIGU_SMBO2_arrays)){
+  # Read in the array
+  MIGU_SMBO2_array <- readRDS(MIGU_SMBO2_arrays[[i]])
+  # Build a dataframe from array values
+  MIGU_SMBO2_DF <- resample.array2dataframe(MIGU_SMBO2_array)
+  # Build a matrix to capture NRMSE values
+  MIGU_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
+  # The names of this matrix match the different parts of the dataframe names
+  colnames(MIGU_NRMSE_Mat) <- c('Geo_Buff','Eco_Buff')
+  rownames(MIGU_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
+  # Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
+  # predictve variable (genetic coverages)
+  for(j in 3:ncol(MIGU_SMBO2_DF)){
+    # Calculate NRMSE for the current column in the dataframe
+    MIGU_NRMSEvalue <- nrmse.func(MIGU_SMBO2_DF[,j], pred = MIGU_SMBO2_DF$Total)
+    # Get the name of the current dataframe column
+    dataName <- unlist(strsplit(names(MIGU_SMBO2_DF)[[j]],'_'))
+    # Match the data name to the relevant rows/columns of the receiving matrix
+    matRow <- which(rownames(MIGU_NRMSE_Mat) == dataName[[3]])
+    matCol <- which(colnames(MIGU_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
+    # Locate the NRMSE value accordingly
+    MIGU_NRMSE_Mat[matRow,matCol] <- MIGU_NRMSEvalue
+  }
+  cat(paste0('\n','%%% HAPLOTYPE LENGTH: ',i,' %%%','\n'))
+  print(MIGU_NRMSE_Mat)
+  # Store the matrix as a CSV to disk
+  write.table(MIGU_NRMSE_Mat,
+              file=paste0(MIGU_filePath, 'MIGU_SMBO2_NRMSE_Hap-', i, '.csv'), sep=',')
+}
