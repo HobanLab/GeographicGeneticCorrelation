@@ -94,12 +94,12 @@ clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuff
                               'eco.totalEcoregionCount','calculateCoverage','exSituResample.Par',
                               'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_SMBO2_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 MIGU_demoArray_Par <- 
   geo.gen.Resample.Par(genObj = MIGU_genind, geoFlag = TRUE, coordPts = MIGU_coordinates, 
-                       geoBuff = geo_buffSize, SDMrast = NA, 
+                       geoBuff = geo_buffSize, SDMrast = MIGU_sdm_W, 
                        boundary=world_poly_clip_W, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
                        ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', reps = num_reps, 
                        arrayFilepath = arrayDir, cluster = cl)
@@ -232,22 +232,22 @@ legend(x=175, y=50, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (50 km)', 'Geographic, SDM (50 km)'),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 
-# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# %%%% SMBO2: MULTIPLE BUFFER SIZES ----
 # Specify filepath for MIGU geographic and genetic data, including resampling array
 MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
-arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_SMBO2_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata')
 # Read in array and build a data.frame of values
-MIGU_SMBO2_array <- readRDS(arrayDir)
+MIGU_SMBO2_G2E_array <- readRDS(arrayDir)
 # Specify geographic buffer size in meters (used above)
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
-MIGU_SMBO2_DF <- resample.array2dataframe(MIGU_SMBO2_array)
+MIGU_SMBO2_DF <- resample.array2dataframe(MIGU_SMBO2_G2E_array)
 # Build a matrix to capture NRMSE values
-MIGU_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
+MIGU_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=3)
 # The names of this matrix match the different parts of the dataframe names
-colnames(MIGU_NRMSE_Mat) <- c('Geo_Buff','Eco_Buff')
+colnames(MIGU_NRMSE_Mat) <- c('Geo_Buff','Geo_SDM','Eco_Buff')
 rownames(MIGU_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
 # Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
 # predictve variable (genetic coverages)
@@ -265,4 +265,4 @@ for(i in 3:ncol(MIGU_SMBO2_DF)){
 print(MIGU_NRMSE_Mat)
 # Store the matrix as a CSV to disk
 write.table(MIGU_NRMSE_Mat,
-            file=paste0(MIGU_filePath, 'resamplingData/MIGU_SMBO2_NRMSE.csv'), sep=',')
+            file=paste0(MIGU_filePath, 'resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_NRMSE.csv'), sep=',')

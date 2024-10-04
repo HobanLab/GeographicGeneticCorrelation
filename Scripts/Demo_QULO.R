@@ -11,7 +11,7 @@ library(adegenet)
 library(terra)
 library(parallel)
 library(RColorBrewer)
-library(scales)
+library(scales) ; library(viridis)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
@@ -242,15 +242,15 @@ legend(x=300, y=63, inset = 0.05, xpd=TRUE,
 # %%%% SMBO: MULTIPLE BUFFER SIZES ----
 # Specify filepath for QULO geographic and genetic data, including resampling array
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO2_G2E_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/SMBO2/QULO_SMBO2_G2E_5r_resampArr.Rdata')
 # Read in array and build a data.frame of values
-QULO_MultBuff_array <- readRDS(arrayDir)
+QULO_SMBO2_array <- readRDS(arrayDir)
 # Specify geographic buffer size in meters (used above)
 geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
-QULO_MultBuff_DF <- resample.array2dataframe(QULO_MultBuff_array)
+QULO_SMBO2_DF <- resample.array2dataframe(QULO_SMBO2_array)
 # Build a matrix to capture NRMSE values
 QULO_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=3)
 # The names of this matrix match the different parts of the dataframe names
@@ -258,11 +258,11 @@ colnames(QULO_NRMSE_Mat) <- c('Geo_Buff','Geo_SDM','Eco_Buff')
 rownames(QULO_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
 # Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
 # predictve variable (genetic coverages)
-for(i in 3:ncol(QULO_MultBuff_DF)){
+for(i in 3:ncol(QULO_SMBO2_DF)){
   # Calculate NRMSE for the current column in the dataframe
-  QULO_NRMSEvalue <- nrmse.func(QULO_MultBuff_DF[,i], pred = QULO_MultBuff_DF$Total)
+  QULO_NRMSEvalue <- nrmse.func(QULO_SMBO2_DF[,i], pred = QULO_SMBO2_DF$Total)
   # Get the name of the current dataframe column
-  dataName <- unlist(strsplit(names(QULO_MultBuff_DF)[[i]],'_'))
+  dataName <- unlist(strsplit(names(QULO_SMBO2_DF)[[i]],'_'))
   # Match the data name to the relevant rows/columns of the receiving matrix
   matRow <- which(rownames(QULO_NRMSE_Mat) == dataName[[3]])
   matCol <- which(colnames(QULO_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
@@ -273,3 +273,84 @@ print(QULO_NRMSE_Mat)
 # Store the matrix as a CSV to disk
 write.table(QULO_NRMSE_Mat,
             file=paste0(QULO_filePath, 'resamplingData/SMBO2/QULO_SMBO2_NRMSE.csv'), sep=',')
+
+# ---- PLOTTING ----
+# Specify plot colors
+plotColors <- colorRampPalette(c("darkred","azure4","lightgray"))(129)
+# Build a matrix of mean values (based on array; custom function returns a data.frame)
+QULO_SMBO2_meanValues <- as.matrix(meanArrayValues(QULO_SMBO2_array))
+# Subset the matrix of mean values according to each coverage type
+QULO_SMBO2_GeoBuffMeans <- QULO_SMBO2_meanValues[,grep('Geo_Buff',colnames(QULO_SMBO2_meanValues))]
+QULO_SMBO2_GeoSDMMeans <- QULO_SMBO2_meanValues[,grep('Geo_SDM',colnames(QULO_SMBO2_meanValues))]
+QULO_SMBO2_EcoBuffMeans <- QULO_SMBO2_meanValues[,grep('Eco_Buff',colnames(QULO_SMBO2_meanValues))]
+# Create colors based on the NRMSE values in matrix. Make all points transparent (alpha)
+GeoBuffCols <- 
+  alpha(plotColors[as.numeric(cut(QULO_NRMSE_Mat[,1], breaks = length(plotColors)))], 0.15)
+GeoSDMCols <- 
+  alpha(plotColors[as.numeric(cut(QULO_NRMSE_Mat[,2], breaks = length(plotColors)))], 0.15)
+EcoBuffCols <- 
+  alpha(plotColors[as.numeric(cut(QULO_NRMSE_Mat[,3], breaks = length(plotColors)))], 0.15)
+# For each color vector, decrease transparency of points corresponding to the lowest NRMSE
+GeoBuffCols[[which.min(QULO_NRMSE_Mat[,1])]] <- 
+  alpha(GeoBuffCols[[which.min(QULO_NRMSE_Mat[,1])]], 0.65)
+GeoSDMCols[[which.min(QULO_NRMSE_Mat[,2])]] <- 
+  alpha(GeoSDMCols[[which.min(QULO_NRMSE_Mat[,2])]], 0.65)
+EcoBuffCols[[which.min(QULO_NRMSE_Mat[,3])]] <- 
+  alpha(EcoBuffCols[[which.min(QULO_NRMSE_Mat[,3])]], 0.65)
+
+# Use matplot to plot values for different coverages
+# GeoBuff
+matplot(QULO_SMBO2_GeoBuffMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='Q. lobata: Geographic Coverages (Total buffer)')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(QULO_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='436 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geographic buffer size: 250 km', side=1, line=-2, at=200, cex=1.1)
+legend(x=300, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
+# GeoSDM
+matplot(QULO_SMBO2_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='Q. lobata: Geographic Coverages (SDM)')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(QULO_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='436 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geographic buffer size: 120 km', side=1, line=-1.7, at=200, cex=1.1)
+legend(x=300, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
+# EcoBuff
+matplot(QULO_SMBO2_EcoBuffMeans, ylim=c(0,100), col=EcoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='Q. lobata: Ecological Coverages')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(QULO_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='436 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal ecological buffer size: 130 km', side=1, line=-1.7, at=200, cex=1.1)
+legend(x=300, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
+# Add arrows
+arrows(x0=75, y0=40, x1=25, y1=80)
+
+# Update SDM plots: remove data for first few buffer sizes (<10km), to make plots clearer
+QULO_SMBO2_GeoSDMMeans <- QULO_SMBO2_GeoSDMMeans[,-(1:6)]
+# Create new color vector
+GeoSDMCols <- 
+  alpha(plotColors[as.numeric(cut(QULO_NRMSE_Mat[,2], breaks = length(plotColors)))], 0.15)
+GeoSDMCols[[which.min(QULO_NRMSE_Mat[,2])]] <- 
+  alpha(GeoSDMCols[[which.min(QULO_NRMSE_Mat[,2])]], 0.65)
+
+# Call new plot
+matplot(QULO_SMBO2_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='Q. lobata: Geographic Coverages (SDM)')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(QULO_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='436 Individuals; 35 buffer sizes (10km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geographic buffer size: 120 km', side=1, line=-1.7, at=200, cex=1.1)
+legend(x=300, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
