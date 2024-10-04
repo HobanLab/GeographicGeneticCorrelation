@@ -25,9 +25,9 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-geo_buffSize <- 1000
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Specify ecological buffer size in meters 
-eco_buffSize <- 1000
+eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # ---- SHAPEFILES
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
@@ -44,7 +44,7 @@ ecoregion_poly_W <- wrap(ecoregion_poly)
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
-num_cores <- detectCores() - 4 
+num_cores <- detectCores() - 20 
 cl <- makeCluster(num_cores)
 # Make sure libraries (adegenet + terra) are on cluster
 clusterEvalQ(cl, library('adegenet'))
@@ -92,7 +92,7 @@ for(i in 1:length(COGL_haplos_input)){
 # NOTE: these coordinates cannot be shared externally, due to the rare status of this species!
 COGL_coordinates <- 
   read.csv(file=paste0(COGL_filePath, 'Geographic/Conradina_coord.csv'), header = TRUE)
-# Rename the columns of the geographic coordinates data.frame (because geo.compareBuff function expects certain strings)
+# Rename the columns of the geographic coordinates dataframe (because geo.compareBuff function expects certain strings)
 colnames(COGL_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
 # Remove two duplicate samples (with "_rep" in sample name), leaving 562 samples
 COGL_coordinates<- COGL_coordinates[-grep('_rep', COGL_coordinates$Sample.Name),]
@@ -102,26 +102,26 @@ COGL_coordinates<- COGL_coordinates[-grep('_rep', COGL_coordinates$Sample.Name),
 clusterExport(cl, varlist = c('COGL_coordinates','COGL_genList','num_reps','geo_buffSize', 'eco_buffSize',
                               'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
-                              'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
-                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
+clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
+                              'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories',
+                              'eco.totalEcoregionCount','calculateCoverage','exSituResample.Par',
+                              'geo.gen.Resample.Par'))
 # Specify file paths, for saving resampling arrays (if/else statement is for leading zeros)
 COGL_haplos_output <- dirname(gsub("Genetic", "resamplingData", COGL_haplos_input))
 for(i in 1:length(COGL_haplos_output)){
   if(i>10){
-    COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/COGL_1km_GE_5r_Hap-0', i, '_resampArr.Rdata')
+    COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/COGL_SMBO2_GE_5r_Hap-0', i, '_resampArr.Rdata')
   } else{
-    COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/COGL_1km_GE_5r_Hap-', i, '_resampArr.Rdata')
+    COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/COGL_SMBO2_GE_5r_Hap-', i, '_resampArr.Rdata')
   }
 }
 
 # Run resampling (in parallel). Use a loop to iterate through the different haplotype lengths
-print('%%% BEGINNING RESAMPLING %%%')
 for(i in 1:length(COGL_haplos_output)){
   print(paste0('%%% HAPLOTYPE LENGTH: ', i))
   # Run resampling
   COGL_demoArray_Par <- 
-    geo.gen.Resample.Par(gen_obj = COGL_genList[[i]], geoFlag = TRUE, coordPts = COGL_coordinates, 
+    geo.gen.Resample.Par(genObj = COGL_genList[[i]], geoFlag = TRUE, coordPts = COGL_coordinates, 
                          geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
                          ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'US', 
                          reps = num_reps, arrayFilepath = COGL_haplos_output[[i]], cluster = cl)
@@ -134,48 +134,48 @@ stopCluster(cl)
 #   geo.gen.Resample(gen_obj = unlist(COGL_genList[[9]]), geoFlag = TRUE, coordPts = COGL_coordinates,
 #                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = 1)
 
-# %%% ANALYZE DATA %%% ----
-# Specify filepath for COGL geographic and genetic data, including resampling data
-COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
-arrayDir <- paste0(COGL_filePath, 'resamplingData/haplotypicData/')
-# Read in the resampling array .Rdata objects, saved to disk. Then, calculate the average 
-# value matrix (across resampling replicates) for each resampling array, and add that 
-# matrix as an item to a list.
-COGL_haplos_output <- list.files(arrayDir, full.names = TRUE); COGL_haplos_averageValueMats <- list()
-for(i in 1:length(COGL_haplos_output)){
-  COGL_haplos_averageValueMats[[i]] <- meanArrayValues(readRDS(COGL_haplos_output[[i]]))
-}
-# Build a summary matrix that consists of the Total allelic representation values for each 
-# haplotype dataset (10 columns) and an average of all Geographic resampling values (1 column).
-COGL_haplos_summaryMat <- array(data=NA, dim=c(nrow(COGL_haplos_averageValueMats[[1]]),11))
-colnames(COGL_haplos_summaryMat) <- c(paste0(rep('Total_Hap', 10),seq(1:10)),'Geo')
-# Total allelic representation values: pull the "Total" columns from each average value matrix,
-# and cbind these together
-COGL_haplos_summaryMat[,1:10] <- do.call(cbind,lapply(COGL_haplos_averageValueMats, function(x) x$Total))
-# For the geographic coverages: build a matrix of the geographic coverage values
-# from each average value matrix (using sapply). Then, calculate the means across the 
-# rows of this matrix (using rowMeans), and pass this to the last column of the summary matrix
-COGL_haplos_summaryMat[,11] <- rowMeans(sapply(COGL_haplos_averageValueMats, function(df) df[, 2]))
-# Convert the summary data into a data.frame
-COGL_haplos_summaryMat <- as.data.frame(COGL_haplos_summaryMat)
-# %%% NORMALIZED ROOT MEAN SQUARE ERROR: calculate the NRMSE for each haplotype length
-COGL_NRMSE_Values <- vector(length=length(COGL_haplos_output))
-for(i in 1:length(COGL_NRMSE_Values)){
-  COGL_NRMSE_Values[i] <- nrmse_func(COGL_haplos_summaryMat$Geo, pred=COGL_haplos_summaryMat[,i]) 
-}
-
-# ---- PLOTTING ----
-hapColors <- c('wheat2','tan','gold2','orange','salmon',
-               'darkorange2','tomato3','red','red4','salmon4','darkblue')
-hapColors_Fade <- alpha(hapColors, 0.5)
-legText <- c(paste0(rep('Hap. length: ', 10), seq(1:10)), 'Geographic coverage (1 km buffer)')
-# ---- COVERAGE PLOTS
-matplot(COGL_haplos_summaryMat, ylim=c(0,110), col=hapColors_Fade, pch=16, ylab='')
-# Add title and x-axis labels to the graph
-title(main='C. glabra: Haplotypic Coverages', line=1.5)
-mtext(text='562 Individuals; 1 km Geographic buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
-# Add legend
-legend(x=400, y=87, inset = 0.05, legend = legText, col=hapColors, pch = c(19,19), 
-       cex=1.2, pt.cex = 2, bty='n', y.intersp = 0.5)
+# # %%% ANALYZE DATA %%% ----
+# # Specify filepath for COGL geographic and genetic data, including resampling data
+# COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
+# arrayDir <- paste0(COGL_filePath, 'resamplingData/haplotypicData/')
+# # Read in the resampling array .Rdata objects, saved to disk. Then, calculate the average 
+# # value matrix (across resampling replicates) for each resampling array, and add that 
+# # matrix as an item to a list.
+# COGL_haplos_output <- list.files(arrayDir, full.names = TRUE); COGL_haplos_averageValueMats <- list()
+# for(i in 1:length(COGL_haplos_output)){
+#   COGL_haplos_averageValueMats[[i]] <- meanArrayValues(readRDS(COGL_haplos_output[[i]]))
+# }
+# # Build a summary matrix that consists of the Total allelic representation values for each 
+# # haplotype dataset (10 columns) and an average of all Geographic resampling values (1 column).
+# COGL_haplos_summaryMat <- array(data=NA, dim=c(nrow(COGL_haplos_averageValueMats[[1]]),11))
+# colnames(COGL_haplos_summaryMat) <- c(paste0(rep('Total_Hap', 10),seq(1:10)),'Geo')
+# # Total allelic representation values: pull the "Total" columns from each average value matrix,
+# # and cbind these together
+# COGL_haplos_summaryMat[,1:10] <- do.call(cbind,lapply(COGL_haplos_averageValueMats, function(x) x$Total))
+# # For the geographic coverages: build a matrix of the geographic coverage values
+# # from each average value matrix (using sapply). Then, calculate the means across the 
+# # rows of this matrix (using rowMeans), and pass this to the last column of the summary matrix
+# COGL_haplos_summaryMat[,11] <- rowMeans(sapply(COGL_haplos_averageValueMats, function(df) df[, 2]))
+# # Convert the summary data into a data.frame
+# COGL_haplos_summaryMat <- as.data.frame(COGL_haplos_summaryMat)
+# # %%% NORMALIZED ROOT MEAN SQUARE ERROR: calculate the NRMSE for each haplotype length
+# COGL_NRMSE_Values <- vector(length=length(COGL_haplos_output))
+# for(i in 1:length(COGL_NRMSE_Values)){
+#   COGL_NRMSE_Values[i] <- nrmse_func(COGL_haplos_summaryMat$Geo, pred=COGL_haplos_summaryMat[,i]) 
+# }
+# 
+# # ---- PLOTTING ----
+# hapColors <- c('wheat2','tan','gold2','orange','salmon',
+#                'darkorange2','tomato3','red','red4','salmon4','darkblue')
+# hapColors_Fade <- alpha(hapColors, 0.5)
+# legText <- c(paste0(rep('Hap. length: ', 10), seq(1:10)), 'Geographic coverage (1 km buffer)')
+# # ---- COVERAGE PLOTS
+# matplot(COGL_haplos_summaryMat, ylim=c(0,110), col=hapColors_Fade, pch=16, ylab='')
+# # Add title and x-axis labels to the graph
+# title(main='C. glabra: Haplotypic Coverages', line=1.5)
+# mtext(text='562 Individuals; 1 km Geographic buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+# mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+# mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
+# # Add legend
+# legend(x=400, y=87, inset = 0.05, legend = legText, col=hapColors, pch = c(19,19), 
+#        cex=1.2, pt.cex = 2, bty='n', y.intersp = 0.5)
