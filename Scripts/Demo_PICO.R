@@ -289,3 +289,81 @@ print(PICO_NRMSE_Mat)
 # Store the matrix as a CSV to disk
 write.table(PICO_NRMSE_Mat,
             file=paste0(PICO_filePath, 'resamplingData/SMBO2_G2E/PICO_SMBO2_NRMSE.csv'), sep=',')
+
+# ---- PLOTTING ----
+# Specify plot colors
+plotColors <- colorRampPalette(c("darkred","azure4","lightgray"))(129)
+# Build a matrix of mean values (based on array; custom function returns a data.frame)
+PICO_SMBO2_meanValues <- as.matrix(meanArrayValues(PICO_SMBO2_array))
+# Subset the matrix of mean values according to each coverage type
+PICO_SMBO2_GeoBuffMeans <- PICO_SMBO2_meanValues[,grep('Geo_Buff',colnames(PICO_SMBO2_meanValues))]
+PICO_SMBO2_GeoSDMMeans <- PICO_SMBO2_meanValues[,grep('Geo_SDM',colnames(PICO_SMBO2_meanValues))]
+PICO_SMBO2_EcoBuffMeans <- PICO_SMBO2_meanValues[,grep('Eco_Buff',colnames(PICO_SMBO2_meanValues))]
+# Create colors based on the NRMSE values in matrix. Make all points transparent (alpha)
+GeoBuffCols <- 
+  alpha(plotColors[as.numeric(cut(PICO_NRMSE_Mat[,1], breaks = length(plotColors)))], 0.15)
+GeoSDMCols <- 
+  alpha(plotColors[as.numeric(cut(PICO_NRMSE_Mat[,2], breaks = length(plotColors)))], 0.15)
+EcoBuffCols <- 
+  alpha(plotColors[as.numeric(cut(PICO_NRMSE_Mat[,3], breaks = length(plotColors)))], 0.15)
+# For each color vector, decrease transparency of points corresponding to the lowest NRMSE
+GeoBuffCols[[which.min(PICO_NRMSE_Mat[,1])]] <- 
+  alpha(GeoBuffCols[[which.min(PICO_NRMSE_Mat[,1])]], 0.65)
+GeoSDMCols[[which.min(PICO_NRMSE_Mat[,2])]] <- 
+  alpha(GeoSDMCols[[which.min(PICO_NRMSE_Mat[,2])]], 0.65)
+EcoBuffCols[[which.min(PICO_NRMSE_Mat[,3])]] <- 
+  alpha(EcoBuffCols[[which.min(PICO_NRMSE_Mat[,3])]], 0.65)
+
+# Use matplot to plot values for different coverages
+# GeoBuff
+matplot(PICO_SMBO2_GeoBuffMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='P. contorta: Geographic Coverages (Total buffer)')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(PICO_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='929 Individuals; 40 buffer sizes (1km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geographic buffer size: 500 km', side=1, line=-2, at=300, cex=1.1)
+legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
+# GeoSDM
+matplot(PICO_SMBO2_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='P. contorta: Geographic Coverages (SDM)')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(PICO_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='929 Individuals; 40 buffer sizes (1km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geographic buffer size: 250 km', side=1, line=-1.7, at=300, cex=1.1)
+legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
+# EcoBuff
+matplot(PICO_SMBO2_EcoBuffMeans, ylim=c(0,100), col=EcoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='P. contorta: Ecological Coverages')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(PICO_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='929 Individuals; 40 buffer sizes (1km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal ecological buffer size: 110 km', side=1, line=-1.7, at=300, cex=1.1)
+legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
+
+# Update SDM plots: remove data for first few buffer sizes (<10km), to make plots clearer
+PICO_SMBO2_GeoSDMMeans <- PICO_SMBO2_GeoSDMMeans[,-(1:13)]
+# Create new color vector
+GeoSDMCols <- 
+  alpha(plotColors[as.numeric(cut(PICO_NRMSE_Mat[-(1:13),2], breaks = length(plotColors)))], 0.15)
+GeoSDMCols[[which.min(PICO_NRMSE_Mat[-(1:13),2])]] <- 
+  alpha(GeoSDMCols[[which.min(PICO_NRMSE_Mat[-(1:13),2])]], 0.65)
+# Call new plot
+matplot(PICO_SMBO2_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='P. contorta: Geographic Coverages (SDM)')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(PICO_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='929 Individuals; 35 buffer sizes (50km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geographic buffer size: 120 km', side=1, line=-1.7, at=200, cex=1.1)
+legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
