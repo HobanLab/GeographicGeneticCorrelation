@@ -110,9 +110,9 @@ clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuff
 COGL_haplos_output <- dirname(gsub("Genetic", "resamplingData", COGL_haplos_input))
 for(i in 1:length(COGL_haplos_output)){
   if(i>10){
-    COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/COGL_SMBO2_GE_5r_Hap-0', i, '_resampArr.Rdata')
+    COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/SMBO2/COGL_SMBO2_GE_5r_Hap-0', i, '_resampArr.Rdata')
   } else{
-    COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/COGL_SMBO2_GE_5r_Hap-', i, '_resampArr.Rdata')
+    COGL_haplos_output[[i]] <- paste0(COGL_haplos_output[[i]],'/SMBO2/COGL_SMBO2_GE_5r_Hap-', i, '_resampArr.Rdata')
   }
 }
 
@@ -138,14 +138,14 @@ stopCluster(cl)
 # # Specify filepath for COGL geographic and genetic data, including resampling data
 # COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
 # arrayDir <- paste0(COGL_filePath, 'resamplingData/haplotypicData/')
-# # Read in the resampling array .Rdata objects, saved to disk. Then, calculate the average 
-# # value matrix (across resampling replicates) for each resampling array, and add that 
+# # Read in the resampling array .Rdata objects, saved to disk. Then, calculate the average
+# # value matrix (across resampling replicates) for each resampling array, and add that
 # # matrix as an item to a list.
 # COGL_haplos_output <- list.files(arrayDir, full.names = TRUE); COGL_haplos_averageValueMats <- list()
 # for(i in 1:length(COGL_haplos_output)){
 #   COGL_haplos_averageValueMats[[i]] <- meanArrayValues(readRDS(COGL_haplos_output[[i]]))
 # }
-# # Build a summary matrix that consists of the Total allelic representation values for each 
+# # Build a summary matrix that consists of the Total allelic representation values for each
 # # haplotype dataset (10 columns) and an average of all Geographic resampling values (1 column).
 # COGL_haplos_summaryMat <- array(data=NA, dim=c(nrow(COGL_haplos_averageValueMats[[1]]),11))
 # colnames(COGL_haplos_summaryMat) <- c(paste0(rep('Total_Hap', 10),seq(1:10)),'Geo')
@@ -153,7 +153,7 @@ stopCluster(cl)
 # # and cbind these together
 # COGL_haplos_summaryMat[,1:10] <- do.call(cbind,lapply(COGL_haplos_averageValueMats, function(x) x$Total))
 # # For the geographic coverages: build a matrix of the geographic coverage values
-# # from each average value matrix (using sapply). Then, calculate the means across the 
+# # from each average value matrix (using sapply). Then, calculate the means across the
 # # rows of this matrix (using rowMeans), and pass this to the last column of the summary matrix
 # COGL_haplos_summaryMat[,11] <- rowMeans(sapply(COGL_haplos_averageValueMats, function(df) df[, 2]))
 # # Convert the summary data into a data.frame
@@ -161,7 +161,7 @@ stopCluster(cl)
 # # %%% NORMALIZED ROOT MEAN SQUARE ERROR: calculate the NRMSE for each haplotype length
 # COGL_NRMSE_Values <- vector(length=length(COGL_haplos_output))
 # for(i in 1:length(COGL_NRMSE_Values)){
-#   COGL_NRMSE_Values[i] <- nrmse_func(COGL_haplos_summaryMat$Geo, pred=COGL_haplos_summaryMat[,i]) 
+#   COGL_NRMSE_Values[i] <- nrmse_func(COGL_haplos_summaryMat$Geo, pred=COGL_haplos_summaryMat[,i])
 # }
 # 
 # # ---- PLOTTING ----
@@ -177,5 +177,45 @@ stopCluster(cl)
 # mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
 # mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
 # # Add legend
-# legend(x=400, y=87, inset = 0.05, legend = legText, col=hapColors, pch = c(19,19), 
+# legend(x=400, y=87, inset = 0.05, legend = legText, col=hapColors, pch = c(19,19),
 #        cex=1.2, pt.cex = 2, bty='n', y.intersp = 0.5)
+# 
+# # %%%% SMBO2: MULTIPLE BUFFER SIZES ----
+# # Specify filepath for SMBO2 resampling arrays
+# COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/resamplingData/haplotypicData/SMBO2/')
+# # Specify geographic buffer size in meters (used above)
+# geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+# # Declare a list of the resampling array objects stored in the data directory
+# COGL_SMBO2_arrays <- grep('.Rdata', list.files(COGL_filePath, full.names = TRUE), value = TRUE, )
+# # ---- CALCULATIONS ----
+# # Loop through the list of arrays
+# for(i in 1:length(COGL_SMBO2_arrays)){
+#   browser()
+#   # Read in the array
+#   COGL_SMBO2_array <- readRDS(COGL_SMBO2_arrays[[i]])
+#   # Build a dataframe from array values
+#   COGL_SMBO2_DF <- resample.array2dataframe(COGL_SMBO2_array)
+#   # Build a matrix to capture NRMSE values
+#   COGL_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
+#   # The names of this matrix match the different parts of the dataframe names
+#   colnames(COGL_NRMSE_Mat) <- c('Geo_Buff','Eco_Buff')
+#   rownames(COGL_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
+#   # Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
+#   # predictve variable (genetic coverages)
+#   for(j in 3:ncol(COGL_SMBO2_DF)){
+#     # Calculate NRMSE for the current column in the dataframe
+#     COGL_NRMSEvalue <- nrmse.func(COGL_SMBO2_DF[,j], pred = COGL_SMBO2_DF$Total)
+#     # Get the name of the current dataframe column
+#     dataName <- unlist(strsplit(names(COGL_SMBO2_DF)[[j]],'_'))
+#     # Match the data name to the relevant rows/columns of the receiving matrix
+#     matRow <- which(rownames(COGL_NRMSE_Mat) == dataName[[3]])
+#     matCol <- which(colnames(COGL_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
+#     # Locate the NRMSE value accordingly
+#     COGL_NRMSE_Mat[matRow,matCol] <- COGL_NRMSEvalue
+#   }
+#   cat(paste0('\n','%%% HAPLOTYPE LENGTH: ',i,' %%%','\n'))
+#   print(COGL_NRMSE_Mat)
+#   # Store the matrix as a CSV to disk
+#   write.table(COGL_NRMSE_Mat,
+#               file=paste0(COGL_filePath, 'COGL_SMBO2_NRMSE_Hap-', i, '.csv'), sep=',')
+# }

@@ -363,7 +363,7 @@ matplot(PICO_SMBO2_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16,
 # Add points for genetic values, subtitle, optimal buffer size, and legend
 points(PICO_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
 mtext(text='929 Individuals; 35 buffer sizes (50km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='*Optimal geographic buffer size: 120 km', side=1, line=-1.7, at=200, cex=1.1)
+mtext(text='*Optimal geographic buffer size: 120 km', side=1, line=-1.7, at=300, cex=1.1)
 legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
        legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
        y.intersp = 0.75)

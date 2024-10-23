@@ -272,7 +272,7 @@ legend(x=200, y=85, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (1 km)', 'Geographic, SDM (1 km)'),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 
-# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# %%%% SMBO2: MULTIPLE BUFFER SIZES ----
 # Specify filepath for YUBR geographic and genetic data, including resampling array
 YUBR_filePath <- paste0(GeoGenCorr_wd, 'Datasets/YUBR/')
 arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
@@ -306,3 +306,62 @@ print(YUBR_NRMSE_Mat)
 # Store the matrix as a CSV to disk
 write.table(YUBR_NRMSE_Mat,
             file=paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO2_NRMSE.csv'), sep=',')
+
+# ---- PLOTTING ----
+# Specify plot colors
+plotColors <- colorRampPalette(c("darkred","azure4","lightgray"))(129)
+# Build a matrix of mean values (based on array; custom function returns a data.frame)
+YUBR_SMBO2_meanValues <- as.matrix(meanArrayValues(YUBR_MultBuff_array))
+# Subset the matrix of mean values according to each coverage type
+YUBR_SMBO2_GeoBuffMeans <- YUBR_SMBO2_meanValues[,grep('Geo_Buff',colnames(YUBR_SMBO2_meanValues))]
+YUBR_SMBO2_GeoSDMMeans <- YUBR_SMBO2_meanValues[,grep('Geo_SDM',colnames(YUBR_SMBO2_meanValues))]
+YUBR_SMBO2_EcoBuffMeans <- YUBR_SMBO2_meanValues[,grep('Eco_Buff',colnames(YUBR_SMBO2_meanValues))]
+# Create colors based on the NRMSE values in matrix. Make all points transparent (alpha)
+GeoBuffCols <- 
+  alpha(plotColors[as.numeric(cut(YUBR_NRMSE_Mat[,1], breaks = length(plotColors)))], 0.15)
+GeoSDMCols <- 
+  alpha(plotColors[as.numeric(cut(YUBR_NRMSE_Mat[,2], breaks = length(plotColors)))], 0.15)
+EcoBuffCols <- 
+  alpha(plotColors[as.numeric(cut(YUBR_NRMSE_Mat[,3], breaks = length(plotColors)))], 0.15)
+# For each color vector, decrease transparency of points corresponding to the lowest NRMSE
+GeoBuffCols[[which.min(YUBR_NRMSE_Mat[,1])]] <- 
+  alpha(GeoBuffCols[[which.min(YUBR_NRMSE_Mat[,1])]], 0.65)
+GeoSDMCols[[which.min(YUBR_NRMSE_Mat[,2])]] <- 
+  alpha(GeoSDMCols[[which.min(YUBR_NRMSE_Mat[,2])]], 0.65)
+EcoBuffCols[[which.min(YUBR_NRMSE_Mat[,3])]] <- 
+  alpha(EcoBuffCols[[which.min(YUBR_NRMSE_Mat[,3])]], 0.65)
+
+# Use matplot to plot values for different coverages
+# GeoBuff
+matplot(YUBR_SMBO2_GeoBuffMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='Y. brevifolia: Geographic Coverages (Total buffer)')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(YUBR_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='319 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geographic buffer size: 4 km', side=1, line=-2, at=60, cex=1.1)
+legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
+# GeoSDM
+matplot(YUBR_SMBO2_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='Y. brevifolia: Geographic Coverages (SDM)')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(YUBR_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='319 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geographic buffer size: 20 km', side=1, line=-1.7, at=60, cex=1.1)
+legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
+# EcoBuff
+matplot(YUBR_SMBO2_EcoBuffMeans, ylim=c(0,100), col=EcoBuffCols, pch=16, 
+        ylab='Coverage (%)', xlab='Number of individuals', 
+        main='Y. brevifolia: Ecological Coverages')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(YUBR_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='319 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal ecological buffer size: 25 km', side=1, line=-1.7, at=60, cex=1.1)
+legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)

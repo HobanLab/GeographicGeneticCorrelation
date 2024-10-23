@@ -24,10 +24,10 @@ source('Scripts/functions_GeoGenCoverage.R')
 # Specify number of resampling replicates
 num_reps <- 5
 # ---- BUFFER SIZES
-# Specify geographic buffer size in meters 
-geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+# Specify geographic buffer size in meters
+geo_buffSize <- 1000*(c(2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Specify ecological buffer size in meters 
-eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+eco_buffSize <- 1000*(c(2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -109,7 +109,7 @@ clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuff
 # Specify file paths, for saving resampling arrays 
 MIGU_haplos_output <- dirname(gsub("Genetic", "resamplingData", MIGU_haplos_input))
 for(i in 1:length(MIGU_haplos_output)){
-    MIGU_haplos_output[[i]] <- paste0(MIGU_haplos_output[[i]],'SMBO2_GE/MIGU_SMBO2_GE_5r_Hap-', i, '_resampArr.Rdata')
+    MIGU_haplos_output[[i]] <- paste0(MIGU_haplos_output[[i]],'/SMBO2_G2E/MIGU_SMBO2_G2E_5r_2-500_Hap-', i, '_resampArr.Rdata')
 }
 
 # Run resampling (in parallel). Use a loop to iterate through the different haplotype lengths
@@ -118,9 +118,10 @@ for(i in 1:length(MIGU_haplos_output)){
   # Run resampling
   MIGU_demoArray_Par <- 
     geo.gen.Resample.Par(genObj = MIGU_genList[[i]], geoFlag = TRUE, coordPts = MIGU_coordinates, 
-                         geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                         ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', 
-                         reps = num_reps, arrayFilepath = MIGU_haplos_output[[i]], cluster = cl)
+                         geoBuff = geo_buffSize, SDMrast = MIGU_sdm_W, boundary=world_poly_clip_W, 
+                         ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
+                         ecoLayer = 'NA', reps = num_reps, arrayFilepath = MIGU_haplos_output[[i]], 
+                         cluster = cl)
 }
 # Close cores
 stopCluster(cl)
@@ -128,7 +129,7 @@ stopCluster(cl)
 # %%% ANALYZE DATA %%% ----
 # Specify filepath for MIGU geographic and genetic data, including resampling data
 MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
-arrayDir <- paste0(MIGU_filePath, 'resamplingData/haplotypicData/')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/haplotypicData/SMBO2_G2E')
 # Read in the resampling array .Rdata objects, saved to disk. Then, calculate the average
 # value matrix (across resampling replicates) for each resampling array, and add that
 # matrix as an item to a list.
@@ -176,13 +177,16 @@ mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
 legend(x=120, y=60, inset = 0.05, legend = legText, col=hapColors, pch = c(19,19),
        cex=1.2, pt.cex = 2, bty='n', y.intersp = 0.5)
 
-# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# %%%% SMBO2: MULTIPLE BUFFER SIZES ----
 # Specify filepath for SMBO2 resampling arrays
-MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/resamplingData/haplotypicData/SMBO2_GE/')
+MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/resamplingData/haplotypicData/SMBO2_G2E/')
 # Specify geographic buffer size in meters (used above)
-geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+geo_buffSize <- 1000*(c(2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Declare a list of the resampling array objects stored in the data directory
 MIGU_SMBO2_arrays <- grep('.Rdata', list.files(MIGU_filePath, full.names = TRUE), value = TRUE, )
+# # Decalre a list of NRMSE matrices, to store the results at each haplotype length
+MIGU_NRMSE_MatList <- list(Hap1=NA, Hap2=NA, Hap3=NA, Hap4=NA, Hap5=NA)
+
 # ---- CALCULATIONS ----
 # Loop through the list of arrays
 for(i in 1:length(MIGU_SMBO2_arrays)){
@@ -191,9 +195,9 @@ for(i in 1:length(MIGU_SMBO2_arrays)){
   # Build a dataframe from array values
   MIGU_SMBO2_DF <- resample.array2dataframe(MIGU_SMBO2_array)
   # Build a matrix to capture NRMSE values
-  MIGU_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
+  MIGU_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=3)
   # The names of this matrix match the different parts of the dataframe names
-  colnames(MIGU_NRMSE_Mat) <- c('Geo_Buff','Eco_Buff')
+  colnames(MIGU_NRMSE_Mat) <- c('Geo_Buff','Geo_SDM','Eco_Buff')
   rownames(MIGU_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
   # Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
   # predictve variable (genetic coverages)
@@ -210,7 +214,140 @@ for(i in 1:length(MIGU_SMBO2_arrays)){
   }
   cat(paste0('\n','%%% HAPLOTYPE LENGTH: ',i,' %%%','\n'))
   print(MIGU_NRMSE_Mat)
-  # Store the matrix as a CSV to disk
-  write.table(MIGU_NRMSE_Mat,
-              file=paste0(MIGU_filePath, 'MIGU_SMBO2_NRMSE_Hap-', i, '.csv'), sep=',')
+  # Pass the current NRMSE matrix as an item in a list
+  MIGU_NRMSE_MatList[[i]] <- MIGU_NRMSE_Mat
+  # Store the matrix as a CSV to disk, if it isn't already written
+  if(!file.exists(paste0(MIGU_filePath, 'MIGU_SMBO2_NRMSE_Hap-', i, '.csv'))){
+    write.table(MIGU_NRMSE_Mat,
+                file=paste0(MIGU_filePath, 'MIGU_SMBO2_NRMSE_Hap-', i, '.csv'))
+  }
+}
+
+# ---- PLOTTING ----
+# %%% PLOT HAPLOTYPE-WISE ----
+# Specify plot colors
+plotColors <- colorRampPalette(c("darkred","azure4","lightgray"))(129)
+# Loop through the list of arrays
+for(i in 1:length(MIGU_SMBO2_arrays)){
+  # Build a matrix of mean values (based on array; custom function returns a data.frame)
+  MIGU_SMBO2_meanValues <- as.matrix(meanArrayValues(readRDS(MIGU_SMBO2_arrays[[i]])))
+  # Subset the matrix of mean values according to each coverage type
+  MIGU_SMBO2_GeoBuffMeans <- MIGU_SMBO2_meanValues[,grep('Geo_Buff',colnames(MIGU_SMBO2_meanValues))]
+  MIGU_SMBO2_GeoSDMMeans <- MIGU_SMBO2_meanValues[,grep('Geo_SDM',colnames(MIGU_SMBO2_meanValues))]
+  MIGU_SMBO2_EcoBuffMeans <- MIGU_SMBO2_meanValues[,grep('Eco_Buff',colnames(MIGU_SMBO2_meanValues))]
+  # Create colors based on the NRMSE values in matrix. Make all points transparent (alpha)
+  GeoBuffCols <- 
+    alpha(plotColors[as.numeric(cut(MIGU_NRMSE_MatList[[i]][,1], breaks = length(plotColors)))], 0.15)
+  GeoSDMCols <- 
+    alpha(plotColors[as.numeric(cut(MIGU_NRMSE_MatList[[i]][,2], breaks = length(plotColors)))], 0.15)
+  EcoBuffCols <- 
+    alpha(plotColors[as.numeric(cut(MIGU_NRMSE_MatList[[i]][,3], breaks = length(plotColors)))], 0.15)
+  # Determine each coverage type's optimal buffer size for current haplotype length, for plotting
+  optBuff_GeoBuff <- names(which.min(MIGU_NRMSE_MatList[[i]][,1]))
+  optBuff_GeoSDM <- names(which.min(MIGU_NRMSE_MatList[[i]][,2]))
+  optBuff_EcoBuff <- names(which.min(MIGU_NRMSE_MatList[[i]][,3]))
+  # For each color vector, decrease transparency of points corresponding to the lowest NRMSE
+  GeoBuffCols[[which.min(MIGU_NRMSE_MatList[[i]][,1])]] <- 
+    alpha(GeoBuffCols[[which.min(MIGU_NRMSE_MatList[[i]][,1])]], 0.65)
+  GeoSDMCols[[which.min(MIGU_NRMSE_MatList[[i]][,2])]] <- 
+    alpha(GeoSDMCols[[which.min(MIGU_NRMSE_MatList[[i]][,2])]], 0.65)
+  EcoBuffCols[[which.min(MIGU_NRMSE_MatList[[i]][,3])]] <- 
+    alpha(EcoBuffCols[[which.min(MIGU_NRMSE_MatList[[i]][,3])]], 0.65)
+  
+  # Use matplot to plot values for different coverages. Stack 3 plots vertically
+  par(mfrow=c(3,1), mar = c(3,3.5,2,1)+0.1, cex.main=1.9)
+  # GeoBuff
+  matplot(MIGU_SMBO2_GeoBuffMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+          ylab='', xlab='')
+  title(main=paste0('M. guttatus: Haplotype length: ',i))
+  mtext(text='Number of individuals', side=1, line=2.5, at=140, cex=0.9)
+  # Add points for genetic values, subtitle, optimal buffer size, and legend
+  points(MIGU_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+  mtext(text=paste0('*Optimal buffer size: ',optBuff_GeoBuff), side=1, line=-1.8, at=85, cex=1.1)
+  legend(x=170, y=63, inset = 0.05, xpd=TRUE, cex=1.1, fill=c('darkred','darkgray','cyan4'), 
+         legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+         y.intersp = 0.75, border='white')
+  # GeoSDM
+  matplot(MIGU_SMBO2_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+          ylab='', xlab='')
+  mtext(text='Number of individuals', side=1, line=2.5, at=140, cex=0.9)
+  # Add points for genetic values, subtitle, optimal buffer size, and legend
+  points(MIGU_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+  mtext(text=paste0('*Optimal buffer size: ',optBuff_GeoSDM), side=1, line=-1.8, at=85, cex=1.1)
+  legend(x=170, y=63, inset = 0.05, xpd=TRUE, cex=1.1, fill=c('darkred','darkgray','cyan4'), 
+         legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+         y.intersp = 0.75, border='white')
+  mtext(text='Coverage (%)', side=2, line=2.3, cex=1.1, srt=90)
+  # EcoBuff
+  matplot(MIGU_SMBO2_EcoBuffMeans, ylim=c(0,100), col=EcoBuffCols, pch=16, 
+          ylab='', xlab='')
+  mtext(text='Number of individuals', side=1, line=2, at=140, cex=0.9)
+  # Add points for genetic values, subtitle, optimal buffer size, and legend
+  points(MIGU_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+  mtext(text=paste0('*Optimal buffer size: ',optBuff_EcoBuff), side=1, line=-1.8, at=85, cex=1.1)
+  legend(x=170, y=63, inset = 0.05, xpd=TRUE, cex=1.1, fill=c('darkred','darkgray','cyan4'), 
+         legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+         y.intersp = 0.75, border='white')
+}
+
+# %%% ALL PLOTS, 1 WINDOW ----
+# Specify a graph layout, with coverage types as rows and haplotype lengths as columns
+graphMat <- matrix(1:15,nrow=3,ncol=5)
+layout(graphMat) ; par(mar = c(2,4,1,2)+0.1)
+# Loop through the list of arrays
+for(i in 1:length(MIGU_SMBO2_arrays)){
+  # Build a matrix of mean values (based on array; custom function returns a data.frame)
+  MIGU_SMBO2_meanValues <- as.matrix(meanArrayValues(readRDS(MIGU_SMBO2_arrays[[i]])))
+  # Subset the matrix of mean values according to each coverage type
+  MIGU_SMBO2_GeoBuffMeans <- MIGU_SMBO2_meanValues[,grep('Geo_Buff',colnames(MIGU_SMBO2_meanValues))]
+  MIGU_SMBO2_GeoSDMMeans <- MIGU_SMBO2_meanValues[,grep('Geo_SDM',colnames(MIGU_SMBO2_meanValues))]
+  MIGU_SMBO2_EcoBuffMeans <- MIGU_SMBO2_meanValues[,grep('Eco_Buff',colnames(MIGU_SMBO2_meanValues))]
+  # Create colors based on the NRMSE values in matrix. Make all points transparent (alpha)
+  GeoBuffCols <- 
+    alpha(plotColors[as.numeric(cut(MIGU_NRMSE_MatList[[i]][,1], breaks = length(plotColors)))], 0.15)
+  GeoSDMCols <- 
+    alpha(plotColors[as.numeric(cut(MIGU_NRMSE_MatList[[i]][,2], breaks = length(plotColors)))], 0.15)
+  EcoBuffCols <- 
+    alpha(plotColors[as.numeric(cut(MIGU_NRMSE_MatList[[i]][,3], breaks = length(plotColors)))], 0.15)
+  # Determine each coverage type's optimal buffer size for current haplotype length, for plotting
+  optBuff_GeoBuff <- names(which.min(MIGU_NRMSE_MatList[[i]][,1]))
+  optBuff_GeoSDM <- names(which.min(MIGU_NRMSE_MatList[[i]][,2]))
+  optBuff_EcoBuff <- names(which.min(MIGU_NRMSE_MatList[[i]][,3]))
+  # For each color vector, decrease transparency of points corresponding to the lowest NRMSE
+  GeoBuffCols[[which.min(MIGU_NRMSE_MatList[[i]][,1])]] <- 
+    alpha(GeoBuffCols[[which.min(MIGU_NRMSE_MatList[[i]][,1])]], 0.65)
+  GeoSDMCols[[which.min(MIGU_NRMSE_MatList[[i]][,2])]] <- 
+    alpha(GeoSDMCols[[which.min(MIGU_NRMSE_MatList[[i]][,2])]], 0.65)
+  EcoBuffCols[[which.min(MIGU_NRMSE_MatList[[i]][,3])]] <- 
+    alpha(EcoBuffCols[[which.min(MIGU_NRMSE_MatList[[i]][,3])]], 0.65)
+  
+  # Adjust plotting, after first column of graphs
+  if(i==2){
+    par(mar = c(1,1,1,2)+0.1)
+  }
+  # GeoBuff
+  matplot(MIGU_SMBO2_GeoBuffMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+          ylab='', xlab='')
+  title(main=paste0('MIGU: Hap ',i))
+  if(i==1){
+    mtext(text='Geo Buff', side=2, line=2.3, cex=1.1, srt=90)
+  }
+  # Add points for genetic values, subtitle, optimal buffer size, and legend
+  points(MIGU_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+  # GeoSDM
+  matplot(MIGU_SMBO2_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
+          ylab='', xlab='')
+  # Add points for genetic values, subtitle, optimal buffer size, and legend
+  points(MIGU_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+  if(i==1){
+    mtext(text='Geo SDM', side=2, line=2.3, cex=1.1, srt=90)
+  }
+  # EcoBuff
+  matplot(MIGU_SMBO2_EcoBuffMeans, ylim=c(0,100), col=EcoBuffCols, pch=16, 
+          ylab='', xlab='')
+  # Add points for genetic values, subtitle, optimal buffer size, and legend
+  points(MIGU_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+  if(i==1){
+    mtext(text='Eco Buff', side=2, line=2.3, cex=1.1, srt=90)
+  }
 }
