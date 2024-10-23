@@ -9,6 +9,7 @@ library(terra)
 library(parallel)
 library(RColorBrewer)
 library(scales)
+library(vcfR)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
@@ -19,12 +20,10 @@ source('Scripts/functions_GeoGenCoverage.R')
 # Specify number of resampling replicates
 num_reps <- 5
 # ---- BUFFER SIZES
-# Specify geographic buffer sizes (in meters) 
-geo_buffSize <- c(1000,5000)
-# geo_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
-# Specify ecological buffer sizes (in meters) 
-eco_buffSize <- c(1000,5000)
-# eco_buffSize <- c(500,1000,5000,10000,25000,50000,100000)
+# Specify geographic buffer size in meters 
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+# Specify ecological buffer size in meters 
+eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -77,25 +76,26 @@ HIWA_genind <- HIWA_all_genind[HIWA_points[,1], drop=TRUE]
 clusterExport(cl, varlist = c('HIWA_points','HIWA_genind', 'num_reps','geo_buffSize', 
                               'eco_buffSize', 'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers', 'geo.compareBuff', 'geo.compareBuffSDM', 'geo.checkSDMres', 
-                              'eco.intersectBuff', 'eco.compareBuff', 'gen.getAlleleCategories',
-                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
+clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
+                              'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories',
+                              'eco.totalEcoregionCount','calculateCoverage','exSituResample.Par',
+                              'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_MultBuff_G2E_5r_resampArr.Rdata')
+arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 HIWA_demoArray_Par <- 
-  geo.gen.Resample.Par(gen_obj = HIWA_genind, geoFlag = TRUE, coordPts = HIWA_points, 
-                       geoBuff = geo_buffSize, SDMrast=HIWA_sdm_W, boundary=world_poly_clip_W, 
+  geo.gen.Resample.Par(genObj = HIWA_genind, geoFlag = TRUE, coordPts = HIWA_points, 
+                       geoBuff = geo_buffSize, SDMrast=NA, boundary=world_poly_clip_W, 
                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
                        ecoLayer = 'GL', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
 
 # Run resampling not in parallel (for function testing purposes)
-HIWA_demoArray_IND <-
-  geo.gen.Resample(gen_obj = HIWA_genind, geoFlag = TRUE, coordPts = HIWA_points,
-                   geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = TRUE, 
-                   ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = 'GL', reps = 1)
+# HIWA_demoArray_IND <-
+#   geo.gen.Resample(genObj = HIWA_genind, geoFlag = TRUE, coordPts = HIWA_points,
+#                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = TRUE, 
+#                    ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = 'GL', reps = 1)
 
 # # %%% ANALYZE DATA %%% ----
 # # Specify filepath for HIWA geographic and genetic data, including resampling array
