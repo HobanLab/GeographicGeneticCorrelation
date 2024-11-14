@@ -109,93 +109,93 @@ if(parFlag==TRUE){
                      reps = 1)
 }
 
-# # %%% ANALYZE DATA %%% ----
-# QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
-# arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_G_5r_resampArr.Rdata')
-# # Read in the resampling array .Rdata object, saved to disk
-# QUAC_demoArray_IND_Par <- readRDS(arrayDir)
-# 
-# # ---- CORRELATION ----
-# # Build a data.frame from array values
-# QUAC_DF <- resample.array2dataframe(QUAC_demoArray_IND_Par)
-# # Calculate normalized root mean square value
-# QUAC_nrmse_geo <- nrmse_func(obs=QUAC_DF$Geo, pred=QUAC_DF$Total) ; QUAC_nrmse_geo
-# 
-# # ---- PLOTTING ----
-# # ---- CALCULATE 95% MSSE AND AVERAGE VALUES
-# # Generate the average values (across replicates) for all proportions
-# # This function has default arguments for returning just Total allelic geographic proportions
-# averageValueMat <- meanArrayValues(QUAC_demoArray_IND_Par, allValues = TRUE)
-# # Subset matrix of all average values to just Total allelic and geographic coverage
-# averageValueMat_TG <- averageValueMat[,c(1,6)]
-# # Calculate the absolute difference between genetic and geographic, and add this as a column to the data.frame
-# averageValueMat_TG <- cbind(averageValueMat_TG, abs(averageValueMat_TG$Total-averageValueMat_TG$Geo))
-# names(averageValueMat_TG) <- c(names(averageValueMat_TG)[1:2], "Difference")
-# 
-# # Specify plot colors
-# plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
-# plotColors_Fade <- alpha(plotColors, 0.45)
-# plotColors_Sub <- plotColors_Fade[-(2:5)]
-# 
-# # ---- CORRELATION PLOTS
-# par(mfrow=c(2,1), mar=c(4,4,3,2)+0.1)
-# # ---- GEOGRAPHIC-GENETIC
-# plot(averageValueMat_TG$Geo, averageValueMat_TG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-#      xlab='', ylab='', col=plotColors_Fade[[6]])
-# title(main='Q. acerifolia: Geographic by genetic coverage', line=1.5)
-# mtext(text='91 Individuals; 1 km buffer; 3 replicates', side=3, line=0.1, cex=1.3)
-# mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.2)
-# mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
-# # Add NRMSE values for each comparison
-# text(x = 76, y = 30, labels = paste0('NRMSE: ', QUAC_nrmse_geo), col='darkblue', cex=1.2)
-# # ---- COVERAGE PLOTS
-# # Use the matplot function to plot the matrix of average values, with specified settings
-# matplot(averageValueMat_TG[,1:2], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='Q. acerifolia: Coverage values', line=1.5)
-# mtext(text='91 Individuals; 1 km buffer; 3 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
-# mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
-# # Add legend
-# legend(x=60, y=75, inset = 0.05,
-#        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
-#        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
-#        y.intersp = 0.8)
-# 
-# # %%%% SMBO: MULTIPLE BUFFER SIZES ----
-# # Specify filepath for QUAC geographic and genetic data, including resampling array
-# QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
-# arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata')
-# # Read in array and build a data.frame of values
-# QUAC_MultBuff_array <- readRDS(arrayDir)
-# # Specify geographic buffer size in meters (used above)
-# geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
-# 
-# # ---- CALCULATIONS ----
-# # Build a data.frame from array values
-# QUAC_MultBuff_DF <- resample.array2dataframe(QUAC_MultBuff_array)
-# # Build a matrix to capture NRMSE values
-# QUAC_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=3)
-# # The names of this matrix match the different parts of the dataframe names
-# colnames(QUAC_NRMSE_Mat) <- c('Geo_Buff','Geo_SDM','Eco_Buff')
-# rownames(QUAC_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
-# # Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
-# # predictve variable (genetic coverages)
-# for(i in 3:ncol(QUAC_MultBuff_DF)){
-#   # Calculate NRMSE for the current column in the dataframe
-#   QUAC_NRMSEvalue <- nrmse.func(QUAC_MultBuff_DF[,i], pred = QUAC_MultBuff_DF$Total)
-#   # Get the name of the current dataframe column
-#   dataName <- unlist(strsplit(names(QUAC_MultBuff_DF)[[i]],'_'))
-#   # Match the data name to the relevant rows/columns of the receiving matrix
-#   matRow <- which(rownames(QUAC_NRMSE_Mat) == dataName[[3]])
-#   matCol <- which(colnames(QUAC_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
-#   # Locate the NRMSE value accordingly
-#   QUAC_NRMSE_Mat[matRow,matCol] <- QUAC_NRMSEvalue
-# }
-# print(QUAC_NRMSE_Mat)
-# # Store the matrix as a CSV to disk
-# write.table(QUAC_NRMSE_Mat,
-#             file=paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_NRMSE.csv'), sep=',')
+# %%% ANALYZE DATA %%% ----
+QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
+arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_1kmIND_G_5r_resampArr.Rdata')
+# Read in the resampling array .Rdata object, saved to disk
+QUAC_demoArray_IND_Par <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
+# Build a data.frame from array values
+QUAC_DF <- resample.array2dataframe(QUAC_demoArray_IND_Par)
+# Calculate normalized root mean square value
+QUAC_nrmse_geo <- nrmse_func(obs=QUAC_DF$Geo, pred=QUAC_DF$Total) ; QUAC_nrmse_geo
+
+# ---- PLOTTING ----
+# ---- CALCULATE 95% MSSE AND AVERAGE VALUES
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic geographic proportions
+averageValueMat <- meanArrayValues(QUAC_demoArray_IND_Par, allValues = TRUE)
+# Subset matrix of all average values to just Total allelic and geographic coverage
+averageValueMat_TG <- averageValueMat[,c(1,6)]
+# Calculate the absolute difference between genetic and geographic, and add this as a column to the data.frame
+averageValueMat_TG <- cbind(averageValueMat_TG, abs(averageValueMat_TG$Total-averageValueMat_TG$Geo))
+names(averageValueMat_TG) <- c(names(averageValueMat_TG)[1:2], "Difference")
+
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
+plotColors_Fade <- alpha(plotColors, 0.45)
+plotColors_Sub <- plotColors_Fade[-(2:5)]
+
+# ---- CORRELATION PLOTS
+par(mfrow=c(2,1), mar=c(4,4,3,2)+0.1)
+# ---- GEOGRAPHIC-GENETIC
+plot(averageValueMat_TG$Geo, averageValueMat_TG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
+     xlab='', ylab='', col=plotColors_Fade[[6]])
+title(main='Q. acerifolia: Geographic by genetic coverage', line=1.5)
+mtext(text='91 Individuals; 1 km buffer; 3 replicates', side=3, line=0.1, cex=1.3)
+mtext(text='Geographic coverage (%)', side=1, line=3, cex=1.2)
+mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
+# Add NRMSE values for each comparison
+text(x = 76, y = 30, labels = paste0('NRMSE: ', QUAC_nrmse_geo), col='darkblue', cex=1.2)
+# ---- COVERAGE PLOTS
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat_TG[,1:2], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='Q. acerifolia: Coverage values', line=1.5)
+mtext(text='91 Individuals; 1 km buffer; 3 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.2)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.2, srt=90)
+# Add legend
+legend(x=60, y=75, inset = 0.05,
+       legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)'),
+       col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
+       y.intersp = 0.8)
+
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for QUAC geographic and genetic data, including resampling array
+QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
+arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+QUAC_MultBuff_array <- readRDS(arrayDir)
+# Specify geographic buffer size in meters (used above)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values
+QUAC_MultBuff_DF <- resample.array2dataframe(QUAC_MultBuff_array)
+# Build a matrix to capture NRMSE values
+QUAC_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=3)
+# The names of this matrix match the different parts of the dataframe names
+colnames(QUAC_NRMSE_Mat) <- c('Geo_Buff','Geo_SDM','Eco_Buff')
+rownames(QUAC_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
+# Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
+# predictve variable (genetic coverages)
+for(i in 3:ncol(QUAC_MultBuff_DF)){
+  # Calculate NRMSE for the current column in the dataframe
+  QUAC_NRMSEvalue <- nrmse.func(QUAC_MultBuff_DF[,i], pred = QUAC_MultBuff_DF$Total)
+  # Get the name of the current dataframe column
+  dataName <- unlist(strsplit(names(QUAC_MultBuff_DF)[[i]],'_'))
+  # Match the data name to the relevant rows/columns of the receiving matrix
+  matRow <- which(rownames(QUAC_NRMSE_Mat) == dataName[[3]])
+  matCol <- which(colnames(QUAC_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
+  # Locate the NRMSE value accordingly
+  QUAC_NRMSE_Mat[matRow,matCol] <- QUAC_NRMSEvalue
+}
+print(QUAC_NRMSE_Mat)
+# Store the matrix as a CSV to disk
+write.table(QUAC_NRMSE_Mat,
+            file=paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_NRMSE.csv'), sep=',')
 
 # %%% ARCHIVE %%% ----
 # # %%%% 2023-09-27 TOTAL ALLELIC AND GEOGRAPHIC COVERAGE: 3 SAMPLE EMPHASIS ----
