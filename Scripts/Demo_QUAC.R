@@ -48,7 +48,7 @@ pop(QUAC_genind) <- rep('wild', nInd(QUAC_genind))
 # Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
 # The sample names (and order) have to match the sample names/order of the genind object 
 # (rownams of the genetic matrix) read in below.
-wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coord_ind.csv'), header=TRUE)
+wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coordinates.csv'), header=TRUE)
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = TRUE)

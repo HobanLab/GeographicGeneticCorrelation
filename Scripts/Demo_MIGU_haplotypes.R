@@ -50,7 +50,7 @@ MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
 # to the lat/long values for each population. Finally, this CSV was subset to include only the 255 individuals
 # present in the native range of western North America.
 MIGU_coordinates <- 
-  read.csv(file=paste0(MIGU_filePath, 'Geographic/MIGU_LatLongs.csv'), header = TRUE)
+  read.csv(file=paste0(MIGU_filePath, 'Geographic/MIGU_coordinates.csv'), header = TRUE)
 # Rename the columns of the geographic coordinates data.frame (because geo.compareBuff function expects certain strings)
 colnames(MIGU_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
 # Read in raster data, for SDM

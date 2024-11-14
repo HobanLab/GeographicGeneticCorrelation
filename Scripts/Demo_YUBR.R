@@ -73,7 +73,7 @@ indNames(YUBR_genind) <- gsub("cat_", "", indNames(YUBR_genind))
 # Read in wild occurrence points. This CSV has 5 columns: sample names, 
 # latitude (decimal minutes, 2 columns), and longitude (decimal minutes, 2 columns)  
 YUBR_points <- read.csv(
-  paste0(YUBR_filePath, 'Geographic/TreeCoordinates.csv'), header=TRUE)
+  paste0(YUBR_filePath, 'Geographic/YUBR_coordinates.csv'), header=TRUE)
 # Convert decimal minutes to decimal degrees by dividing the 3rd and 5th columns by
 # 60, then adding them to the degrees columns (2nd and 4th)
 lats <- round(YUBR_points[,3]/60 + YUBR_points[,2], 4)

@@ -35,7 +35,7 @@ ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
 # The metadata for the 1,135 accessions included in the analysis, including latitude and longitude values,
 # was accessed from a CSV uploaded to the website here: https://1001genomes.org/accessions.html
 ARTH_coordinates <- 
-  read.csv(file=paste0(ARTH_filePath, 'Geographic/ARTH_accessionMetadata.csv'), header = FALSE)
+  read.csv(file=paste0(ARTH_filePath, 'Geographic/ARTH_coordinates.csv'), header = FALSE)
 # Remove unnecessary columns (CS number, collector, sequencer, etc.), and rename columns. Retain 
 # country values, in order to filter out samples outside of the native range of Eurasia
 ARTH_coordinates <- ARTH_coordinates[,-c(2:3,5,8:13)]

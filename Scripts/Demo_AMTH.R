@@ -55,7 +55,7 @@ AMTH_genind <- vcfR2genind(AMTH_vcf, return.alleles = TRUE)
 # are at the top, so only the first 5 rows are extracted. This file has coordinates 
 # for each population; the population of each sample is represented by the letter at 
 # the front of each individual's name (see indNames(AMTH_genind))
-AMTH_popCoordinates <- read.csv2(paste0(AMTH_filePath, 'Geographic/amsonia.gps.csv'),
+AMTH_popCoordinates <- read.csv2(paste0(AMTH_filePath, 'Geographic/AMTH_coordinates.csv'),
                                  header = TRUE,sep = ',',nrows = 5)
 # Build a data.frame for individual coordinates, based on the sample names, and specify column names
 AMTH_coordinates <- data.frame(indNames(AMTH_genind))

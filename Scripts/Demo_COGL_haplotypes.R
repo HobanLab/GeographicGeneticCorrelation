@@ -91,7 +91,7 @@ for(i in 1:length(COGL_haplos_input)){
 # coordinate values.
 # NOTE: these coordinates cannot be shared externally, due to the rare status of this species!
 COGL_coordinates <- 
-  read.csv(file=paste0(COGL_filePath, 'Geographic/Conradina_coord.csv'), header = TRUE)
+  read.csv(file=paste0(COGL_filePath, 'Geographic/COGL_coordinates.csv'), header = TRUE)
 # Rename the columns of the geographic coordinates dataframe (because geo.compareBuff function expects certain strings)
 colnames(COGL_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
 # Remove two duplicate samples (with "_rep" in sample name), leaving 562 samples

@@ -44,7 +44,7 @@ QULO_genind <- df2genind(QULO_tab, ncode = 3, ploidy = 2)
 # Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
 # The sample names (and order) have to match the sample names/order of the genind object 
 # (rownams of the genetic matrix) read in below.
-QULO_points <- read.csv(paste0(QULO_filePath, 'Geographic/Quercus_lobata.csv'), header=TRUE)
+QULO_points <- read.csv(paste0(QULO_filePath, 'Geographic/QULO_coordinates.csv'), header=TRUE)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = FALSE)
 # Perform geographic filter on the admin layer. 

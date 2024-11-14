@@ -52,7 +52,7 @@ PICO_sampleNames <- indNames(PICO_genind)
 # just to the 929 samples included in the genind object (above), and then ordered to match the order 
 # of samples in that genind object. These steps are taken below.
 PICO_coordinates <- 
-  read.csv(file=paste0(PICO_filePath, 'Geographic/Pine_NaturalOrchard_ClimateData_Sept7th2015.csv'), header = TRUE)
+  read.csv(file=paste0(PICO_filePath, 'Geographic/PICO_coordinates.csv'), header = TRUE)
 # Start by subsetting the CSV to just the variables we need: sample names, latitude, and longitude
 PICO_coordinates <- 
   PICO_coordinates[which(PICO_coordinates$Internal_ID %in% PICO_sampleNames),c('Internal_ID','Latitude','Longitude')]
