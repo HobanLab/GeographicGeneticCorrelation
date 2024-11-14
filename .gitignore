@@ -36,3 +36,8 @@ Datasets/HIWA/*
 # the VCF size is greater than 50 MB. The geographic data cannot be shared because coordinates are protected (as this
 # is a threatened, rare plant)
 Datasets/COGL/*
+
+# Data inputs (both genetic and geographic) for Amsonia tharpii. The genetic data isn't shared on GitHub because
+# analyses have not been published yet. The geographic data cannot be shared because coordinates are protected (as this
+# is a threatened, rare plant)
+Datasets/AMTH/*
