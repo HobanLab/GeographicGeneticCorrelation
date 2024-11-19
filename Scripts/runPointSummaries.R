@@ -19,26 +19,38 @@ data <- list.files(paste0(getwd(), "/Datasets"),
                    recursive = TRUE,
                    full.names = TRUE)
 # manually selecting one file per species and standardizing 
-## should replace with grelp indexing on the file path, as this hard code index will not work for long... 
+amth <- data[grepl(pattern ="AMTH", data)]
+arth <- data[grepl(pattern ="ARTH", data)]
+migu <- data[grepl(pattern ="MIGU", data)][2]
+pico <- data[grepl(pattern ="PICO", data)]
+quac <- data[grepl(pattern ="QUAC", data)][2]
+qulo <- data[grepl(pattern ="QULO", data)]
+yubr <- data[grepl(pattern ="YUBR", data)][2]
+
 dataList <- list(
-  amth = read_csv(data[1]) |> 
-    dplyr::mutate(taxon = "AMTH")|>
-    dplyr::select(lat = lat, lon = long), 
-  migu = read_csv(data[4]) |> 
+  # not present in the data folder? 
+  # amth = read_csv(amth) |> 
+  #   dplyr::mutate(taxon = "AMTH")|>
+  #   dplyr::select(taxon, lat = lat, lon = long), 
+  arth = read_csv(arth,col_names = FALSE) |>
+      plyr::mutate(taxon = "ARTH")|>
+      dplyr::select(taxon, lat = X6, lon = X7),
+  migu = read_csv(migu) |> 
     dplyr::mutate(taxon = "MIGU")|>
-    dplyr::select(lat = Latitude , lon = Longitude), # maybe just North America? 
-  pico = read_csv(data[5]) |> 
+    dplyr::select(taxon, lat = Latitude , lon = Longitude), # maybe just North America? 
+  pico = read_csv(pico) |> 
     dplyr::mutate(taxon = "PICO")|>
-    dplyr::select(lat = Latitude , lon = Longitude),
-  quac = read_csv(data[6])|> 
+    dplyr::select(taxon, lat = Latitude , lon = Longitude),
+  quac = read_csv(quac)|> 
     dplyr::mutate(taxon = "QUAC")|>
-    dplyr::select(lat = decimalLatitude  , lon = decimalLongitude), # not sure what the difference is? 
-  qulo = read_csv(data[8])|> 
+    dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude), # not sure what the difference is? 
+  qulo = read_csv(qulo)|> 
     dplyr::mutate(taxon = "QULO")|>
-    dplyr::select( lat = decimalLatitude  , lon = decimalLongitude),
-  yubr = read_csv(data[10])|> 
-    dplyr::mutate(taxon = "YUBR")|>
-    dplyr::select(lat = decimalLatitude  , lon = decimalLongitude)
+    dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude)
+  # some weird stuff going on with this dataset? 
+  # yubr = read_csv(yubr)|> 
+  #   dplyr::mutate(taxon = "YUBR")|>
+  #   dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude)
 )
 
 
