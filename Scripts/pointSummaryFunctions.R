@@ -120,7 +120,7 @@ standardDistanceEllipseArea <- function(data){
   stdDist <- std_distance(geometry = data)
   
   # determine the mean center 
-  stdDistEllipse <- sfdep::center_mean(geometry = data)
+  meanCenter <- sfdep::center_mean(geometry = data)
   
   # grap coords from the mean center
   meanCoords <- as.data.frame(sf::st_coordinates(meanCenter))
