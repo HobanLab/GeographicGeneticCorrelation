@@ -18,13 +18,6 @@
 # The functions in this script are divided into sections based on their role in the workflow: the majority
 # of the most relevant functions are within the 'BUILDING THE RESAMPLING ARRAY" section. 
 
-# Note: the following functions were derived from the gap analysis code, developed by Emily Bruns, Colin Khoury,
-# and many others
-#     + createBuffers
-#     + geo.compareBuff
-#     + eco.intersectBuff
-#     + eco.compareBuff
-
 library(adegenet)
 library(terra)
 library(parallel)
@@ -271,6 +264,32 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
   return(exSituValues)
 }
 
+# Declare a function which, given a genind object, builds a matrix of genetic distances between every individual
+gen.buildDistMat <- function(genObj){
+  # Convert genind object to data.frame
+  df <- genind2df(genObj)
+  # Convert data.frame to genlight object
+  genLight <- as.genlight(df)
+  # Build a genetic distance matrix from the genlight object
+  distMat <- dist(genLight)
+  return(distMat)
+}
+
+# Given a genetic distance matrix and a vector of sample names, calculate the sum total of the genetic 
+# distances between all pairs of individuals (denominator) and the sum of the genetic distances 
+# strictly between sampled individuals (numerator), and returns a coverage metric
+gen.calcGenDistCov <- function(distMat, sampVect){
+  # Calculate the total of all the genetic distances (denominator)
+  distTotal <- sum(c(distMat))
+  # Subset the genetic distance matrix to strictly samples included within the vector of sample names
+  distMatSamp <- dist_subset(distMat, sampVect)
+  # Calculate the total genetic distance in the subset matrix (numerator)
+  distSample <- sum(c(distMatSamp))
+  # Calculate the percent coverage of genetic distance, and return
+  distCov <- (distSample/distTotal)*100
+  return(distCov)
+}
+
 # CORE FUNCTION: Wrapper of gen.getAlleleCategories, geo.compareBuff, and eco.compareBuff worker functions. 
 # Given a genetic matrix (rows are samples, columns are alleles) and a dataframe of coordinates 
 # (3 columns: sample names, latitudes, and longitudes), it calculates the genetic,
@@ -283,9 +302,10 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
 # which involves using buffered areas). Both geoBuff and ecoBuff can be single values or
 # a vector of values, in which case multiple geographic/ecological coverages are calculated
 # according to each buffer value.
-calculateCoverage <- function(genMat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=NA,
-                              ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
-                              boundary, ecoFlag=FALSE, ecoBuff, ecoTotalCount, ecoRegions, 
+calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geoBuff, 
+                              SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
+                              buffProj='+proj=eqearth +datum=WGS84', boundary, 
+                              ecoFlag=FALSE, ecoBuff, ecoTotalCount, ecoRegions, 
                               ecoLayer=c('US','NA','GL'), parFlag=FALSE, numSamples){
   # GENETIC PROCESSING
   # Calculate a vector of allele frequencies, based on the total sample matrix
@@ -299,8 +319,19 @@ calculateCoverage <- function(genMat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=N
   samp <- samp[,which(colSums(samp, na.rm = TRUE) != 0)]
   # Genetic coverage: calculate sample's allelic representation
   genRates <- gen.getAlleleCategories(freqVector, samp)
-  # Subset matrix returned by getAlleleCategories to just 3rd column (representation rates), and return
-  genRates <- genRates[,3]
+  # Check if genetic distance matrix was passed down by upper level functions;
+  # if so, calculate coverages using gen. distance metric (in addition to allelic coverage)
+  if(class(genDistMat)=='logical'){
+    # Subset matrix returned by getAlleleCategories to just 3rd column (representation rates), and return
+    genRates <- genRates[,3]
+  } else {
+    # Pass distance matrix and sample name vector to function calculating  
+    # proportion of total pairwise genetic distances represented in sample
+    genDistCov <- gen.calcGenDistCov(distMat=genDistMat, sampVect=rownames(samp))
+    # Append the resulting coverage value to the allelic coverages
+    genRates <- c(genRates[,3], genDistCov)
+    names(genRates)[6] <- 'Gen. Dist'
+  }
   
   # GEOGRAPHIC PROCESSING
   if(geoFlag==TRUE){
@@ -363,22 +394,15 @@ calculateCoverage <- function(genMat, geoFlag=TRUE, coordPts, geoBuff, SDMrast=N
 }
 
 # WRAPPER FUNCTION: iterates calculateCoverage over the entire matrix of samples
-exSituResample <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
-                           buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=FALSE, ecoBuff=50000,
-                           ecoTotalCount, ecoRegions, ecoLayer='US', parFlag){
-  # Check populations of samples: if NULL, provide all samples with the popname 'wild' 
-  # This means that if no populations are specified in the genind object, all samples will be used!
-  if(is.null(pop(genObj))){
-    pop(genObj) <- rep('wild', nInd(genObj))
-  }
-  # Create a matrix of wild individuals (those with population 'wild') from genind object
-  genMat <- genObj@tab[which(pop(genObj) == 'wild'),]
+exSituResample <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, 
+                           ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
+                           boundary, ecoFlag=FALSE, ecoBuff=50000, ecoTotalCount, ecoRegions, ecoLayer='US', parFlag){
   # Apply the calculateCoverage function to all rows of the wild matrix
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
   cov_matrix <- 
     t(sapply(2:nrow(genMat), 
-             function(x) calculateCoverage(genMat=genMat, geoFlag=geoFlag, coordPts=coordPts, 
+             function(x) calculateCoverage(genMat=genMat, genDistMat=genDistMat, geoFlag=geoFlag, coordPts=coordPts, 
                                            geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, 
                                            buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag, 
                                            ecoBuff=ecoBuff, ecoTotalCount=ecoTotalCount, ecoRegions=ecoRegions, 
@@ -388,23 +412,17 @@ exSituResample <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMras
 }
 
 # WRAPPER FUNCTION: iterates calculateCoverage over the entire matrix of samples, in parallel
-exSituResample.Par <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
-                               buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=FALSE, ecoBuff=50000,
-                               ecoTotalCount, ecoRegions, ecoLayer='US', parFlag=TRUE, cluster){
-  # Check populations of samples: if NULL, provide all samples with the popname 'wild' 
-  # This means that if no populations are specified in the genind object, all samples will be used!
-  if(is.null(pop(genObj))){
-    pop(genObj) <- rep('wild', nInd(genObj))
-  }
-  # Create a matrix of wild individuals (those with population 'wild') from genind object
-  genMat <- genObj@tab[which(pop(genObj) == 'wild'),]
+exSituResample.Par <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, 
+                               ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
+                               boundary, ecoFlag=FALSE, ecoBuff=50000, ecoTotalCount, ecoRegions, ecoLayer='US', 
+                               parFlag=TRUE, cluster){
   # Apply the calculateCoverage function to all rows of the wild matrix using parSapply
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
   cov_matrix <-
     t(parSapply(cluster, 2:nrow(genMat), 
-                function(x) calculateCoverage(genMat=genMat, geoFlag=geoFlag, coordPts=coordPts,
-                                              geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, 
+                function(x) calculateCoverage(genMat=genMat, genDistMat=genDistMat, geoFlag=geoFlag, 
+                                              coordPts=coordPts, geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, 
                                               buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag, 
                                               ecoBuff=ecoBuff, ecoTotalCount=ecoTotalCount, ecoRegions=ecoRegions, 
                                               ecoLayer=ecoLayer, parFlag=parFlag, numSamples=x), simplify = 'array'))
@@ -416,87 +434,100 @@ exSituResample.Par <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000, SD
 # Checks for arguments are also performed; if ecological coverage is being calculated, then the total number
 # of ecoregions will . This function doesn't run in parallel, so it's  primarily used
 # for testing/demonstration purposes
-geo.gen.Resample <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA,
+geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA,
                              ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84',
                              boundary, ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
                              ecoLayer=c('US', 'NA', 'GL'), reps=5){
-    # If calculating geographic coverage, check for arguments
-    if(geoFlag==TRUE){
-      # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
-      if(missing(coordPts)) stop('For geographic coverage, a data.frame of wild coordinates (coordPts) is required')
-      if(missing(geoBuff)) stop('For geographic coverage, an integer (or vector of integers) specifying the geographic
+  # Extract the genetic matrix from the genind object
+  genMat <- genObj@tab
+  # If genetic distance flag is set to TRUE, build the matrix of genetic distances to pass down to lower functions
+  if(genDistFlag==TRUE){
+    cat(paste0('\n', '--- genDistFlag ON: will calculate genetic distance coverage ---'))
+    genDistMat <- gen.buildDistMat(genObj=genObj)
+  }
+  # If calculating geographic coverage, check for arguments
+  if(geoFlag==TRUE){
+    # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
+    if(missing(coordPts)) stop('For geographic coverage, a data.frame of wild coordinates (coordPts) is required')
+    if(missing(geoBuff)) stop('For geographic coverage, an integer (or vector of integers) specifying the geographic 
                               buffer size(s) is required (geoBuff argument)')
-      if(missing(boundary)) stop('For geographic coverage, a SpatVector object of country boundaries (boundary) is required')
-      # Check that the names of the latitude and longitude columns are properly written (this is unfortunately hard-coded)
-      if(!identical(colnames(coordPts)[2:3], c('decimalLatitude', 'decimalLongitude'))){
-        stop('The column names of the geographic coordinates dataframe (coordPts) need to be
-           decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
+    if(missing(boundary)) stop('For geographic coverage, a SpatVector object of country boundaries (boundary) is required')
+    # Check that the names of the latitude and longitude columns are properly written (this is unfortunately hard-coded)
+    if(!identical(colnames(coordPts)[2:3], c('decimalLatitude', 'decimalLongitude'))){
+    stop('The column names of the geographic coordinates dataframe (coordPts) need to be
+         decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
       }
+    # Print out message stating what coverages are being calculated, and how many buffer sizes
+    cat('\n', '--- geoFlag ON: will calculate geographic coverage (total buffer) ---')
+    cat(paste0('\n', '--- Number of buffer sizes (Geo, Total buffer): ', length(geoBuff), ' ---'))
+    # If SDM is provided: 
+    if(!class(SDMrast)=='logical'){
       # Print out message stating what coverages are being calculated, and how many buffer sizes
-      cat('\n', '--- geoFlag ON: will calculate geographic coverage (total buffer) ---')
-      cat(paste0('\n', '--- Number of buffer sizes (Geo, Total buffer): ', length(geoBuff), ' ---'))
-      # If SDM is provided: 
-      if(!class(SDMrast)=='logical'){
-        # Print out message stating what coverages are being calculated, and how many buffer sizes
-        cat(paste0('\n', '--- SDM provided: will calculate geographic coverage (SDM) ---'))
-        cat(paste0('\n', '--- Number of buffer sizes (Geo, SDM): ', length(geoBuff), ' ---'))
-        # Check that geographic buffer size is greater than SDM raster resolution,
-        # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
-        # multiple times, and return a list
-        SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=FALSE))
-      }
+      cat(paste0('\n', '--- SDM provided: will calculate geographic coverage (SDM) ---'))
+      cat(paste0('\n', '--- Number of buffer sizes (Geo, SDM): ', length(geoBuff), ' ---'))
+      # Check that geographic buffer size is greater than SDM raster resolution,
+      # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
+      # multiple times, and return a list
+      SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=FALSE))
     }
-    # If calculating ecological coverage, check for arguments
-    if(ecoFlag==TRUE){
-      # Match ecoLayer argument, to ensure it is 1 of 3 possible values ('US', 'NA', 'GL)
-      ecoLayer <- match.arg(ecoLayer)
-      # Check for the required arguments (ptProj, buffProj, and ecoLayer will use defaults, if not specified)
-      if(missing(coordPts)) stop('For ecological coverage, a data.frame of wild coordinates (coordPts) is required')
-      if(missing(ecoBuff)) stop('For ecological coverage, an integer (or vector of integers) specifying
-                              the ecological buffer size(s)  is required (ecoBuff argument)')
-      if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
-      if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
-      # Print out message stating what coverages are being calculated, and how many buffer sizes
-      cat(paste0('\n', '--- ecoFlag ON: will calculate ecological coverage ---'))
-      cat(paste0('\n', '--- Number of buffer sizes (Eco): ', length(ecoBuff), ' ---'))
-      # CALCULATE TOTAL ECOLOGICAL COVERAGE: calculate the number of ecoregions found under all samples for all
-      # buffer sizes. The resulting variable is passed down to lower level functions to optimize processing
-      cat(paste0('\n', '--- CALCULATING TOTAL ECOREGION COVERAGE... ---'))
-      ecoTotalCount <- lapply(ecoBuff,
-                              function(x) eco.totalEcoregionCount(totalWildPoints=coordPts, buffSize=x,
-                                                                  ptProj=ptProj, buffProj=buffProj,
-                                                                  ecoRegion=ecoRegions, layerType=ecoLayer,
-                                                                  boundary=boundary, parFlag=FALSE))
-    }
-    # Print starting time
-    startTime <- Sys.time()
-    cat(paste0('\n', '%%% RESAMPLING START: ', startTime, '\n'))
-    # Run resampling for all replicates, using sapply and lambda function
-    resamplingArray <-
-      sapply(1:reps, function(x) exSituResample(genObj=genObj,geoFlag=geoFlag,
-                                                coordPts=coordPts,geoBuff=geoBuff,
-                                                SDMrast=SDMrast, ptProj=ptProj,
-                                                buffProj=buffProj,boundary=boundary,
-                                                ecoFlag=ecoFlag, ecoBuff=ecoBuff,
-                                                ecoTotalCount=ecoTotalCount, ecoRegions=ecoRegions,
-                                                ecoLayer=ecoLayer, parFlag=FALSE), simplify = 'array')
+  }
+  # If calculating ecological coverage, check for arguments
+  if(ecoFlag==TRUE){
+    # Match ecoLayer argument, to ensure it is 1 of 3 possible values ('US', 'NA', 'GL)
+    ecoLayer <- match.arg(ecoLayer)
+    # Check for the required arguments (ptProj, buffProj, and ecoLayer will use defaults, if not specified)
+    if(missing(coordPts)) stop('For ecological coverage, a data.frame of wild coordinates (coordPts) is required')
+    if(missing(ecoBuff)) stop('For ecological coverage, an integer (or vector of integers) specifying
+                            the ecological buffer size(s)  is required (ecoBuff argument)')
+    if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
+    if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
+    # Print out message stating what coverages are being calculated, and how many buffer sizes
+    cat(paste0('\n', '--- ecoFlag ON: will calculate ecological coverage ---'))
+    cat(paste0('\n', '--- Number of buffer sizes (Eco): ', length(ecoBuff), ' ---'))
+    # CALCULATE TOTAL ECOLOGICAL COVERAGE: calculate the number of ecoregions found under all samples for all
+    # buffer sizes. The resulting variable is passed down to lower level functions to optimize processing
+    cat(paste0('\n', '--- CALCULATING TOTAL ECOREGION COVERAGE... ---'))
+    ecoTotalCount <- lapply(ecoBuff,
+                            function(x) eco.totalEcoregionCount(totalWildPoints=coordPts, buffSize=x,
+                                                                ptProj=ptProj, buffProj=buffProj,
+                                                                ecoRegion=ecoRegions, layerType=ecoLayer,
+                                                                boundary=boundary, parFlag=FALSE))
+  }
+  # Print starting time
+  startTime <- Sys.time()
+  cat(paste0('\n', '%%% RESAMPLING START: ', startTime, '\n'))
+  # Run resampling for all replicates, using sapply and lambda function
+  resamplingArray <-
+    sapply(1:reps, function(x) exSituResample(genMat=genMat, genDistMat=genDistMat, geoFlag=geoFlag,
+                                              coordPts=coordPts, geoBuff=geoBuff,
+                                              SDMrast=SDMrast, ptProj=ptProj,
+                                              buffProj=buffProj,boundary=boundary,
+                                              ecoFlag=ecoFlag, ecoBuff=ecoBuff,
+                                              ecoTotalCount=ecoTotalCount, ecoRegions=ecoRegions,
+                                              ecoLayer=ecoLayer, parFlag=FALSE), simplify = 'array')
     # Print ending time and total runtime
     endTime <- Sys.time()
     cat(paste0('\n', '%%% RESAMPLING END: ', endTime))
     cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
     # Return array
     return(resamplingArray)
-  }
+}
 
 # WRAPPER FUNCTION: iterates exSituResample.Par, which will generate an array of values from a single genind object
 # This function iterates the parallelized version of exSituResample, such that each different sample size for a 
 # single resampling replicate is processed on a single core. Results (resampling array) are saved to a specified file path.
-geo.gen.Resample.Par <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000, 
+geo.gen.Resample.Par <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, geoBuff=50000, 
                                  SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
-                                 buffProj='+proj=eqearth +datum=WGS84', boundary, 
-                                 ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
-                                 ecoLayer=c('US','NA','GL'), reps=5,
+                                 buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=FALSE, 
+                                 ecoBuff=50000, ecoRegions, ecoLayer=c('US','NA','GL'), reps=5,
                                  arrayFilepath='~/resamplingArray.Rdata', cluster){
+  # Extract the genetic matrix from the genind object
+  genMat <- genObj@tab
+  # If genetic distance flag is set to TRUE, build the matrix of genetic distances to pass down to lower functions
+  if(genDistFlag==TRUE){
+    cat(paste0('\n', '--- genDistFlag ON: will calculate genetic distance coverage ---'))
+    genDistMat <- gen.buildDistMat(genObj=genObj)
+  }
   # If calculating geographic coverage, check for arguments
   if(geoFlag==TRUE){
     # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
@@ -552,7 +583,7 @@ geo.gen.Resample.Par <- function(genObj, geoFlag=TRUE, coordPts, geoBuff=50000,
   cat(paste0('\n', '%%% RESAMPLING START: ', startTime, '\n'))
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- 
-    sapply(1:reps, function(x) exSituResample.Par(genObj=genObj, geoFlag=geoFlag, 
+    sapply(1:reps, function(x) exSituResample.Par(genMat=genMat, genDistMat=genDistMat, geoFlag=geoFlag, 
                                                   coordPts=coordPts, geoBuff=geoBuff, 
                                                   SDMrast=SDMrast, ptProj=ptProj, 
                                                   buffProj=buffProj, boundary=boundary, 
@@ -829,7 +860,7 @@ prepWorldAdmin <- function(world_poly_clip, wildPoints){
   return(admin)
 }
 
-#' Make a map command -- Dan Carver
+#' makeAMap -- Dan Carver
 #'
 #' @param points : sf point object  
 #' @param raster : terra raster object... converted to raster within the function. 
@@ -909,4 +940,171 @@ makeAMap <- function(points,raster,buffer=NA){
     map <- map1 
   }
   return(map)
+}
+
+# ---- POINT SUMMARY FUNCTIONS ----
+# The functions in this section are associated with the spatial metrics for buffer optimization (SMBO)
+# analyses, which seek to determine whether an optimal buffer size for matching genetic and geographic
+# coverage can be estimated using summaries of the geographic coordinates of each dataset. The functions
+# were authored by Dan Carver.
+
+#' geo.generateSpatialObject -- Dan Carver
+#' Build a spatial object from coordinate data
+geo.generateSpatialObject <- function(data){
+  # Clean 
+  data1 <- data |>
+    dplyr::filter(!is.na(lon))|>
+    dplyr::filter(!is.na(lat))
+  
+  # Lat long data
+  sp1 <- sf::st_as_sf(x = data1,
+                      coords = c("lon","lat"),
+                      crs = CRS("+proj=longlat +datum=WGS84 +no_defs +type=crs"),
+                      remove = FALSE)
+  # Projected data (Alberts equal area 8857)
+  sp1_proj <- sf::st_transform(x = sp1, crs ="+proj=moll")
+  return(sp1_proj)
+}
+
+#' geo.calc.EOO
+#' Calculate the extent of occurence (EOO) value. Units: square meters
+geo.calc.EOO <- function(data){
+  # Convert to a multipoint object
+  bb <- st_convex_hull(st_union(data))
+  # Export value 
+  eooArea <- st_area(bb,)
+  return(eooArea)
+}
+
+#' geo.calc.AOO
+#' Calculate the area of occurence (EOO) value. Units: square meters
+geo.calc.AOO <- function(data){
+  bb <- st_convex_hull(st_union(data))
+  # Create the gridded feature 
+  allGrids <- st_make_grid(bb,
+                           square = T, 
+                           cellsize = 2000)
+  # Test for intersetion with the conver hull 
+  intersectionCells <- sf::st_intersects(x = allGrids,
+                                         y = bb,
+                                         sparse= FALSE) # the grid, covering bounding box
+  # Filter the full polygon feature
+  selectAreas <- allGrids[intersectionCells]
+  # Determine the number of areas that have an observation 
+  intersectionPoints <- sf::st_intersects(x = selectAreas,
+                                          y = data,
+                                          sparse= TRUE)
+  # Count of all features with at least one observation 
+  testIntersect <- function(area){
+    if(length(area)>0){
+      return(1)
+    }else{
+      0
+    }
+  }
+  areasWithPoints <- purrr::map(.x = intersectionPoints, .f = testIntersect )|> 
+    unlist()|> 
+    sum()
+  
+  # Calculate A00 and return
+  aoo <- areasWithPoints / nrow(intersectionPoints) *100
+  return(aoo)
+}
+
+#' geo.calc.averageNearestNeighbor 
+#' Calculate the average nearest neighbor metric. Units: meters
+geo.calc.averageNearestNeighbor <- function(data){
+  # Convert data back to lat lon 
+  refSP <- data |>
+    sf::st_transform(crs = 4326)
+  # Remove duplicated locations 
+  refSP_noDup <- refSP[!duplicated(refSP),]
+  # Calculate average nearest neighbor
+  aveNearNeighbor <- refSP_noDup |> 
+    mutate(
+      nb = st_dist_band(geometry),
+      dists = st_nb_dists(geometry, nb,longlat = TRUE),
+      avg_dist = purrr::map_dbl(dists, mean),
+      group_average = mean(avg_dist, na.rm = TRUE)
+    ) 
+  return(aveNearNeighbor$group_average[1])
+}
+
+#' geo.calc.voronoiAreas
+#' Calculate the area of Voronoi cells. Unitless
+geo.calc.voronoiAreas <- function(data){
+  # Produce the tesselations 
+  tesselation <- deldir(data$lon, data$lat)
+  # Creates the spatial representation on the areas 
+  tiles <- tile.list(tesselation)
+  # Helper for indexing out of the tiles object
+  selectArea <- function(tile){
+    tile[6]
+  }
+  # Go through each tile and determine the overall average area
+  aveVoronoiArea <- purrr::map(.x = tiles,.f = selectArea ) |> unlist() |> mean(na.rm=TRUE)
+  return(aveVoronoiArea)
+}
+
+#' geo.calc.stdDistance
+#' Calculate the standard distance metric. Units: meters
+geo.calc.stdDistance <- function(data){
+  stdDist <- std_distance(geometry = data)
+  return(stdDist)
+}
+
+#' geo.calc.stdDistanceEllipseArea
+#' Calculate the standard distance of the ellipse area. Units: meters
+geo.calc.stdDistanceEllipseArea <- function(data){
+  # Determine the standard distance 
+  stdDist <- std_distance(geometry = data)
+  # Determine the mean center 
+  stdDistEllipse <- sfdep::center_mean(geometry = data)
+  # Grab coords from the mean center
+  meanCoords <- as.data.frame(sf::st_coordinates(meanCenter))
+  # Produces a list of points within the ellipse 
+  stdDistEllipse <- ellipse(x = meanCoords$X,y = meanCoords$Y , sx = stdDist, sy = stdDist)
+  # Convert to a polygon and project 
+  poly <- stdDistEllipse |>
+    as.data.frame()|>
+    sfheaders::sf_polygon(x = "x", y = "y")
+  sf::st_crs(poly) <- crs(data)
+  # Make valid and reproject 
+  validPoly <- st_make_valid(poly)
+  # Determine area of the polygon, and return
+  stdEllipseArea <- st_area(poly)
+  return(stdEllipseArea)
+}
+
+#' geo.calc.stdDeviationEllipseArea
+#' Calculate the standard deviation of the ellipse area. Units: meters
+geo.calc.stdDevationEllipseArea <- function(data){
+  stdDevElli <- std_dev_ellipse(geometry = data)
+  # Points for the ellipse 
+  stdDevEllipse <- st_ellipse(geometry =stdDevElli,
+                              sx = stdDevElli$sx,
+                              sy = stdDevElli$sy,
+                              rotation = -stdDevElli$theta)
+  # Determine length of the perimeter  
+  stdDevationEllipseArea <- st_length(stdDevEllipse)
+  return(stdDevationEllipseArea)
+}
+
+# Wrapper function of the above point summary functions, which will calculate
+# each point summary statistic for a given dataset, and return 
+geo.calc.pointSummaries <- function(geoData){
+  browser()
+  # Begin by converting data into spatial object
+  geoSpat <- geo.generateSpatialObject(geoData)
+  # Run through the different spatial metric calculations, and store results to a data.frame
+  EOO <- geo.calc.EOO(geoSpat)
+  AOO <- geo.calc.AOO(geoSpat)
+  ANN <- geo.calc.averageNearestNeighbor(geoSpat)
+  VOR <- geo.calc.voronoiAreas(geoSpat)
+  StdDist <- geo.calc.stdDistance(geoSpat)
+  StdDistEA <- geo.calc.stdDistanceEllipseArea(geoSpat)
+  StdDevEA <- geo.calc.stdDevationEllipseArea(geoSpat)
+  # Combine metrics into a data.frame, and return
+  ptSummaryDF <- data.frame(EOO, AOO, ANN, VOR, StdDist, StdDistEA, StdDevEA)
+  return(ptSummaryDF)
 }
