@@ -442,7 +442,7 @@ geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, 
   genMat <- genObj@tab
   # If genetic distance flag is set to TRUE, build the matrix of genetic distances to pass down to lower functions
   if(genDistFlag==TRUE){
-    cat(paste0('\n', '--- genDistFlag ON: will calculate genetic distance coverage ---'))
+    cat(paste0('\n', '- genDistFlag ON: will calculate genetic distance coverage -'))
     genDistMat <- gen.buildDistMat(genObj=genObj)
   }
   # If calculating geographic coverage, check for arguments
@@ -458,12 +458,12 @@ geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, 
          decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
       }
     # Print out message stating what coverages are being calculated, and how many buffer sizes
-    cat('\n', '--- geoFlag ON: will calculate geographic coverage (total buffer) ---')
+    cat('\n', '- geoFlag ON: will calculate geographic coverage (total buffer) -')
     cat(paste0('\n', '--- Number of buffer sizes (Geo, Total buffer): ', length(geoBuff), ' ---'))
     # If SDM is provided: 
     if(!class(SDMrast)=='logical'){
       # Print out message stating what coverages are being calculated, and how many buffer sizes
-      cat(paste0('\n', '--- SDM provided: will calculate geographic coverage (SDM) ---'))
+      cat(paste0('\n', '- SDM provided: will calculate geographic coverage (SDM) -'))
       cat(paste0('\n', '--- Number of buffer sizes (Geo, SDM): ', length(geoBuff), ' ---'))
       # Check that geographic buffer size is greater than SDM raster resolution,
       # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
@@ -482,7 +482,7 @@ geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, 
     if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
     if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
     # Print out message stating what coverages are being calculated, and how many buffer sizes
-    cat(paste0('\n', '--- ecoFlag ON: will calculate ecological coverage ---'))
+    cat(paste0('\n', '- ecoFlag ON: will calculate ecological coverage -'))
     cat(paste0('\n', '--- Number of buffer sizes (Eco): ', length(ecoBuff), ' ---'))
     # CALCULATE TOTAL ECOLOGICAL COVERAGE: calculate the number of ecoregions found under all samples for all
     # buffer sizes. The resulting variable is passed down to lower level functions to optimize processing
@@ -525,7 +525,7 @@ geo.gen.Resample.Par <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordP
   genMat <- genObj@tab
   # If genetic distance flag is set to TRUE, build the matrix of genetic distances to pass down to lower functions
   if(genDistFlag==TRUE){
-    cat(paste0('\n', '--- genDistFlag ON: will calculate genetic distance coverage ---'))
+    cat(paste0('\n', '- genDistFlag ON: will calculate genetic distance coverage -'))
     genDistMat <- gen.buildDistMat(genObj=genObj)
   }
   # If calculating geographic coverage, check for arguments
@@ -541,12 +541,12 @@ geo.gen.Resample.Par <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordP
            decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
     }
     # Print out message stating what coverages are being calculated, and how many buffer sizes
-    cat('\n', '--- geoFlag ON: will calculate geographic coverage (total buffer) ---')
+    cat('\n', '- geoFlag ON: will calculate geographic coverage (total buffer) -')
     cat(paste0('\n', '--- Number of buffer sizes (Geo, Total buffer): ', length(geoBuff), ' ---'))
     # If SDM is provided:
     if(!class(SDMrast)=='logical'){
       # Print out message stating what coverages are being calculated, and how many buffer sizes
-      cat(paste0('\n', '--- SDM provided: will calculate geographic coverage (SDM) ---'))
+      cat(paste0('\n', '- SDM provided: will calculate geographic coverage (SDM) -'))
       cat(paste0('\n', '--- Number of buffer sizes (Geo, SDM): ', length(geoBuff), ' ---'))
       # Check that geographic buffer size is greater than SDM raster resolution, 
       # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
@@ -567,7 +567,7 @@ geo.gen.Resample.Par <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordP
     if(missing(ecoRegions)) stop('For ecological coverage, a SpatVector object of ecoregions (ecoregions) is required')
     if(missing(boundary)) stop('For ecological coverage, a SpatVector object of country boundaries (boundary) is required')
     # Print out message stating what coverages are being calculated, and how many buffer sizes
-    cat(paste0('\n', '--- ecoFlag ON: will calculate ecological coverage ---'))
+    cat(paste0('\n', '- ecoFlag ON: will calculate ecological coverage -'))
     cat(paste0('\n', '--- Number of buffer sizes (Eco): ', length(ecoBuff), ' ---'))
     # CALCULATE TOTAL ECOLOGICAL COVERAGE: calculate the number of ecoregions found under all samples for all 
     # buffer sizes, and pass this down to lower level functions, to optimize processing
@@ -955,13 +955,12 @@ geo.generateSpatialObject <- function(data){
   data1 <- data |>
     dplyr::filter(!is.na(lon))|>
     dplyr::filter(!is.na(lat))
-  
   # Lat long data
   sp1 <- sf::st_as_sf(x = data1,
                       coords = c("lon","lat"),
                       crs = CRS("+proj=longlat +datum=WGS84 +no_defs +type=crs"),
                       remove = FALSE)
-  # Projected data (Alberts equal area 8857)
+  # Projected data 
   sp1_proj <- sf::st_transform(x = sp1, crs ="+proj=moll")
   return(sp1_proj)
 }
@@ -985,15 +984,12 @@ geo.calc.AOO <- function(data){
                            square = T, 
                            cellsize = 2000)
   # Test for intersetion with the conver hull 
-  intersectionCells <- sf::st_intersects(x = allGrids,
-                                         y = bb,
+  intersectionCells <- sf::st_intersects(x = allGrids,y = bb,
                                          sparse= FALSE) # the grid, covering bounding box
   # Filter the full polygon feature
   selectAreas <- allGrids[intersectionCells]
   # Determine the number of areas that have an observation 
-  intersectionPoints <- sf::st_intersects(x = selectAreas,
-                                          y = data,
-                                          sparse= TRUE)
+  intersectionPoints <- sf::st_intersects(x = selectAreas, y = data, sparse= TRUE)
   # Count of all features with at least one observation 
   testIntersect <- function(area){
     if(length(area)>0){
@@ -1059,7 +1055,7 @@ geo.calc.stdDistanceEllipseArea <- function(data){
   # Determine the standard distance 
   stdDist <- std_distance(geometry = data)
   # Determine the mean center 
-  stdDistEllipse <- sfdep::center_mean(geometry = data)
+  meanCenter <- sfdep::center_mean(geometry = data)
   # Grab coords from the mean center
   meanCoords <- as.data.frame(sf::st_coordinates(meanCenter))
   # Produces a list of points within the ellipse 
