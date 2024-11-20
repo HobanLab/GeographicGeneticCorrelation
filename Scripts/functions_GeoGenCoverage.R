@@ -264,13 +264,13 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
   return(exSituValues)
 }
 
-# Declare a function which, given a genind object, builds a matrix of genetic distances between every individual
+# Declare a function which, given a genind object, builds a matrix of Euclidean distances between every individual
 gen.buildDistMat <- function(genObj){
   # Convert genind object to data.frame
   df <- genind2df(genObj)
   # Convert data.frame to genlight object
   genLight <- as.genlight(df)
-  # Build a genetic distance matrix from the genlight object
+  # Build a genetic distance matrix from the genlight object. The default method (Euclidean) is used.
   distMat <- dist(genLight)
   return(distMat)
 }
@@ -312,7 +312,7 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
   freqVector <- colSums(genMat, na.rm = TRUE)/(nrow(genMat)*2)*100
   # Remove any missing alleles (those with frequencies of 0) from the frequency vector
   freqVector <- freqVector[which(freqVector != 0)]
-  # From a matrix of individuals, select a set of random individuals (rows). This is the set of individuals that will
+  # From matrix of individuals, select a random set (rows). This is the set of individuals that will
   # be used for all downstream coverage calculations within this function (genetic, geographic, and ecological)
   samp <- genMat[sample(nrow(genMat), size=numSamples, replace = FALSE),]
   # Remove any missing alleles (those with colSums of 0) from the sample matrix
@@ -320,7 +320,7 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
   # Genetic coverage: calculate sample's allelic representation
   genRates <- gen.getAlleleCategories(freqVector, samp)
   # Check if genetic distance matrix was passed down by upper level functions;
-  # if so, calculate coverages using gen. distance metric (in addition to allelic coverage)
+  # if so, calculate coverages using a distance metric (in addition to allelic coverage)
   if(class(genDistMat)=='logical'){
     # Subset matrix returned by getAlleleCategories to just 3rd column (representation rates), and return
     genRates <- genRates[,3]
@@ -330,7 +330,7 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
     genDistCov <- gen.calcGenDistCov(distMat=genDistMat, sampVect=rownames(samp))
     # Append the resulting coverage value to the allelic coverages
     genRates <- c(genRates[,3], genDistCov)
-    names(genRates)[6] <- 'Gen. Dist'
+    names(genRates)[6] <- 'GenDist'
   }
   
   # GEOGRAPHIC PROCESSING
@@ -460,7 +460,7 @@ geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, 
     # Print out message stating what coverages are being calculated, and how many buffer sizes
     cat('\n', '- geoFlag ON: will calculate geographic coverage (total buffer) -')
     cat(paste0('\n', '--- Number of buffer sizes (Geo, Total buffer): ', length(geoBuff), ' ---'))
-    # If SDM is provided: 
+    # If SDM is provided (meaning it's not NA, or class logical): 
     if(!class(SDMrast)=='logical'){
       # Print out message stating what coverages are being calculated, and how many buffer sizes
       cat(paste0('\n', '- SDM provided: will calculate geographic coverage (SDM) -'))
@@ -543,7 +543,7 @@ geo.gen.Resample.Par <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordP
     # Print out message stating what coverages are being calculated, and how many buffer sizes
     cat('\n', '- geoFlag ON: will calculate geographic coverage (total buffer) -')
     cat(paste0('\n', '--- Number of buffer sizes (Geo, Total buffer): ', length(geoBuff), ' ---'))
-    # If SDM is provided:
+    # If SDM is provided (meaning it's not NA, or class logical):
     if(!class(SDMrast)=='logical'){
       # Print out message stating what coverages are being calculated, and how many buffer sizes
       cat(paste0('\n', '- SDM provided: will calculate geographic coverage (SDM) -'))
@@ -649,29 +649,6 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
   # of samples (at least 2 samples are required in order for sample function to work; see above).
   # These values are repeated for the number of replicates in the resampling array (3rd dimension)
   sampleNumbers <- rep(2:(nrow(resamplingArray)+1), dim(resamplingArray)[[3]])
-  # Convert the resampling array to a matrix, where the array slices are added as rows
-  resamp_DF <- 
-    as.matrix(resamplingArray, nrow = dim(resamplingArray)[[1]]*dim(resamplingArray)[[3]], ncol=ncol(resamplingArray))
-  # Rename the data.frame values according to the column names of the array
-  colnames(resamp_DF) <- dimnames(resamplingArray)[[2]]
-  resamp_DF <- as.data.frame(resamp_DF)
-  # Add the sample numbers corresponding to each row of the data.frame, as the first column
-  resamp_DF <- cbind(sampleNumbers, resamp_DF)
-  # If allValues flag is FALSE, remove the allele categories other than 'Total'
-  if(allValues==FALSE){
-    # resamp_DF <- resamp_DF[,-(3:6)]
-    resamp_DF <- resamp_DF[-c('V. common','Common','Low freq.','Rare')]
-  }
-  return(resamp_DF)
-}
-
-# From resampling array, generate a data.frame by collapsing values across replicates into vectors
-# allValues flag indicates whether or not to include categories of alleles other that 'Total'
-resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
-  # Create a vector of sample numbers. The values in this vector range from 2:total number
-  # of samples (at least 2 samples are required in order for sample function to work; see above).
-  # These values are repeated for the number of replicates in the resampling array (3rd dimension)
-  sampleNumbers <- rep(2:(nrow(resamplingArray)+1), dim(resamplingArray)[[3]])
   # Pass sample number vector to data.frame, which will be the final output of the function
   resamp_DF <- data.frame(sampleNumbers=sampleNumbers)
   # Loop through the array by colunms (variables)
@@ -688,7 +665,6 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
   return(resamp_DF)
 }
 
-# ---- DATA EXPLORATION FUNCTIONS ----
 # Function for calculating normalized root mean square error. Takes two vectors of equal length
 # (for this project, typically geographic or ecological coverages and allelic representation values)
 # and calculates the root mean square error between them, and then normalizes that value based on the 
@@ -717,6 +693,76 @@ nrmse.func <-  function(obs_var, pred_var, norm_type='mean'){
     nrmse <- round(nrmse, 5)
     return(nrmse)
   }
+}
+
+# Function for building a matrix of normalized root mean square error (NRMSE) values based on 
+# a data.frame of resampling values and the genetic coverage type used for the predictor variable.
+# Given these arguments, a matrix is generated which has a NRMSE value for each set of geographic/ecological
+# coverage values compared to the genetic coverage metric. This command expects the resampling data.frame
+# to have certain row names and column names, and makes those checks
+buildNRMSEmatrix <- function(resampDF, genCovType=c('CV', 'GD'), sdmFlag=TRUE){
+  # Match argument for type of response variable (genetic coverage approach) to use
+  genCovType <- match.arg(genCovType)
+  # If CV is chosen, set the predictive variable argument to the 'Total' column in the data.frame
+  if(genCovType=='CV'){
+    predVar <- resampDF$Total
+    # Otherwise, set the predictve variable to the 'GenDist' column
+  } else {
+    predVar <- resampDF$GenDist
+  }
+  # Extract buffer sizes through column names, for the geographic (total buffer) approach. This is 
+  # a complicated command, but essentially relies on the column names of the resampling data.frame
+  # to refer to the geographic buffer size used for that row of data.
+  buffSizes <- 
+    1000*(as.numeric(sub('km','', sapply(strsplit(grep('Geo_Buff_', colnames(resampDF), value=TRUE), '_'),'[',3))))
+  # Build matrix of NRMSE values. Depending on the sdmFlag, this matrix will either have
+  # 3 columns or just 2. 
+  if(sdmFlag==TRUE){
+    # Check that the resampling data.frame has the same number of columns for each coverage type
+    if(length(grep('Geo_Buff_', colnames(resampDF)))!=length(grep('Geo_SDM_', colnames(resampDF)))){
+      stop('Different number of Geo_Buff and Geo_SDM columns in data.frame!')
+    }
+    if(length(grep('Geo_Buff_', colnames(resampDF)))!=length(grep('Eco_Buff_', colnames(resampDF)))){
+      stop('Different number of Geo_Buff and Eco_Buff columns in data.frame!')
+    }
+    # Name matrix columns accordingly
+    NRMSEmat <- matrix(NA, nrow=length(buffSizes), ncol=3)
+    colnames(NRMSEmat) <- c('Geo_Buff','Geo_SDM','Eco_Buff')
+  } else {
+    # Check that the resampling data.frame has the same number of columns for each coverage type
+    if(length(grep('Geo_Buff_', colnames(resampDF)))!=length(grep('Eco_Buff_', colnames(resampDF)))){
+      stop('Different number of Geo_Buff and Eco_Buff columns in data.frame!')
+    }
+    # Name matrix columns accordingly
+    NRMSEmat <- matrix(NA, nrow=length(buffSizes), ncol=2)
+    colnames(NRMSEmat) <- c('Geo_Buff','Eco_Buff')
+  }
+  # Name matrix rows according to buffer sizes
+  rownames(NRMSEmat) <- paste0(buffSizes/1000, 'km')
+  # Not all resampling data.frames have the geographic coverage results starting in the same column.
+  # To address this, make the loop start at an index according to the column names
+  startCol <- min(grep('Geo_Buff_', colnames(resampDF)))
+  # Loop through the dataframe columns. The first three columns are skipped, as they're sample number and the
+  # predictive variables (allelic coverage and genetic distance proportions)
+  for(i in startCol:ncol(resampDF)){
+    # Calculate NRMSE for the current column in the dataframe
+    NRMSEvalue <- nrmse.func(resampDF[,i], pred = predVar)
+    # Get the name of the current dataframe column
+    dataName <- unlist(strsplit(names(resampDF)[[i]],'_'))
+    # Match the data name to the relevant rows/columns of the receiving matrix
+    matRow <- which(rownames(NRMSEmat) == dataName[[3]])
+    matCol <- which(colnames(NRMSEmat) == paste0(dataName[[1]],'_',dataName[[2]]))
+    # Locate the NRMSE value accordingly
+    NRMSEmat[matRow,matCol] <- NRMSEvalue
+  }
+  # Rename the columns based on the genetic coverage type used
+  if(genCovType=='CV'){
+    colnames(NRMSEmat) <- paste0(colnames(NRMSEmat),'_CV')
+  } else {
+    colnames(NRMSEmat) <- paste0(colnames(NRMSEmat),'_GD')
+  }
+  # Return the resulting matrix
+  return(NRMSEmat)
 }
 
 # Function for generating a vector of wild allele frequencies from a genind object
