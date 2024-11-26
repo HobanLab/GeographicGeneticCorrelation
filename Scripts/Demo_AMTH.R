@@ -8,12 +8,7 @@
 # coordinate values need to be processed in order to build a data.frame with coordinates
 # for each individual; these steps are taken below.
 
-library(adegenet)
-library(terra)
-library(parallel)
-library(RColorBrewer)
-library(scales)
-library(vcfR) # for vcfR2genind function
+pacman::p_load(adegenet, terra, parallel, RColorBrewer, scales, vcfR, usedist)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'

@@ -6,12 +6,7 @@
 # for Conradina glabra. Uses data files from Lauren Eserman--a VCF containing filtered
 # SNPs, for genetic data, and a CSV of coordinates. 
 
-library(adegenet)
-library(terra)
-library(parallel)
-library(RColorBrewer)
-library(scales)
-library(vcfR) # for vcfR2genind function
+pacman::p_load(adegenet, terra, parallel, RColorBrewer, scales, vcfR, usedist)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'

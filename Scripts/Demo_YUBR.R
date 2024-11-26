@@ -7,11 +7,7 @@
 # CSV reformatted to STRUCTURE input file; geographic coordinates are converted and
 # cleaned before being utilized for correlations.
 
-library(adegenet)
-library(terra)
-library(parallel)
-library(RColorBrewer)
-library(scales)
+pacman::p_load(adegenet, terra, parallel, RColorBrewer, viridis, scales, vcfR, usedist)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
@@ -35,6 +31,7 @@ cl <- makeCluster(num_cores)
 clusterEvalQ(cl, library('adegenet'))
 clusterEvalQ(cl, library('terra'))
 clusterEvalQ(cl, library('parallel'))
+clusterEvalQ(cl, library('usedist'))
 
 # %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
@@ -112,14 +109,14 @@ clusterExport(cl, varlist = c('YUBR_genind','YUBR_coordinates','num_reps','geo_b
                               'eco_buffSize','world_poly_clip_W', 'ecoregion_poly_W','YUBR_sdm_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
-                              'eco.intersectBuff','eco.compareBuff','eco.totalEcoregionCount',
-                              'gen.getAlleleCategories','calculateCoverage','exSituResample.Par',
-                              'geo.gen.Resample.Par'))
+                              'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories', 
+                              'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
+                              'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
+arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO3_G2G2E_resampArr.Rdata')
 # Run resampling (in parallel)
 YUBR_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj = YUBR_genind, geoFlag = TRUE, coordPts = YUBR_coordinates, 
+  geo.gen.Resample.Par(genObj = YUBR_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts = YUBR_coordinates, 
                        geoBuff = geo_buffSize,SDMrast = YUBR_sdm_W, boundary=world_poly_clip_W, 
                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
                        ecoLayer = 'US', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
@@ -272,40 +269,25 @@ legend(x=200, y=85, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (1 km)', 'Geographic, SDM (1 km)'),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 
-# %%%% SMBO2: MULTIPLE BUFFER SIZES ----
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
 # Specify filepath for YUBR geographic and genetic data, including resampling array
 YUBR_filePath <- paste0(GeoGenCorr_wd, 'Datasets/YUBR/')
-arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
+arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO3_G2G2E_resampArr.Rdata')
 # Read in array and build a data.frame of values
-YUBR_MultBuff_array <- readRDS(arrayDir)
-# Specify geographic buffer size in meters (used above)
-geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+YUBR_SMBO3_array <- readRDS(arrayDir)
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
-YUBR_MultBuff_DF <- resample.array2dataframe(YUBR_MultBuff_array)
-# Build a matrix to capture NRMSE values
-YUBR_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=3)
-# The names of this matrix match the different parts of the dataframe names
-colnames(YUBR_NRMSE_Mat) <- c('Geo_Buff','Geo_SDM','Eco_Buff')
-rownames(YUBR_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
-# Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
-# predictve variable (genetic coverages)
-for(i in 3:ncol(YUBR_MultBuff_DF)){
-  # Calculate NRMSE for the current column in the dataframe
-  YUBR_NRMSEvalue <- nrmse.func(YUBR_MultBuff_DF[,i], pred = YUBR_MultBuff_DF$Total)
-  # Get the name of the current dataframe column
-  dataName <- unlist(strsplit(names(YUBR_MultBuff_DF)[[i]],'_'))
-  # Match the data name to the relevant rows/columns of the receiving matrix
-  matRow <- which(rownames(YUBR_NRMSE_Mat) == dataName[[3]])
-  matCol <- which(colnames(YUBR_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
-  # Locate the NRMSE value accordingly
-  YUBR_NRMSE_Mat[matRow,matCol] <- YUBR_NRMSEvalue
-}
-print(YUBR_NRMSE_Mat)
+YUBR_SMBO3_DF <- resample.array2dataframe(YUBR_SMBO3_array)
+# Build tables of NRSMSE values, calculated based on data.frame
+YUBR_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=YUBR_SMBO3_DF, genCovType='CV', sdmFlag=TRUE)
+YUBR_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=YUBR_SMBO3_DF, genCovType='GD', sdmFlag=TRUE)
+# Combine the results of the NRMSE values calculated using allelic coverages and using
+# genetic distances, and then rename the columns accordingly
+YUBR_NRMSE_Mat <- cbind(YUBR_NRMSE_Mat_CV, YUBR_NRMSE_Mat_GD)
 # Store the matrix as a CSV to disk
 write.table(YUBR_NRMSE_Mat,
-            file=paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO2_NRMSE.csv'), sep=',')
+            file=paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO3_NRMSE.csv'), sep=',')
 
 # ---- PLOTTING ----
 # Specify plot colors
@@ -317,51 +299,51 @@ YUBR_SMBO2_GeoBuffMeans <- YUBR_SMBO2_meanValues[,grep('Geo_Buff',colnames(YUBR_
 YUBR_SMBO2_GeoSDMMeans <- YUBR_SMBO2_meanValues[,grep('Geo_SDM',colnames(YUBR_SMBO2_meanValues))]
 YUBR_SMBO2_EcoBuffMeans <- YUBR_SMBO2_meanValues[,grep('Eco_Buff',colnames(YUBR_SMBO2_meanValues))]
 # Create colors based on the NRMSE values in matrix. Make all points transparent (alpha)
-GeoBuffCols <- 
+GeoBuffCols <-
   alpha(plotColors[as.numeric(cut(YUBR_NRMSE_Mat[,1], breaks = length(plotColors)))], 0.15)
-GeoSDMCols <- 
+GeoSDMCols <-
   alpha(plotColors[as.numeric(cut(YUBR_NRMSE_Mat[,2], breaks = length(plotColors)))], 0.15)
-EcoBuffCols <- 
+EcoBuffCols <-
   alpha(plotColors[as.numeric(cut(YUBR_NRMSE_Mat[,3], breaks = length(plotColors)))], 0.15)
 # For each color vector, decrease transparency of points corresponding to the lowest NRMSE
-GeoBuffCols[[which.min(YUBR_NRMSE_Mat[,1])]] <- 
+GeoBuffCols[[which.min(YUBR_NRMSE_Mat[,1])]] <-
   alpha(GeoBuffCols[[which.min(YUBR_NRMSE_Mat[,1])]], 0.65)
-GeoSDMCols[[which.min(YUBR_NRMSE_Mat[,2])]] <- 
+GeoSDMCols[[which.min(YUBR_NRMSE_Mat[,2])]] <-
   alpha(GeoSDMCols[[which.min(YUBR_NRMSE_Mat[,2])]], 0.65)
-EcoBuffCols[[which.min(YUBR_NRMSE_Mat[,3])]] <- 
+EcoBuffCols[[which.min(YUBR_NRMSE_Mat[,3])]] <-
   alpha(EcoBuffCols[[which.min(YUBR_NRMSE_Mat[,3])]], 0.65)
 
 # Use matplot to plot values for different coverages
 # GeoBuff
-matplot(YUBR_SMBO2_GeoBuffMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
-        ylab='Coverage (%)', xlab='Number of individuals', 
+matplot(YUBR_SMBO2_GeoBuffMeans, ylim=c(0,100), col=GeoBuffCols, pch=16,
+        ylab='Coverage (%)', xlab='Number of individuals',
         main='Y. brevifolia: Geographic Coverages (Total buffer)')
 # Add points for genetic values, subtitle, optimal buffer size, and legend
 points(YUBR_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
 mtext(text='319 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='*Optimal geographic buffer size: 4 km', side=1, line=-2, at=60, cex=1.1)
-legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'),
        legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
        y.intersp = 0.75)
 # GeoSDM
-matplot(YUBR_SMBO2_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16, 
-        ylab='Coverage (%)', xlab='Number of individuals', 
+matplot(YUBR_SMBO2_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16,
+        ylab='Coverage (%)', xlab='Number of individuals',
         main='Y. brevifolia: Geographic Coverages (SDM)')
 # Add points for genetic values, subtitle, optimal buffer size, and legend
 points(YUBR_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
 mtext(text='319 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='*Optimal geographic buffer size: 20 km', side=1, line=-1.7, at=60, cex=1.1)
-legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'),
        legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
        y.intersp = 0.75)
 # EcoBuff
-matplot(YUBR_SMBO2_EcoBuffMeans, ylim=c(0,100), col=EcoBuffCols, pch=16, 
-        ylab='Coverage (%)', xlab='Number of individuals', 
+matplot(YUBR_SMBO2_EcoBuffMeans, ylim=c(0,100), col=EcoBuffCols, pch=16,
+        ylab='Coverage (%)', xlab='Number of individuals',
         main='Y. brevifolia: Ecological Coverages')
 # Add points for genetic values, subtitle, optimal buffer size, and legend
 points(YUBR_SMBO2_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
 mtext(text='319 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='*Optimal ecological buffer size: 25 km', side=1, line=-1.7, at=60, cex=1.1)
-legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
+legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'),
        legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
        y.intersp = 0.75)

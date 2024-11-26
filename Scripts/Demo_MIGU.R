@@ -9,12 +9,7 @@
 # not at the individual-level. This script filters out introduced (non-native) populations, and
 # conducts resampling analyses only using native populations (from western North America).
 
-library(adegenet)
-library(terra)
-library(parallel)
-library(RColorBrewer)
-library(scales)
-library(vcfR) # for vcfR2genind function
+pacman::p_load(adegenet, terra, parallel, RColorBrewer, viridis, scales, vcfR, usedist)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'

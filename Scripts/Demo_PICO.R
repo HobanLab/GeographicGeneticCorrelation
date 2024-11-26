@@ -8,11 +8,7 @@
 # correlation analyses. We also process the geographic coordinates to match the order of 
 # the genetic samples, prior to passing both along to the correlation analyses.
 
-library(adegenet)
-library(terra)
-library(parallel)
-library(RColorBrewer)
-library(scales)
+pacman::p_load(adegenet, terra, parallel, RColorBrewer, viridis, scales, vcfR, usedist)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
