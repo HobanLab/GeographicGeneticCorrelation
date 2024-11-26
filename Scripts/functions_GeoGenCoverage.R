@@ -266,12 +266,15 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
 
 # Declare a function which, given a genind object, builds a matrix of Euclidean distances between every individual
 gen.buildDistMat <- function(genObj){
-  # Convert genind object to data.frame
-  df <- genind2df(genObj)
+  # Convert genind object to data.frame, ignoring any population designations
+  df <- genind2df(genObj, usepop=FALSE)
   # Convert data.frame to genlight object
   genLight <- as.genlight(df)
   # Build a genetic distance matrix from the genlight object. The default method (Euclidean) is used.
   distMat <- dist(genLight)
+  # Check that total genetic distance is a number; if it isn't, genetic distance calculations will fail
+  if(is.na(sum(c(distMat)))){
+    stop('Total genetic distance is NA, so genetic distance coverage cannot be calculated!')}
   return(distMat)
 }
 
@@ -1079,12 +1082,10 @@ geo.calc.voronoiAreas <- function(data){
   tesselation <- deldir(data$lon, data$lat)
   # Creates the spatial representation on the areas 
   tiles <- tile.list(tesselation)
-  # Helper for indexing out of the tiles object
-  selectArea <- function(tile){
-    tile[6]
-  }
+  # Declare a helper function for indexing out of the tiles object
+  selectArea <- function(tile){tile[6]}
   # Go through each tile and determine the overall average area
-  aveVoronoiArea <- purrr::map(.x = tiles,.f = selectArea ) |> unlist() |> mean(na.rm=TRUE)
+  aveVoronoiArea <- purrr::map(.x = tiles, .f = selectArea ) |> unlist() |> mean(na.rm=TRUE)
   return(aveVoronoiArea)
 }
 
@@ -1135,7 +1136,6 @@ geo.calc.stdDevationEllipseArea <- function(data){
 # Wrapper function of the above point summary functions, which will calculate
 # each point summary statistic for a given dataset, and return 
 geo.calc.pointSummaries <- function(geoData){
-  browser()
   # Begin by converting data into spatial object
   geoSpat <- geo.generateSpatialObject(geoData)
   # Run through the different spatial metric calculations, and store results to a data.frame
