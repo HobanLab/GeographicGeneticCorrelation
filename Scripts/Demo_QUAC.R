@@ -8,13 +8,7 @@
 # wild points and measure coverage. Based on the parFlag value, the code is branched to 
 # allow for procesing in parallel or not in parallel.
 
-library(adegenet)
-library(terra)
-library(parallel)
-library(RColorBrewer)
-library(scales)
-library(rnaturalearth)
-library(usedist)
+pacman::p_load(adegenet, terra, parallel, RColorBrewer, viridis, scales, vcfR, usedist, rnaturalearth)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
@@ -186,3 +180,102 @@ QUAC_NRMSE_Mat <- cbind(QUAC_NRMSE_Mat_CV, QUAC_NRMSE_Mat_GD)
 write.table(QUAC_NRMSE_Mat,
             file=paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO3_NRMSE.csv'), sep=',')
 
+# ---- PLOTTING ----
+# ALLELIC AND GENETIC DISTANCE COVERAGE
+# Build a matrix of mean values (based on array; custom function returns a data.frame)
+QUAC_SMBO3_meanValues <- as.matrix(meanArrayValues(QUAC_SMBO3_array))
+# Subset the total mean Values to just Total, GenDist, and GeoBuff_0.5km
+QUAC_SMBO3_Gen2GeoValues <- QUAC_SMBO3_meanValues[,1:3]
+# Plot allelic coverage, genetic distance coverage, and geographic coverage at optimal buffer size
+matplot(QUAC_SMBO3_Gen2GeoValues, ylim=c(0,100), col=c('red','darkred','purple'), 
+        pch=16, ylab='Coverage (%)', xlab='Number of individuals',
+        main='Q. acerifolia: Allelic and Genetic Distance Coverage')
+mtext(text='91 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+legend(x=45, y=25, inset = 0.05,
+       legend = c('Allelic coverage', 'Genetic distance coverage',
+                  'Geographic coverage ("Total buffer", 0.5 km)'),
+       col=c('red', 'darkred', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
+
+# ALL SMBO3 RESULTS
+# Specify plot colors
+plotColors <- colorRampPalette(c("darkred","azure4","lightgray"))(129)
+# Build a matrix of mean values (based on array; custom function returns a data.frame)
+QUAC_SMBO3_meanValues <- as.matrix(meanArrayValues(QUAC_SMBO3_array))
+# Subset the matrix of mean values according to each coverage type
+QUAC_SMBO3_GeoBuffMeans <- QUAC_SMBO3_meanValues[,grep('Geo_Buff',colnames(QUAC_SMBO3_meanValues))]
+QUAC_SMBO3_GeoSDMMeans <- QUAC_SMBO3_meanValues[,grep('Geo_SDM',colnames(QUAC_SMBO3_meanValues))]
+QUAC_SMBO3_EcoBuffMeans <- QUAC_SMBO3_meanValues[,grep('Eco_Buff',colnames(QUAC_SMBO3_meanValues))]
+# Create colors based on the NRMSE values in matrix (allelic coverages). Make all points transparent (alpha)
+GeoBuffCols <-
+  alpha(plotColors[as.numeric(cut(QUAC_NRMSE_Mat[,1], breaks = length(plotColors)))], 0.15)
+GeoSDMCols <-
+  alpha(plotColors[as.numeric(cut(QUAC_NRMSE_Mat[,2], breaks = length(plotColors)))], 0.15)
+EcoBuffCols <-
+  alpha(plotColors[as.numeric(cut(QUAC_NRMSE_Mat[,3], breaks = length(plotColors)))], 0.15)
+# For each color vector, decrease transparency of points corresponding to the lowest NRMSE
+GeoBuffCols[[which.min(QUAC_NRMSE_Mat[,1])]] <-
+  alpha(GeoBuffCols[[which.min(QUAC_NRMSE_Mat[,1])]], 0.65)
+GeoSDMCols[[which.min(QUAC_NRMSE_Mat[,2])]] <-
+  alpha(GeoSDMCols[[which.min(QUAC_NRMSE_Mat[,2])]], 0.65)
+EcoBuffCols[[which.min(QUAC_NRMSE_Mat[,3])]] <-
+  alpha(EcoBuffCols[[which.min(QUAC_NRMSE_Mat[,3])]], 0.65)
+
+# Use matplot to plot values for different coverages
+# GeoBuff
+matplot(QUAC_SMBO3_GeoBuffMeans, ylim=c(0,100), col=GeoBuffCols, pch=16,
+        ylab='Coverage (%)', xlab='Number of individuals',
+        main='Q. acerifolia: Geographic Coverages (Total buffer)')
+# Add points for allelic coverage values, genetic distance values, subtitle, optimal buffer size, and legend
+points(QUAC_SMBO3_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+points(QUAC_SMBO3_meanValues[,2], col=alpha('blue', 0.55), pch=20)
+mtext(text='91 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geo. buffer: 0.5 km', side=1, line=-10.0, at=77, cex=1.0)
+legend(x=59, y=35, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4','blue'),
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Allelic coverage', 'Genetic distance coverage'),
+       y.intersp = 0.75)
+# GeoSDM
+matplot(QUAC_SMBO3_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16,
+        ylab='Coverage (%)', xlab='Number of individuals',
+        main='Q. acerifolia: Geographic Coverages (SDM)')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(QUAC_SMBO3_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+points(QUAC_SMBO3_meanValues[,2], col=alpha('blue', 0.55), pch=20)
+mtext(text='91 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geo. buffer: 10 km', side=1, line=-10.0, at=77, cex=1.0)
+legend(x=59, y=35, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4','blue'),
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Allelic coverage', 'Genetic distance coverage'),
+       y.intersp = 0.75)
+# EcoBuff
+matplot(QUAC_SMBO3_EcoBuffMeans, ylim=c(0,100), col=EcoBuffCols, pch=16,
+        ylab='Coverage (%)', xlab='Number of individuals',
+        main='Q. acerifolia: Ecological Coverages')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(QUAC_SMBO3_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+points(QUAC_SMBO3_meanValues[,2], col=alpha('blue', 0.55), pch=20)
+mtext(text='91 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal ecological buffer size: 35 km', side=1, line=-10.0, at=77, cex=1.0)
+legend(x=59, y=35, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4','blue'),
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Allelic coverage', 'Genetic distance coverage'),
+       y.intersp = 0.75)
+# Add arrows
+arrows(x0=75, y0=40, x1=25, y1=80)
+
+# Update SDM plots: remove data for first few buffer sizes (<10km), to make plots clearer
+QUAC_SMBO3_GeoSDMMeans <- QUAC_SMBO3_GeoSDMMeans[,-(1:6)]
+# Create new color vector
+GeoSDMCols <-
+  alpha(plotColors[as.numeric(cut(QUAC_NRMSE_Mat[,2], breaks = length(plotColors)))], 0.15)
+GeoSDMCols[[which.min(QUAC_NRMSE_Mat[,2])]] <-
+  alpha(GeoSDMCols[[which.min(QUAC_NRMSE_Mat[,2])]], 0.65)
+
+# Call new plot
+matplot(QUAC_SMBO3_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16,
+        ylab='Coverage (%)', xlab='Number of individuals',
+        main='Q. acerifolia: Geographic Coverages (SDM)')
+# Add points for genetic values, subtitle, optimal buffer size, and legend
+points(QUAC_SMBO3_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
+mtext(text='91 Individuals; 35 buffer sizes (10km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='*Optimal geographic buffer size: 35 km', side=1, line=-1.7, at=200, cex=1.1)
+legend(x=300, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'),
+       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
+       y.intersp = 0.75)
