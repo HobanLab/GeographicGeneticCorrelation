@@ -95,7 +95,7 @@ QULO_demoArray_Par <-
 stopCluster(cl)
 } else {
   # Reduce the number of samples, to allow for more efficient testing
-  randomSamp <- sample(indNames(QULO_genind), size=10)
+  randomSamp <- sample(indNames(QULO_genind), size=430)
   # Subset geographic coordinate dataframe
   QULO_points_small <- QULO_points[which(QULO_points$sampleID %in% randomSamp),]
   # Subset genind object, based on smaller geo coordinates dataframe
