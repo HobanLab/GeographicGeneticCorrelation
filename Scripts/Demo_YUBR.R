@@ -27,11 +27,11 @@ eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 # Set up relevant cores
 num_cores <- detectCores() - 4
 cl <- makeCluster(num_cores)
-# Make sure libraries (adegenet + terra) are on cluster
-clusterEvalQ(cl, library('adegenet'))
-clusterEvalQ(cl, library('terra'))
-clusterEvalQ(cl, library('parallel'))
-clusterEvalQ(cl, library('usedist'))
+# Make sure libraries (adegenet, terra, etc.) are on cluster (but avoid printing output)
+invisible(clusterEvalQ(cl, library('adegenet')))
+invisible(clusterEvalQ(cl, library('terra')))
+invisible(clusterEvalQ(cl, library('parallel')))
+invisible(clusterEvalQ(cl, library('usedist')))
 
 # %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----

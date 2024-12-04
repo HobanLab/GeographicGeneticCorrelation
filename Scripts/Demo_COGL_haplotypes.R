@@ -41,10 +41,11 @@ ecoregion_poly_W <- wrap(ecoregion_poly)
 # Set up relevant cores 
 num_cores <- detectCores() - 4 
 cl <- makeCluster(num_cores)
-# Make sure libraries (adegenet + terra) are on cluster
-clusterEvalQ(cl, library('adegenet'))
-clusterEvalQ(cl, library('terra'))
-clusterEvalQ(cl, library('parallel'))
+# Make sure libraries (adegenet, terra, etc.) are on cluster (but avoid printing output)
+invisible(clusterEvalQ(cl, library('adegenet')))
+invisible(clusterEvalQ(cl, library('terra')))
+invisible(clusterEvalQ(cl, library('parallel')))
+invisible(clusterEvalQ(cl, library('usedist')))
 
 # %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----

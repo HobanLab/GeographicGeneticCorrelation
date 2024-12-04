@@ -61,11 +61,11 @@ if(parFlag==TRUE){
   # Set up relevant cores 
   num_cores <- detectCores() - 4 
   cl <- makeCluster(num_cores)
-  # Make sure libraries (adegenet + terra) are on cluster
-  clusterEvalQ(cl, library('adegenet'))
-  clusterEvalQ(cl, library('terra'))
-  clusterEvalQ(cl, library('parallel'))
-  clusterEvalQ(cl, library('usedist'))
+  # Make sure libraries (adegenet, terra, etc.) are on cluster (but avoid printing output)
+  invisible(clusterEvalQ(cl, library('adegenet')))
+  invisible(clusterEvalQ(cl, library('terra')))
+  invisible(clusterEvalQ(cl, library('parallel')))
+  invisible(clusterEvalQ(cl, library('usedist')))
   # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
   # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
   world_poly_clip_W <- wrap(world_poly_clip)
