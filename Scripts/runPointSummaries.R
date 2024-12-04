@@ -1,110 +1,77 @@
-###
-# a script to render the point summaries of all available datasets
-#
-#
-### 
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%% GEN-GEO-ECO CORRELATION: POINT SUMMARY METRICS %%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# packages 
-pacman::p_load(redlistr, spatialEco, sf, terra, tmap, dplyr, sfdep,sfheaders,
+# This script calculates geographic metrics based on the collection of coordinate points from 
+# each dataset used in the geographic-genetic correlation analyses. The goal of this analysis 
+# is to examine any possible trends between these point-based metrics and the optimal geographic
+# buffer sizes.
+
+# The key geo.calc.pointSummaries function used in this script is declared in the functions_GeoGenCoverage.R script. 
+
+# Load packages 
+pacman::p_load(redlistr, spatialEco, sf, terra, tmap, dplyr, sfdep, sfheaders,
                deldir, readr)
 tmap_mode("view")
 
-# environment
-setwd("~/Documents/GeographicGeneticCorrelation")
-source(paste0(getwd(),"/Scripts/pointSummaryFunctions.R"))
+# Read in relevant functions
+GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
+setwd(GeoGenCorr_wd)
+source('Scripts/functions_GeoGenCoverage.R')
 
-# observation data 
-data <- list.files(paste0(getwd(), "/Datasets"),
-                   pattern = ".csv",
-                   recursive = TRUE,
-                   full.names = TRUE)
-# manually selecting one file per species and standardizing 
-amth <- data[grepl(pattern ="AMTH", data)]
-arth <- data[grepl(pattern ="ARTH", data)]
-migu <- data[grepl(pattern ="MIGU", data)][2]
-pico <- data[grepl(pattern ="PICO", data)]
-quac <- data[grepl(pattern ="QUAC", data)][2]
-qulo <- data[grepl(pattern ="QULO", data)]
-yubr <- data[grepl(pattern ="YUBR", data)][2]
+# Create a list of the relevant CSVs in the Datasets repository 
+pointsData <- list.files(paste0(getwd(), "/Datasets"), pattern = ".csv", recursive = TRUE, full.names = TRUE)
+pointsData <- pointsData[grep('Geographic', pointsData)]
+# Select one coordinate file per species
+amth <- pointsData[grepl(pattern ="AMTH", pointsData)]
+arth <- pointsData[grepl(pattern ="ARTH", pointsData)]
+cogl <- pointsData[grepl(pattern ="COGL", pointsData)]
+hiwa <- pointsData[grepl(pattern ="HIWA", pointsData)]
+migu <- pointsData[grepl(pattern ="MIGU", pointsData)][2] # Necessary because of a 2nd file of global coordinates
+pico <- pointsData[grepl(pattern ="PICO", pointsData)]
+quac <- pointsData[grepl(pattern ="QUAC", pointsData)]
+qulo <- pointsData[grepl(pattern ="QULO", pointsData)]
+yubr <- pointsData[grepl(pattern ="YUBR", pointsData)][2] # Necessary because of a 2nd (original) file of coordinates
 
-dataList <- list(
-  # not present in the data folder? 
-  # amth = read_csv(amth) |> 
-  #   dplyr::mutate(taxon = "AMTH")|>
-  #   dplyr::select(taxon, lat = lat, lon = long), 
+# Build a list of the relevant files, and fields within those files, for each dataset.
+# Note that the column names between different coordinate files differ
+pointsDataList <- list(
+  amth = read_csv(amth) |>
+    dplyr::mutate(taxon = "AMTH")|>
+    dplyr::select(taxon, lat = lat, lon = long),
   arth = read_csv(arth,col_names = FALSE) |>
       plyr::mutate(taxon = "ARTH")|>
       dplyr::select(taxon, lat = X6, lon = X7),
+  cogl = read_csv(cogl) |> 
+    dplyr::mutate(taxon = "COGL")|>
+    dplyr::select(taxon, lat = Latitude , lon = Longitude),
+  hiwa = read_csv(hiwa)|> 
+    dplyr::mutate(taxon = "HIWA")|>
+    dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude),
   migu = read_csv(migu) |> 
     dplyr::mutate(taxon = "MIGU")|>
-    dplyr::select(taxon, lat = Latitude , lon = Longitude), # maybe just North America? 
+    dplyr::select(taxon, lat = Latitude , lon = Longitude), 
   pico = read_csv(pico) |> 
     dplyr::mutate(taxon = "PICO")|>
     dplyr::select(taxon, lat = Latitude , lon = Longitude),
   quac = read_csv(quac)|> 
     dplyr::mutate(taxon = "QUAC")|>
-    dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude), # not sure what the difference is? 
+    dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude), 
   qulo = read_csv(qulo)|> 
     dplyr::mutate(taxon = "QULO")|>
+    dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude),
+  yubr = read_csv(yubr)|>
+    dplyr::mutate(taxon = "YUBR")|>
     dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude)
-  # some weird stuff going on with this dataset? 
-  # yubr = read_csv(yubr)|> 
-  #   dplyr::mutate(taxon = "YUBR")|>
-  #   dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude)
 )
 
-
-# create spatial objects 
-spList <- purrr::map(.x = dataList, .f = generateSpatailObject)
-
-# eoo area -- square meters
-eooList <- purrr::map(.x = spList, .f = boundingBoxAreas)|>
-  as.data.frame()|>
-  dplyr::mutate(across(everything(), as.numeric))
-
-# aoo val -- takes a bit to run 
-aooList<- purrr::map(.x = spList, .f = aooLikeMeasures)|>
-  as.data.frame()
-
-# average nearest neighbor - meters 
-annList <- purrr::map(.x = spList, .f = averageNearestNeighbor)|>
-  as.data.frame()
-
-# average voroni areas -- unitless 
-vorList <- purrr::map(.x = spList, .f = voriniAreas)|>
-  as.data.frame()
-
-# standard distance - meters 
-standardDistanceList <- purrr::map(.x = spList, .f = standardDistance)|>
-  as.data.frame()
-
-# standard distance ellipse area in meters 
-standardDistanceEllispeAreaList <- purrr::map(.x = spList, .f = standardDistanceEllipseArea)|>
-  as.data.frame()|>
-  dplyr::mutate(across(everything(), as.numeric))
-
-
-# standard deviation ellipse length in meteres  
-standardDeviationEllispeLengthList <- purrr::map(.x = spList, .f = stdDevationEllipseArea) |>
-  as.data.frame()|>
-  dplyr::mutate(across(everything(), as.numeric))
-  
-
-# store results into a dataframe 
-df <- eooList |>
-  bind_rows(aooList)|>
-  bind_rows(annList)|>
-  bind_rows(vorList)|>
-  bind_rows(standardDistanceList)|>
-  bind_rows(standardDistanceEllispeAreaList)|>
-  bind_rows(standardDeviationEllispeLengthList)
-
-df$measures <- c("EOO", "AOO", "Average Nearest Neighbor", "Average Voroni Area",
-                 "Standard Distance", "Area of the Standard Distance Ellipse",
-                 "Perimeter lenght of the Standard Deviation Ellipse")
-
-df2 <- df |>
-  dplyr::select(measures, everything())
-
-# export
-write_csv(x = df2, file = paste0(getwd(),"/outputs/pointSummaryMeasures.csv"))
+# Apply function which calculates multiple point summary metrics to list of datasets
+pointSummaries <- lapply(pointsDataList, geo.calc.pointSummaries)
+# Transform the point summary values into a list, where columns are the species and rows are the metrics
+pointSummariesMat <- matrix(unlist(pointSummaries), ncol = length(pointSummaries), byrow = FALSE)
+colnames(pointSummariesMat) <- toupper(names(pointSummaries))
+rownames(pointSummariesMat) <- c("EOO", "AOO", "Average Nearest Neighbor", "Average Voroni Area",
+                                 "Standard Distance", "Standard Distance Ellipse Area",
+                                 "Standard Deviation Ellipse Perimeter")
+# Write the matrix of point values to disk
+write_csv(x = pointSummaries, file = paste0(GeoGenCorr_wd,"Datasets/pointSummaryMeasures.csv"))
