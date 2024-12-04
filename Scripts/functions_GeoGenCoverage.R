@@ -266,6 +266,7 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
 
 # Declare a function which, given a genind object, builds a matrix of Euclidean distances between every individual
 gen.buildDistMat <- function(genObj){
+  browser()
   # Convert genind object to data.frame, ignoring any population designations
   df <- genind2df(genObj, usepop=FALSE)
   # Convert data.frame to genlight object
@@ -447,7 +448,11 @@ geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, 
   if(genDistFlag==TRUE){
     cat(paste0('\n', '- genDistFlag ON: will calculate genetic distance coverage -'))
     genDistMat <- gen.buildDistMat(genObj=genObj)
-  }
+    # Otherwise, set genDistMat as NA
+  } else {
+    genDistMat <- NA
+  } 
+  # Otherwise, set genDistMat as NA
   # If calculating geographic coverage, check for arguments
   if(geoFlag==TRUE){
     # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
@@ -530,6 +535,9 @@ geo.gen.Resample.Par <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordP
   if(genDistFlag==TRUE){
     cat(paste0('\n', '- genDistFlag ON: will calculate genetic distance coverage -'))
     genDistMat <- gen.buildDistMat(genObj=genObj)
+    # Otherwise, set genDistMat as NA
+  } else {
+    genDistMat <- NA
   }
   # If calculating geographic coverage, check for arguments
   if(geoFlag==TRUE){
