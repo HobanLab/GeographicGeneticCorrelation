@@ -67,22 +67,34 @@ file.remove(paste0(YUBR_filePath, 'Genetic/GoodLoci319Trees.stru'))
 indNames(YUBR_genind) <- gsub("cat_", "", indNames(YUBR_genind))
 
 # ---- GEOGRAPHIC/ECOLOGICAL DATA FILES
-# Read in wild occurrence points. This CSV has 5 columns: sample names, 
-# latitude (decimal minutes, 2 columns), and longitude (decimal minutes, 2 columns)  
-YUBR_points <- read.csv(
-  paste0(YUBR_filePath, 'Geographic/YUBR_coordinates.csv'), header=TRUE)
-# Convert decimal minutes to decimal degrees by dividing the 3rd and 5th columns by
-# 60, then adding them to the degrees columns (2nd and 4th)
-lats <- round(YUBR_points[,3]/60 + YUBR_points[,2], 4)
-# For longitudes, multiply by -1 to properly locate coordinates
-longs <- -1*(round(YUBR_points[,5]/60 + YUBR_points[,4], 4))
-# Reformat coordinate values based on conversions, and rename
-YUBR_points <- cbind.data.frame(YUBR_points[,1], lats, longs)
-colnames(YUBR_points) <- c('Sample', 'decimalLatitude', 'decimalLongitude')
-# Subset the coordinates data.frame to strictly the samples included in the genetic matrix
-YUBR_coordinates <- YUBR_points[which(YUBR_points$Sample %in% indNames(YUBR_genind)),]
-# Reorder the coordinate values to match the order of samples in the genind file
-YUBR_coordinates <- YUBR_coordinates[match(indNames(YUBR_genind), YUBR_coordinates$Sample),]
+# The original coordinates file for this Yucca dataset needs to be processed such that decimal
+# minutes (in two different columns) is reorganized into decimal degrees (in a single column).
+# Check if the processed file (called YUBR_coordinates.csv) already exists; if not, then 
+# run the necessary processing steps.
+if(file.exists(paste0(YUBR_filePath, 'Geographic/YUBR_coordinates.csv'))){
+  # Read in the CSV of processed coordinates
+  YUBR_coordinates <- read.csv(
+    paste0(YUBR_filePath, 'Geographic/YUBR_coordinates.csv'), header=TRUE, )
+} else {
+  # Read in and process the wild occurrence points. This CSV has 5 columns: sample names, 
+  # latitude (decimal minutes, 2 columns), and longitude (decimal minutes, 2 columns)  
+  YUBR_points <- read.csv(
+    paste0(YUBR_filePath, 'Geographic/YUBR_coordinates_Original.csv'), header=TRUE)
+  # Convert decimal minutes to decimal degrees by dividing the 3rd and 5th columns by
+  # 60, then adding them to the degrees columns (2nd and 4th)
+  lats <- round(YUBR_points[,3]/60 + YUBR_points[,2], 4)
+  # For longitudes, multiply by -1 to properly locate coordinates
+  longs <- -1*(round(YUBR_points[,5]/60 + YUBR_points[,4], 4))
+  # Reformat coordinate values based on conversions, and rename
+  YUBR_points <- cbind.data.frame(YUBR_points[,1], lats, longs)
+  colnames(YUBR_points) <- c('Sample', 'decimalLatitude', 'decimalLongitude')
+  # Subset the coordinates data.frame to strictly the samples included in the genetic matrix
+  YUBR_coordinates <- YUBR_points[which(YUBR_points$Sample %in% indNames(YUBR_genind)),]
+  # Reorder the coordinate values to match the order of samples in the genind file
+  YUBR_coordinates <- YUBR_coordinates[match(indNames(YUBR_genind), YUBR_coordinates$Sample),]
+  # Rename the rows numerically, to match the order of samples in the genind file
+  rownames(YUBR_coordinates) <- as.character(seq(1, nrow(YUBR_coordinates)))
+}
 # Read in raster data, for SDM
 YUBR_sdm <- terra::rast(paste0(YUBR_filePath,'Geographic/YUBR_319inds_rast_Carver.tif'))
 
