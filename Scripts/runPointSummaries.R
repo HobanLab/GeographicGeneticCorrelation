@@ -74,4 +74,4 @@ rownames(pointSummariesMat) <- c("EOO", "AOO", "Average Nearest Neighbor", "Aver
                                  "Standard Distance", "Standard Distance Ellipse Area",
                                  "Standard Deviation Ellipse Perimeter")
 # Write the matrix of point values to disk
-write_csv(x = pointSummaries, file = paste0(GeoGenCorr_wd,"Datasets/pointSummaryMeasures.csv"))
+write_csv(x = as.data.frame(pointSummariesMat), file = paste0(GeoGenCorr_wd,"Datasets/pointSummaryMeasures.csv"))
