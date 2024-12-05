@@ -13,7 +13,7 @@
 
 # Any output files
 *.out
-*.csv
+Datasets/*/resamplingData/*.csv
 
 # Folder of GIS files (for geographic/ecological analyses). Included in this folder are the .shp files used for 
 # calculating geographic range for different species. These are two large (> 50MB) to be included on the repository.
