@@ -1027,7 +1027,7 @@ geo.generateSpatialObject <- function(data){
 geo.calc.EOO <- function(data){
   # Convert to a multipoint object
   bb <- st_convex_hull(st_union(data))
-  # Export value 
+  # Export value and return
   eooArea <- st_area(bb,)
   return(eooArea)
 }
@@ -1080,7 +1080,9 @@ geo.calc.averageNearestNeighbor <- function(data){
       avg_dist = purrr::map_dbl(dists, mean),
       group_average = mean(avg_dist, na.rm = TRUE)
     ) 
-  return(aveNearNeighbor$group_average[1])
+  # Extract metric and return
+  ANN <- aveNearNeighbor$group_average[1]
+  return(ANN)
 }
 
 #' geo.calc.voronoiAreas
@@ -1122,7 +1124,7 @@ geo.calc.stdDistanceEllipseArea <- function(data){
   sf::st_crs(poly) <- crs(data)
   # Make valid and reproject 
   validPoly <- st_make_valid(poly)
-  # Determine area of the polygon, and return
+  # Determine area of the polygon and return
   stdEllipseArea <- st_area(poly)
   return(stdEllipseArea)
 }
@@ -1136,7 +1138,7 @@ geo.calc.stdDevationEllipseArea <- function(data){
                               sx = stdDevElli$sx,
                               sy = stdDevElli$sy,
                               rotation = -stdDevElli$theta)
-  # Determine length of the perimeter  
+  # Determine length of the perimeter and return
   stdDevationEllipseArea <- st_length(stdDevEllipse)
   return(stdDevationEllipseArea)
 }
