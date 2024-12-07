@@ -11,7 +11,7 @@
 
 # Load packages 
 pacman::p_load(redlistr, spatialEco, sf, terra, tmap, dplyr, sfdep, sfheaders,
-               deldir, readr)
+               deldir, readr, Hmisc, corrplot)
 tmap_mode("view")
 
 # Read in relevant functions
@@ -19,6 +19,7 @@ GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
 
+# CALCULATING POINT SUMMARY VALUES ----
 # Create a list of the relevant CSVs in the Datasets repository 
 pointsData <- list.files(paste0(getwd(), "/Datasets"), pattern = ".csv", recursive = TRUE, full.names = TRUE)
 pointsData <- pointsData[grep('Geographic', pointsData)]
@@ -70,8 +71,67 @@ pointSummaries <- lapply(pointsDataList, geo.calc.pointSummaries)
 # Transform the point summary values into a list, where columns are the species and rows are the metrics
 pointSummariesMat <- matrix(unlist(pointSummaries), ncol = length(pointSummaries), byrow = FALSE)
 colnames(pointSummariesMat) <- toupper(names(pointSummaries))
-rownames(pointSummariesMat) <- c("EOO", "AOO", "Average Nearest Neighbor", "Average Voroni Area",
-                                 "Standard Distance", "Standard Distance Ellipse Area",
-                                 "Standard Deviation Ellipse Perimeter")
+rownames(pointSummariesMat) <- c("EOO", "AOO", "ANN", "Vor", "StDist", "StDistEllA", "StDevEllP")
 # Write the matrix of point values to disk
 write_csv(x = as.data.frame(pointSummariesMat), file = paste0(GeoGenCorr_wd,"Datasets/pointSummaryMeasures.csv"))
+
+# EXTRACTING OPTIMAL BUFFER SIZES ----
+# To measure any possible correlation between optimal buffer sizes and the point summary statistics,
+# the optimal buffer size for each dataset (and for each relevant coverage type) needs to be appended
+# to the matrix of point summary values.
+
+# Specify the filepaths to the resampling array for each dataset
+resampArrList <- list(
+  AMTH=paste0(GeoGenCorr_wd, 'Datasets/AMTH/resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata'),
+  ARTH=paste0(GeoGenCorr_wd, 'Datasets/ARTH/resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata'),
+  COGL=paste0(GeoGenCorr_wd, 'Datasets/COGL/resamplingData/COGL_SMBO2_GE_5r_resampArr.Rdata'),
+  HIWA=paste0(GeoGenCorr_wd, 'Datasets/HIWA/resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata'),
+  MIGU=paste0(GeoGenCorr_wd, 'Datasets/MIGU/resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata'),
+  PICO=paste0(GeoGenCorr_wd, 'Datasets/PICO/resamplingData/SMBO2_G2E/PICO_SMBO2_G2E_5r_resampArr.Rdata'),
+  QUAC=paste0(GeoGenCorr_wd, 'Datasets/QUAC/resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata'),
+  QULO=paste0(GeoGenCorr_wd, 'Datasets/QULO/resamplingData/SMBO2/QULO_SMBO2_G2E_5r_resampArr.Rdata'),
+  YUBR=paste0(GeoGenCorr_wd, 'Datasets/YUBR/resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
+)
+# Based on data in resampling arrays, extract the optimal buffer sizes for each species
+optBuffs <- lapply(resampArrList, extractOptBuffs)
+# For datasets without SDM values, add a column (in order to match dimensions with other datasets)
+optBuffs$AMTH <- c(optBuffs$AMTH[[1]],NA,optBuffs$AMTH[[2]])
+optBuffs$ARTH <- c(optBuffs$ARTH[[1]],NA,optBuffs$ARTH[[2]])
+optBuffs$COGL <- c(optBuffs$COGL[[1]],NA,optBuffs$COGL[[2]])
+optBuffs$HIWA <- c(optBuffs$HIWA[[1]],NA,optBuffs$HIWA[[2]])
+names(optBuffs$AMTH) <- names(optBuffs$ARTH) <- names(optBuffs$COGL)<- names(optBuffs$HIWA) <- 
+  names(optBuffs$QULO)
+# Convert the list of optimal buffer size values to a matrix
+optBuffsMat <- matrix(unlist(optBuffs), ncol = length(optBuffs), byrow = FALSE)
+colnames(optBuffsMat) <- names(optBuffs)
+rownames(optBuffsMat) <- names(optBuffs$QULO)
+# Combine the point summary matrix to the optimal buffer size matrix. Transpose such that 
+# rows are datasets and columns are summary metrics
+SMBO_Mat <- t(rbind(pointSummariesMat, optBuffsMat))
+# Create a separate matrix identical to the first, but only for species with SDMs
+SMBO_SDM_Mat <- SMBO_Mat[-(1:4),]
+# Remove the row corresponding to SDM optimal buffer sizes from the original matrix
+SMBO_Mat <- SMBO_Mat[,-9]
+
+# BUILDING AND PLOTTING CORRELATION MATRICES ----
+# GEO/ECO COVERAGES
+# Build a correlation matrix based off of values
+corMat_SMBO <- rcorr(SMBO_Mat)
+# Replace NAs in diagonal of p-value matrix with 0s, to match dimensions
+corMat_SMBO$P[which(is.na(corMat_SMBO$P))] <- 0
+# Plot correlation matrix using corrplot. Label significant correlations using
+# asterisks
+corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P, 
+         sig.level = 0.01, insig = "label_sig", diag = FALSE)
+mtext('Point Summaries: Geo/Eco Coverages', side=3, line=1.2, adj=0.05, cex=1.2)
+
+# SDM COVERAGES
+# Build a correlation matrix based off of values
+corMat_SMBO_SDM <- rcorr(SMBO_SDM_Mat)
+# Replace NAs in diagonal of p-value matrix with 0s, to match dimensions
+corMat_SMBO_SDM$P[which(is.na(corMat_SMBO_SDM$P))] <- 0
+# Plot correlation matrix using corrplot. Label significant correlations using
+# asterisks
+corrplot(corMat_SMBO_SDM$r, type="upper", order="original", p.mat = corMat_SMBO_SDM$P, 
+         sig.level = 0.01, insig = "label_sig", diag = FALSE)
+mtext('Point Summaries: Geo/SDM/Eco Coverages', side=3, line=1.2, adj=0.05, cex=1.2)
