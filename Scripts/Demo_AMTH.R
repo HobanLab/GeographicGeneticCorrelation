@@ -121,99 +121,99 @@ AMTH_demoArray_IND <-
                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, 
                    ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = "US", reps = 1)
 
-# # %%% ANALYZE DATA %%% ----
-# # Specify filepath for AMTH geographic and genetic data, including resampling array
-# AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
-# arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_1km_GE_5r_resampArr.Rdata')
-# # Read in the resampling array .Rdata object, saved to disk
-# AMTH_demoArray_Par <- readRDS(arrayDir)
-# 
-# # ---- CORRELATION ----
-# # Build a data.frame from array values
-# AMTH_DF <- resample.array2dataframe(AMTH_demoArray_Par)
-# # Calculate normalized root mean square value
-# AMTH_nrmse_geo <- nrmse_func(obs=AMTH_DF$Geo, pred=AMTH_DF$Total) ; AMTH_nrmse_geo
-# AMTH_nrmse_eco <- nrmse_func(obs=AMTH_DF$Eco, pred=AMTH_DF$Total) ; AMTH_nrmse_eco
-# 
-# # ---- PLOTTING ----
-# # Generate the average values (across replicates) for all proportions
-# # This function has default arguments for returning just Total allelic geographic proportions
-# averageValueMat <- meanArrayValues(AMTH_demoArray_Par, allValues = TRUE)
-# # Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
-# averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
-# # Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
-# averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
-# averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
-# names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
-# 
-# # Specify plot colors
-# plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
-# plotColors_Fade <- alpha(plotColors, 0.65)
-# plotColors_Sub <- plotColors_Fade[-(2:4)]
-# # Two plots in a single window
-# par(mfrow=c(2,1))
-# # ---- CORRELATION PLOTS
-# plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-#      main='A. tharpii: Geographic by genetic coverage',xlab='', ylab='', col=plotColors_Fade[[5]])
-# mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
-# mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add points for ecological coverage
-# points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors_Fade[[6]])
-# # Add NRMSE values for each comparison
-# text(x = 76, y = 35, labels = paste0('NRMSE: ', AMTH_nrmse_geo), col='darkblue', cex=0.9)
-# text(x = 76, y = 20, labels = paste0('NRMSE: ', AMTH_nrmse_eco), col='purple', cex=0.9)
-# # Add legend
-# legend(x=58, y=162, inset = 0.05, xpd=TRUE,
-#        legend = c('Geographic', 'Ecological'),
-#        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 0.08)
-# # ---- COVERAGE PLOTS
-# # Use the matplot function to plot the matrix of average values, with specified settings
-# matplot(averageValueMat_TEG[,1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
-# # Add title and x-axis labels to the graph
-# title(main='A. tharpii: Geo-Eco-Gen Coverage', line=1.5)
-# mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-# mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
-# mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# # Add legend
-# legend(x=85, y=180, inset = 0.05,
-#        legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)',
-#                   'Ecological coverage (1 km buffer, EPA Level IV)'),
-#        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
-#        y.intersp = 0.08)
-# 
-# # %%%% SMBO: MULTIPLE BUFFER SIZES ----
-# # Specify filepath for AMTH geographic and genetic data, including resampling array
-# AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
-# arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata')
-# # Read in array and build a data.frame of values
-# AMTH_SMBO2_array <- readRDS(arrayDir)
-# # Specify geographic buffer size in meters (used above)
-# geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
-# 
-# # ---- CALCULATIONS ----
-# # Build a data.frame from array values
-# AMTH_SMBO2_DF <- resample.array2dataframe(AMTH_SMBO2_array)
-# # Build a matrix to capture NRMSE values
-# AMTH_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
-# # The names of this matrix match the different parts of the dataframe names
-# colnames(AMTH_NRMSE_Mat) <- c('Geo_Buff','Eco_Buff')
-# rownames(AMTH_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
-# # Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
-# # predictve variable (genetic coverages)
-# for(i in 3:ncol(AMTH_SMBO2_DF)){
-#   # Calculate NRMSE for the current column in the dataframe
-#   AMTH_NRMSEvalue <- nrmse.func(AMTH_SMBO2_DF[,i], pred = AMTH_SMBO2_DF$Total)
-#   # Get the name of the current dataframe column
-#   dataName <- unlist(strsplit(names(AMTH_SMBO2_DF)[[i]],'_'))
-#   # Match the data name to the relevant rows/columns of the receiving matrix
-#   matRow <- which(rownames(AMTH_NRMSE_Mat) == dataName[[3]])
-#   matCol <- which(colnames(AMTH_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
-#   # Locate the NRMSE value accordingly
-#   AMTH_NRMSE_Mat[matRow,matCol] <- AMTH_NRMSEvalue
-# }
-# print(AMTH_NRMSE_Mat)
-# # Store the matrix as a CSV to disk
-# write.table(AMTH_NRMSE_Mat,
-#             file=paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_NRMSE.csv'), sep=',')
+# %%% ANALYZE DATA %%% ----
+# Specify filepath for AMTH geographic and genetic data, including resampling array
+AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
+arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_1km_GE_5r_resampArr.Rdata')
+# Read in the resampling array .Rdata object, saved to disk
+AMTH_demoArray_Par <- readRDS(arrayDir)
+
+# ---- CORRELATION ----
+# Build a data.frame from array values
+AMTH_DF <- resample.array2dataframe(AMTH_demoArray_Par)
+# Calculate normalized root mean square value
+AMTH_nrmse_geo <- nrmse_func(obs=AMTH_DF$Geo, pred=AMTH_DF$Total) ; AMTH_nrmse_geo
+AMTH_nrmse_eco <- nrmse_func(obs=AMTH_DF$Eco, pred=AMTH_DF$Total) ; AMTH_nrmse_eco
+
+# ---- PLOTTING ----
+# Generate the average values (across replicates) for all proportions
+# This function has default arguments for returning just Total allelic geographic proportions
+averageValueMat <- meanArrayValues(AMTH_demoArray_Par, allValues = TRUE)
+# Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
+averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
+# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
+averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
+names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
+
+# Specify plot colors
+plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
+plotColors_Fade <- alpha(plotColors, 0.65)
+plotColors_Sub <- plotColors_Fade[-(2:4)]
+# Two plots in a single window
+par(mfrow=c(2,1))
+# ---- CORRELATION PLOTS
+plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
+     main='A. tharpii: Geographic by genetic coverage',xlab='', ylab='', col=plotColors_Fade[[5]])
+mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
+mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add points for ecological coverage
+points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors_Fade[[6]])
+# Add NRMSE values for each comparison
+text(x = 76, y = 35, labels = paste0('NRMSE: ', AMTH_nrmse_geo), col='darkblue', cex=0.9)
+text(x = 76, y = 20, labels = paste0('NRMSE: ', AMTH_nrmse_eco), col='purple', cex=0.9)
+# Add legend
+legend(x=58, y=162, inset = 0.05, xpd=TRUE,
+       legend = c('Geographic', 'Ecological'),
+       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.08)
+# ---- COVERAGE PLOTS
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat_TEG[,1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='A. tharpii: Geo-Eco-Gen Coverage', line=1.5)
+mtext(text='140 Individuals; 1 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=85, y=180, inset = 0.05,
+       legend = c('Genetic coverage', 'Geographic coverage (1 km buffer)',
+                  'Ecological coverage (1 km buffer, EPA Level IV)'),
+       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
+       y.intersp = 0.08)
+
+# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# Specify filepath for AMTH geographic and genetic data, including resampling array
+AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
+arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+AMTH_SMBO2_array <- readRDS(arrayDir)
+# Specify geographic buffer size in meters (used above)
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values
+AMTH_SMBO2_DF <- resample.array2dataframe(AMTH_SMBO2_array)
+# Build a matrix to capture NRMSE values
+AMTH_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
+# The names of this matrix match the different parts of the dataframe names
+colnames(AMTH_NRMSE_Mat) <- c('Geo_Buff','Eco_Buff')
+rownames(AMTH_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
+# Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
+# predictve variable (genetic coverages)
+for(i in 3:ncol(AMTH_SMBO2_DF)){
+  # Calculate NRMSE for the current column in the dataframe
+  AMTH_NRMSEvalue <- nrmse.func(AMTH_SMBO2_DF[,i], pred = AMTH_SMBO2_DF$Total)
+  # Get the name of the current dataframe column
+  dataName <- unlist(strsplit(names(AMTH_SMBO2_DF)[[i]],'_'))
+  # Match the data name to the relevant rows/columns of the receiving matrix
+  matRow <- which(rownames(AMTH_NRMSE_Mat) == dataName[[3]])
+  matCol <- which(colnames(AMTH_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
+  # Locate the NRMSE value accordingly
+  AMTH_NRMSE_Mat[matRow,matCol] <- AMTH_NRMSEvalue
+}
+print(AMTH_NRMSE_Mat)
+# Store the matrix as a CSV to disk
+write.table(AMTH_NRMSE_Mat,
+            file=paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_NRMSE.csv'), sep=',')
