@@ -711,7 +711,7 @@ nrmse.func <-  function(obs_var, pred_var, norm_type='mean'){
 # Given these arguments, a matrix is generated which has a NRMSE value for each set of geographic/ecological
 # coverage values compared to the genetic coverage metric. This command expects the resampling data.frame
 # to have certain row names and column names, and makes those checks
-buildNRMSEmatrix <- function(resampDF, genCovType=c('CV', 'GD'), sdmFlag=TRUE){
+buildNRMSEmatrix <- function(resampDF, genCovType=c('CV', 'GD'), sdmFlag=FALSE){
   # Match argument for type of response variable (genetic coverage approach) to use
   genCovType <- match.arg(genCovType)
   # If CV is chosen, set the predictive variable argument to the 'Total' column in the data.frame
@@ -721,29 +721,26 @@ buildNRMSEmatrix <- function(resampDF, genCovType=c('CV', 'GD'), sdmFlag=TRUE){
   } else {
     predVar <- resampDF$GenDist
   }
+  # Determine whether or not geographic coverages using an SDM are present, and set a flag accordingly
+  if(length(grep('SDM', colnames(resampDF))) > 1){
+    sdmFlag <- TRUE
+  }
   # Extract buffer sizes through column names, for the geographic (total buffer) approach. This is 
   # a complicated command, but essentially relies on the column names of the resampling data.frame
   # to refer to the geographic buffer size used for that row of data.
   buffSizes <- 
     1000*(as.numeric(sub('km','', sapply(strsplit(grep('Geo_Buff_', colnames(resampDF), value=TRUE), '_'),'[',3))))
-  # Build matrix of NRMSE values. Depending on the sdmFlag, this matrix will either have
-  # 3 columns or just 2. 
+  # Check that the resampling data.frame has the same number of columns for Geo and Eco coverage
+  # (We can't implement this check for SDM, because some datasets have fewer SDM buffer sizes)
+  if(length(grep('Geo_Buff_', colnames(resampDF)))!=length(grep('Eco_Buff_', colnames(resampDF)))){
+    stop('Different number of Geo_Buff and Eco_Buff columns in data.frame!')
+  }
+  # Build matrix of NRMSE values. Depending on the sdmFlag, this matrix will have 3 columns or just 2. 
   if(sdmFlag==TRUE){
-    # Check that the resampling data.frame has the same number of columns for each coverage type
-    if(length(grep('Geo_Buff_', colnames(resampDF)))!=length(grep('Geo_SDM_', colnames(resampDF)))){
-      stop('Different number of Geo_Buff and Geo_SDM columns in data.frame!')
-    }
-    if(length(grep('Geo_Buff_', colnames(resampDF)))!=length(grep('Eco_Buff_', colnames(resampDF)))){
-      stop('Different number of Geo_Buff and Eco_Buff columns in data.frame!')
-    }
     # Name matrix columns accordingly
     NRMSEmat <- matrix(NA, nrow=length(buffSizes), ncol=3)
     colnames(NRMSEmat) <- c('Geo_Buff','Geo_SDM','Eco_Buff')
   } else {
-    # Check that the resampling data.frame has the same number of columns for each coverage type
-    if(length(grep('Geo_Buff_', colnames(resampDF)))!=length(grep('Eco_Buff_', colnames(resampDF)))){
-      stop('Different number of Geo_Buff and Eco_Buff columns in data.frame!')
-    }
     # Name matrix columns accordingly
     NRMSEmat <- matrix(NA, nrow=length(buffSizes), ncol=2)
     colnames(NRMSEmat) <- c('Geo_Buff','Eco_Buff')
@@ -774,6 +771,35 @@ buildNRMSEmatrix <- function(resampDF, genCovType=c('CV', 'GD'), sdmFlag=TRUE){
   }
   # Return the resulting matrix
   return(NRMSEmat)
+}
+
+# Function which, given a matrix of NRMSE values for each given coverage type, will 
+# return the optimal buffer sizes (those with the minimum NRMSE values) as a vector
+getOptBuffers <- function(nrmseMat){
+  # Create vector capturing optimal buffer sizes; name it according to the NRMSE matrix column names
+  optBuffs <- vector(length=ncol(nrmseMat)) ; names(optBuffs) <- colnames(nrmseMat)
+  # Loop through the columns of the NRMSE matrix. For each column, find the minimum value, and return
+  # that columns name (which is the buffer size value) as a numeric
+  for(i in 1:length(optBuffs)){
+    optBuffs[i] <- as.numeric(unlist(strsplit(names(which.min(nrmseMat[,i])),'km')))
+  }
+  # Return the list of optimal buffer sizes
+  return(optBuffs)
+}
+
+# Wrapper function which, given a filepath to a resampling array, will return the optimal 
+# buffer sizes according to the data in that array
+extractOptBuffs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'), sdmFlag=FALSE){
+  # Read in the array, then convert it into a data.frame
+  array <- readRDS(arrayDir)
+  df <- resample.array2dataframe(array)
+  # From the data.frame, calculate a matrix of NRMSE values for each coverage type. Pass arguments
+  # along for the genetic coverage type (allelic/haplotypic coverage vs. genetic distance; whether
+  # or not SDM is included)
+  nrmseMat <- buildNRMSEmatrix(resampDF=df, genCovType=genCovType, sdmFlag=sdmFlag)
+  # From the NRMSE matrix, extract the optimal buffer sizes, and return
+  optBuffs <- getOptBuffers(nrmseMat)
+  return(optBuffs)
 }
 
 # Function for generating a vector of wild allele frequencies from a genind object
