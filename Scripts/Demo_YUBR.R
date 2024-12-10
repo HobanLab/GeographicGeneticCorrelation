@@ -72,9 +72,9 @@ indNames(YUBR_genind) <- gsub("cat_", "", indNames(YUBR_genind))
 # Check if the processed file (called YUBR_coordinates.csv) already exists; if not, then 
 # run the necessary processing steps.
 if(file.exists(paste0(YUBR_filePath, 'Geographic/YUBR_coordinates.csv'))){
-  # Read in the CSV of processed coordinates
+  # Read in the CSV of processed coordinates. The first column contains row numbers
   YUBR_coordinates <- read.csv(
-    paste0(YUBR_filePath, 'Geographic/YUBR_coordinates.csv'), header=TRUE, )
+    paste0(YUBR_filePath, 'Geographic/YUBR_coordinates.csv'), header=TRUE)
 } else {
   # Read in and process the wild occurrence points. This CSV has 5 columns: sample names, 
   # latitude (decimal minutes, 2 columns), and longitude (decimal minutes, 2 columns)  
@@ -94,6 +94,9 @@ if(file.exists(paste0(YUBR_filePath, 'Geographic/YUBR_coordinates.csv'))){
   YUBR_coordinates <- YUBR_coordinates[match(indNames(YUBR_genind), YUBR_coordinates$Sample),]
   # Rename the rows numerically, to match the order of samples in the genind file
   rownames(YUBR_coordinates) <- as.character(seq(1, nrow(YUBR_coordinates)))
+  # Write resulting coordinates data.frame as a CSV to disk, for future runs
+  write.csv(YUBR_coordinates, file=paste0(YUBR_filePath,'Geographic/YUBR_coordinates.csv'), 
+            row.names = FALSE)
 }
 # Read in raster data, for SDM
 YUBR_sdm <- terra::rast(paste0(YUBR_filePath,'Geographic/YUBR_319inds_rast_Carver.tif'))

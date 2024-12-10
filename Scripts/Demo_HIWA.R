@@ -37,12 +37,25 @@ invisible(clusterEvalQ(cl, library('usedist')))
 HIWA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/HIWA/')
 
 # ---- GEOGRAPHIC/ECOLOGICAL DATA FILES
-# Read in wild occurrence points. This CSV has 5 columns: sample name, sample code, locality, 
-# latitude, and longitude
-HIWA_points <- read.csv(paste0(HIWA_filePath, 'Geographic/HIWA_coordinates.csv'), header=TRUE)
-# Remove the ex situ samples from the dataframe, and then drop sample code and locality columns
-HIWA_points <- HIWA_points[-which(HIWA_points$Locality=='Ex Situ'),]
-HIWA_points <- HIWA_points[,-(2:3)]
+# The original coordinates file for this Hibiscus dataset needs to be processed such that 
+# ex situ individuals are removed.
+# Check if the processed file (called HIWA_coordinates.csv) already exists; if not, then 
+# run the necessary processing steps.
+if(file.exists(paste0(HIWA_filePath, 'Geographic/HIWA_coordinates.csv'))){
+  # Read in the CSV of processed coordinates. The first column contains row numbers
+  HIWA_coordinates <- read.csv(
+    paste0(HIWA_filePath, 'Geographic/HIWA_coordinates.csv'), header=TRUE)
+} else {
+  # Read in wild occurrence points. This CSV has 5 columns: sample name, sample code, locality, 
+  # latitude, and longitude
+  HIWA_points <- read.csv(paste0(HIWA_filePath, 'Geographic/HIWA_coordinates_Original.csv'), header=TRUE)
+  # Remove the ex situ samples from the dataframe, and then drop sample code and locality columns
+  HIWA_points <- HIWA_points[-which(HIWA_points$Locality=='Ex Situ'),]
+  HIWA_coordinates <- HIWA_points[,-(2:3)]
+  # Write resulting coordinates data.frame as a CSV to disk, for future runs
+  write.csv(HIWA_coordinates, file=paste0(HIWA_filePath,'Geographic/HIWA_coordinates.csv'), 
+            row.names = FALSE)
+}
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = FALSE)
 # Perform geographic filter on the admin layer. 
@@ -56,11 +69,6 @@ world_poly_clip_W <- wrap(world_poly_clip)
 ecoregion_poly_W <- wrap(ecoregion_poly)
 
 # ---- GENETIC MATRIX
-# # Read in the genepop file provided for this dataset
-# HIWA_all_genind <- read.genepop(paste0(HIWA_filePath,'Genetic/final.recode.p.snps.gen'))
-# # Using sample names, create a new genind object that doesn't include the ex situ samples
-# HIWA_genind <- HIWA_all_genind[HIWA_points[,1], drop=TRUE]
-# 
 # Read in the VCF file containing Hibiscus individuals
 HIWA_vcf <- read.vcfR(paste0(HIWA_filePath,'Genetic/hawaii.populations.snps.vcf'))
 # Convert the vcf to a genind; the return.alleles FALSE value allows for downstream genetic distance calculations
@@ -81,7 +89,7 @@ clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuff
 arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO3_G2GE_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 HIWA_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj=HIWA_genind,  genDistFlag=TRUE, geoFlag=TRUE, coordPts=HIWA_points, 
+  geo.gen.Resample.Par(genObj=HIWA_genind,  genDistFlag=TRUE, geoFlag=TRUE, coordPts=HIWA_coordinates, 
                        geoBuff=geo_buffSize, SDMrast=NA, boundary=world_poly_clip_W, 
                        ecoFlag=TRUE, ecoBuff=eco_buffSize, ecoRegions=ecoregion_poly_W, 
                        ecoLayer='GL', reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
@@ -90,7 +98,7 @@ stopCluster(cl)
 
 # Run resampling not in parallel (for function testing purposes)
 # HIWA_demoArray_IND <-
-#   geo.gen.Resample(genObj=HIWA_genind, geoFlag=TRUE, genDistFlag=TRUE, coordPts=HIWA_points,
+#   geo.gen.Resample(genObj=HIWA_genind, geoFlag=TRUE, genDistFlag=TRUE, coordPts=HIWA_coordinates,
 #                    geoBuff=geo_buffSize, boundary=world_poly_clip, ecoFlag=FALSE, reps = 1)
 
 # %%% ANALYZE DATA %%% ----

@@ -62,7 +62,6 @@ COGL_coordinates <-
   read.csv(file=paste0(COGL_filePath, 'Geographic/COGL_coordinates.csv'), header = TRUE)
 # Rename the columns of the geographic coordinates data.frame (because geo.compareBuff function expects certain strings)
 colnames(COGL_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
-
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = FALSE)
 # Perform geographic filter on the admin layer. 
