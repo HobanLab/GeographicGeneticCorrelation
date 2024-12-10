@@ -27,21 +27,34 @@ eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500,1000,150
 ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
 
 # ---- GEOGRAPHIC/ECOLOGICAL DATA FILES
-# The metadata for the 1,135 accessions included in the analysis, including latitude and longitude values,
-# was accessed from a CSV uploaded to the website here: https://1001genomes.org/accessions.html
-ARTH_coordinates <- 
-  read.csv(file=paste0(ARTH_filePath, 'Geographic/ARTH_coordinates.csv'), header = FALSE)
-# Remove unnecessary columns (CS number, collector, sequencer, etc.), and rename columns. Retain 
-# country values, in order to filter out samples outside of the native range of Eurasia
-ARTH_coordinates <- ARTH_coordinates[,-c(2:3,5,8:13)]
-# Rename CSV columns, and drop unnecessary columns
-colnames(ARTH_coordinates) <- c('Acc_ID','Country','decimalLatitude','decimalLongitude')
-# Remove samples that come from the U.S. (USA) or Japan (JPN) (leaving 1,010 samples)
-ARTH_coordinates <- ARTH_coordinates[-which(ARTH_coordinates$Country == 'USA'),]
-ARTH_coordinates <- ARTH_coordinates[-which(ARTH_coordinates$Country == 'JPN'),]
-# Remove the country column, and reformat sample names as characters (rather than numeric)
-ARTH_coordinates <- ARTH_coordinates[,-2]
-ARTH_coordinates[,1] <- as.character(ARTH_coordinates[,1])
+# The original coordinates file for this Arabidopsis dataset needs to be processed such that 
+# samples outside of the native range of Eurasia (in the U.S. and Japan) are removed
+# Check if the processed file (called ARTH_coordinates.csv) already exists; if not, then 
+# run the necessary processing steps.
+if(file.exists(paste0(YUBR_filePath, 'Geographic/ARTH_coordinates.csv'))){
+  # Read in the CSV of processed coordinates. The first column contains row numbers
+  ARTH_coordinates <- read.csv(
+    paste0(ARTH_filePath, 'Geographic/ARTH_coordinates.csv'), header=TRUE)
+} else {
+  # The metadata for the 1,135 accessions included in the analysis, including lat/long values,
+  # was accessed from a CSV uploaded to the website here: https://1001genomes.org/accessions.html
+  ARTH_coordinates <- 
+    read.csv(file=paste0(ARTH_filePath, 'Geographic/ARTH_coordinates_Original.csv'), header = FALSE)
+  # Remove unnecessary columns (CS number, collector, sequencer, etc.), and rename columns. Retain 
+  # country values, in order to filter out samples outside of the native range of Eurasia
+  ARTH_coordinates <- ARTH_coordinates[,-c(2:3,5,8:13)]
+  # Rename CSV columns, and drop unnecessary columns
+  colnames(ARTH_coordinates) <- c('Acc_ID','Country','decimalLatitude','decimalLongitude')
+  # Remove samples that come from the U.S. (USA) or Japan (JPN) (leaving 1,010 samples)
+  ARTH_coordinates <- ARTH_coordinates[-which(ARTH_coordinates$Country == 'USA'),]
+  ARTH_coordinates <- ARTH_coordinates[-which(ARTH_coordinates$Country == 'JPN'),]
+  # Remove the country column, and reformat sample names as characters (rather than numeric)
+  ARTH_coordinates <- ARTH_coordinates[,-2]
+  ARTH_coordinates[,1] <- as.character(ARTH_coordinates[,1])
+  # Write resulting coordinates data.frame as a CSV to disk, for future runs
+  write.csv(ARTH_coordinates, file=paste0(ARTH_filePath,'Geographic/ARTH_coordinates.csv'), 
+            row.names = FALSE)
+}
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = TRUE)
