@@ -7,11 +7,12 @@
 # is to examine any possible trends between these point-based metrics and the optimal geographic
 # buffer sizes.
 
-# The key geo.calc.pointSummaries function used in this script is declared in the functions_GeoGenCoverage.R script. 
+# The key geo.calc.pointSummaries function used in this script is declared in the 
+# functions_GeoGenCoverage.R script. 
 
 # Load packages 
 pacman::p_load(redlistr, spatialEco, sf, terra, tmap, dplyr, sfdep, sfheaders,
-               deldir, readr, Hmisc, corrplot)
+               deldir, readr, Hmisc, corrplot, parallel)
 tmap_mode("view")
 
 # Read in relevant functions
@@ -24,25 +25,26 @@ source('Scripts/functions_GeoGenCoverage.R')
 pointsData <- list.files(paste0(getwd(), "/Datasets"), pattern = ".csv", recursive = TRUE, full.names = TRUE)
 pointsData <- pointsData[grep('Geographic', pointsData)]
 # Select one coordinate file per species
-amth <- pointsData[grepl(pattern ="AMTH", pointsData)]
-arth <- pointsData[grepl(pattern ="ARTH", pointsData)]
+amth <- pointsData[grepl(pattern ="AMTH", pointsData)][2] # Necessary due to 2nd (original) coordinate file
+arth <- pointsData[grepl(pattern ="ARTH", pointsData)][2] # Necessary due to 2nd (original) coordinate file
 cogl <- pointsData[grepl(pattern ="COGL", pointsData)]
-hiwa <- pointsData[grepl(pattern ="HIWA", pointsData)]
+hiwa <- pointsData[grepl(pattern ="HIWA", pointsData)][2] # Necessary due to 2nd (original) coordinate file
 migu <- pointsData[grepl(pattern ="MIGU", pointsData)][2] # Necessary because of a 2nd file of global coordinates
 pico <- pointsData[grepl(pattern ="PICO", pointsData)]
 quac <- pointsData[grepl(pattern ="QUAC", pointsData)]
 qulo <- pointsData[grepl(pattern ="QULO", pointsData)]
-yubr <- pointsData[grepl(pattern ="YUBR", pointsData)][2] # Necessary because of a 2nd (original) file of coordinates
+vila <- pointsData[grepl(pattern ="VILA", pointsData)]
+yubr <- pointsData[grepl(pattern ="YUBR", pointsData)][2] # Necessary due to 2nd (original) coordinate file
 
 # Build a list of the relevant files, and fields within those files, for each dataset.
 # Note that the column names between different coordinate files differ
 pointsDataList <- list(
   amth = read_csv(amth) |>
     dplyr::mutate(taxon = "AMTH")|>
-    dplyr::select(taxon, lat = lat, lon = long),
-  arth = read_csv(arth,col_names = FALSE) |>
+    dplyr::select(taxon, lat = decimalLatitude, lon = decimalLongitude),
+  arth = read_csv(arth) |>
       plyr::mutate(taxon = "ARTH")|>
-      dplyr::select(taxon, lat = X6, lon = X7),
+      dplyr::select(taxon, lat = decimalLatitude, lon = decimalLongitude),
   cogl = read_csv(cogl) |> 
     dplyr::mutate(taxon = "COGL")|>
     dplyr::select(taxon, lat = Latitude , lon = Longitude),
@@ -61,11 +63,13 @@ pointsDataList <- list(
   qulo = read_csv(qulo)|> 
     dplyr::mutate(taxon = "QULO")|>
     dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude),
+  vila = read_csv(qulo)|> 
+    dplyr::mutate(taxon = "VILA")|>
+    dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude),
   yubr = read_csv(yubr)|>
     dplyr::mutate(taxon = "YUBR")|>
     dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude)
 )
-
 # Apply function which calculates multiple point summary metrics to list of datasets
 pointSummaries <- lapply(pointsDataList, geo.calc.pointSummaries)
 # Transform the point summary values into a list, where columns are the species and rows are the metrics
@@ -90,6 +94,7 @@ resampArrList <- list(
   PICO=paste0(GeoGenCorr_wd, 'Datasets/PICO/resamplingData/SMBO2_G2E/PICO_SMBO2_G2E_5r_resampArr.Rdata'),
   QUAC=paste0(GeoGenCorr_wd, 'Datasets/QUAC/resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata'),
   QULO=paste0(GeoGenCorr_wd, 'Datasets/QULO/resamplingData/SMBO2/QULO_SMBO2_G2E_5r_resampArr.Rdata'),
+  VILA=paste0(GeoGenCorr_wd, 'Datasets/VILA/resamplingData/SMBO2/VILA_SMBO2_5r_resampArr.Rdata'),
   YUBR=paste0(GeoGenCorr_wd, 'Datasets/YUBR/resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
 )
 # Based on data in resampling arrays, extract the optimal buffer sizes for each species
@@ -99,8 +104,9 @@ optBuffs$AMTH <- c(optBuffs$AMTH[[1]],NA,optBuffs$AMTH[[2]])
 optBuffs$ARTH <- c(optBuffs$ARTH[[1]],NA,optBuffs$ARTH[[2]])
 optBuffs$COGL <- c(optBuffs$COGL[[1]],NA,optBuffs$COGL[[2]])
 optBuffs$HIWA <- c(optBuffs$HIWA[[1]],NA,optBuffs$HIWA[[2]])
+optBuffs$VILA <- c(optBuffs$VILA[[1]],NA,optBuffs$VILA[[2]])
 names(optBuffs$AMTH) <- names(optBuffs$ARTH) <- names(optBuffs$COGL)<- names(optBuffs$HIWA) <- 
-  names(optBuffs$QULO)
+  names(optBuffs$VILA) <- names(optBuffs$QULO)
 # Convert the list of optimal buffer size values to a matrix
 optBuffsMat <- matrix(unlist(optBuffs), ncol = length(optBuffs), byrow = FALSE)
 colnames(optBuffsMat) <- names(optBuffs)
