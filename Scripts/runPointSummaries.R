@@ -94,7 +94,7 @@ resampArrList <- list(
   PICO=paste0(GeoGenCorr_wd, 'Datasets/PICO/resamplingData/SMBO2_G2E/PICO_SMBO2_G2E_5r_resampArr.Rdata'),
   QUAC=paste0(GeoGenCorr_wd, 'Datasets/QUAC/resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata'),
   QULO=paste0(GeoGenCorr_wd, 'Datasets/QULO/resamplingData/SMBO2/QULO_SMBO2_G2E_5r_resampArr.Rdata'),
-  VILA=paste0(GeoGenCorr_wd, 'Datasets/VILA/resamplingData/SMBO2/VILA_SMBO2_5r_resampArr.Rdata'),
+  VILA=paste0(GeoGenCorr_wd, 'Datasets/VILA/resamplingData/VILA_SMBO2_5r_resampArr.Rdata'),
   YUBR=paste0(GeoGenCorr_wd, 'Datasets/YUBR/resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
 )
 # Based on data in resampling arrays, extract the optimal buffer sizes for each species
@@ -115,7 +115,7 @@ rownames(optBuffsMat) <- names(optBuffs$QULO)
 # rows are datasets and columns are summary metrics
 SMBO_Mat <- t(rbind(pointSummariesMat, optBuffsMat))
 # Create a separate matrix identical to the first, but only for species with SDMs
-SMBO_SDM_Mat <- SMBO_Mat[-(1:4),]
+SMBO_SDM_Mat <- SMBO_Mat[-c(1:4,9),]
 # Remove the row corresponding to SDM optimal buffer sizes from the original matrix
 SMBO_Mat <- SMBO_Mat[,-9]
 
