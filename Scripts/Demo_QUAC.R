@@ -43,12 +43,12 @@ pop(QUAC_genind) <- rep('wild', nInd(QUAC_genind))
 # Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
 # The sample names (and order) have to match the sample names/order of the genind object 
 # (rownams of the genetic matrix) read in below.
-wildPoints <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coordinates.csv'), header=TRUE)
+QUAC_coordinates <- read.csv(paste0(QUAC_filePath, 'Geographic/QUAC_coordinates.csv'), header=TRUE)
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = TRUE)
 # Perform geographic filter on the admin layer
-world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = wildPoints) 
+world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = QUAC_coordinates) 
 # Read in raster data, for SDM
 QUAC_sdm <- terra::rast(paste0(GeoGenCorr_wd,'/Datasets/QUAC/Geographic/QUAC_91inds_rast.tif'))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
@@ -79,7 +79,7 @@ if(parFlag==TRUE){
 # ---- RESAMPLING ----
 if(parFlag==TRUE){
   # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
-  clusterExport(cl, varlist = c('wildPoints','QUAC_genind','num_reps','geo_buffSize','eco_buffSize',
+  clusterExport(cl, varlist = c('QUAC_coordinatess','QUAC_genind','num_reps','geo_buffSize','eco_buffSize',
                                 'world_poly_clip_W','ecoregion_poly_W','QUAC_sdm_W'))
   # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
   clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
@@ -90,7 +90,7 @@ if(parFlag==TRUE){
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO3_G2G2E_5r_resampArr.Rdata')
   # Run resampling in parallel
   QUAC_demoArray_IND_Par <- 
-    geo.gen.Resample.Par(genObj=QUAC_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts=wildPoints, 
+    geo.gen.Resample.Par(genObj=QUAC_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts=QUAC_coordinatess, 
                          SDMrast=QUAC_sdm_W, geoBuff=geo_buffSize, boundary=world_poly_clip_W, 
                          ecoFlag=TRUE, ecoBuff=eco_buffSize, ecoRegions=ecoregion_poly_W, ecoLayer='US',
                          reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
@@ -100,7 +100,7 @@ if(parFlag==TRUE){
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
     geo.gen.Resample(genObj=QUAC_genind,  genDistFlag=TRUE, geoFlag=TRUE, 
-                     coordPts=wildPoints, SDMrast=NA, geoBuff=geo_buffSize, 
+                     coordPts=QUAC_coordinatess, SDMrast=NA, geoBuff=geo_buffSize, 
                      boundary=world_poly_clip, ecoFlag=FALSE, ecoBuff=eco_buffSize, 
                      ecoRegions=ecoregion_poly, ecoLayer='US', reps=1)
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_G2G2_1r_resampArr.Rdata')
