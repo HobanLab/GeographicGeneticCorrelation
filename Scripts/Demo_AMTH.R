@@ -46,40 +46,54 @@ AMTH_vcf <- read.vcfR(paste0(AMTH_filePath,'Genetic/Tharpii_only.vcf'))
 AMTH_genind <- vcfR2genind(AMTH_vcf, return.alleles = TRUE)
 
 # ---- GEOGRAPHIC/ECOLOGICAL DATA FILES
-# The CSV of geographic coordinates contains the coordinates of each population for each 
-# Amsonia species analyzed (of which there are 3). The relevant populations (for Amsonia tharpii)
-# are at the top, so only the first 5 rows are extracted. This file has coordinates 
-# for each population; the population of each sample is represented by the letter at 
-# the front of each individual's name (see indNames(AMTH_genind))
-AMTH_popCoordinates <- read.csv2(paste0(AMTH_filePath, 'Geographic/AMTH_coordinates.csv'),
-                                 header = TRUE,sep = ',',nrows = 5)
-# Build a data.frame for individual coordinates, based on the sample names, and specify column names
-AMTH_coordinates <- data.frame(indNames(AMTH_genind))
-AMTH_coordinates <- cbind(AMTH_coordinates,NA,NA)
-colnames(AMTH_coordinates) <- c('sampleNames', 'decimalLatitude', 'decimalLongitude')
-# The coordinates file needs to list the coordinates for each individual (rather than each population)
-# To achieve this, detect the first letter of each sample name, and based on that letter, list
-# the coordinates for the corresponding population
-for(i in 1:length(indNames(AMTH_genind))){
-  if(substring(AMTH_coordinates[i,1],1,1) == 'P'){
-    AMTH_coordinates[i,2:3] <- AMTH_popCoordinates[1,4:5]
+# The original coordinates file for this Amsonia dataset needs to be processed such that coordinates
+# are listed for individuals, rather than populations.
+# Check if the processed file (called AMTH_coordinates.csv) already exists; if not, then 
+# run the necessary processing steps.
+# NOTE: these coordinates cannot be shared externally, due to the rare status of this species!
+if(file.exists(paste0(YUBR_filePath, 'Geographic/AMTH_coordinates.csv'))){
+  # Read in the CSV of processed coordinates. The first column contains row numbers
+  AMTH_coordinates <- read.csv(
+    paste0(AMTH_filePath, 'Geographic/AMTH_coordinates.csv'), header=TRUE)[2:4]
+} else {
+  # The CSV of geographic coordinates contains the coordinates of each population for each 
+  # Amsonia species analyzed (of which there are 3). The relevant populations (for Amsonia tharpii)
+  # are at the top, so only the first 5 rows are extracted. This file has coordinates 
+  # for each population; the population of each sample is represented by the letter at 
+  # the front of each individual's name (see indNames(AMTH_genind))
+  AMTH_popCoordinates <- read.csv2(paste0(AMTH_filePath, 'Geographic/AMTH_coordinates_Original.csv'),
+                                   header = TRUE,sep = ',',nrows = 5)
+  # Build a data.frame for individual coordinates, based on the sample names, and specify column names
+  AMTH_coordinates <- data.frame(indNames(AMTH_genind))
+  AMTH_coordinates <- cbind(AMTH_coordinates,NA,NA)
+  colnames(AMTH_coordinates) <- c('sampleNames', 'decimalLatitude', 'decimalLongitude')
+  # The coordinates file needs to list the coordinates for each individual (rather than each population)
+  # To achieve this, detect the first letter of each sample name, and based on that letter, list
+  # the coordinates for the corresponding population
+  for(i in 1:length(indNames(AMTH_genind))){
+    if(substring(AMTH_coordinates[i,1],1,1) == 'P'){
+      AMTH_coordinates[i,2:3] <- AMTH_popCoordinates[1,4:5]
+    }
+    if(substring(AMTH_coordinates[i,1],1,1) == 'R'){
+      AMTH_coordinates[i,2:3] <- AMTH_popCoordinates[2,4:5]
+    }
+    if(substring(AMTH_coordinates[i,1],1,1) == 'B'){
+      AMTH_coordinates[i,2:3] <- AMTH_popCoordinates[3,4:5]
+    }
+    if(substring(AMTH_coordinates[i,1],1,1) == 'C'){
+      AMTH_coordinates[i,2:3] <- AMTH_popCoordinates[4,4:5]
+    }
+    if(substring(AMTH_coordinates[i,1],1,1) == 'T'){
+      AMTH_coordinates[i,2:3] <- AMTH_popCoordinates[5,4:5]
+    }
   }
-  if(substring(AMTH_coordinates[i,1],1,1) == 'R'){
-    AMTH_coordinates[i,2:3] <- AMTH_popCoordinates[2,4:5]
-  }
-  if(substring(AMTH_coordinates[i,1],1,1) == 'B'){
-    AMTH_coordinates[i,2:3] <- AMTH_popCoordinates[3,4:5]
-  }
-  if(substring(AMTH_coordinates[i,1],1,1) == 'C'){
-    AMTH_coordinates[i,2:3] <- AMTH_popCoordinates[4,4:5]
-  }
-  if(substring(AMTH_coordinates[i,1],1,1) == 'T'){
-    AMTH_coordinates[i,2:3] <- AMTH_popCoordinates[5,4:5]
-  }
+  # Ensure coordinate values are numeric, not strings
+  AMTH_coordinates[,2] <- as.numeric(AMTH_coordinates[,2])
+  AMTH_coordinates[,3] <- as.numeric(AMTH_coordinates[,3])
+  # Write resulting coordinates data.frame as CSV to disk, for future runs
+  write.csv(AMTH_coordinates, file=paste0(AMTH_filePath,'Geographic/AMTH_coordinates.csv'), 
+            row.names = FALSE)
 }
-# Ensure coordinate values are numeric, not strings
-AMTH_coordinates[,2] <- as.numeric(AMTH_coordinates[,2])
-AMTH_coordinates[,3] <- as.numeric(AMTH_coordinates[,3])
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
