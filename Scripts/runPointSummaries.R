@@ -110,7 +110,7 @@ names(optBuffs$AMTH) <- names(optBuffs$ARTH) <- names(optBuffs$COGL)<- names(opt
 # Convert the list of optimal buffer size values to a matrix
 optBuffsMat <- matrix(unlist(optBuffs), ncol = length(optBuffs), byrow = FALSE)
 colnames(optBuffsMat) <- names(optBuffs)
-rownames(optBuffsMat) <- names(optBuffs$QULO)
+rownames(optBuffsMat) <- c('Opt_Geo-Buff', 'Opt_SDM-Buff', 'Opt_Eco-Buff')
 # Combine the point summary matrix to the optimal buffer size matrix. Transpose such that 
 # rows are datasets and columns are summary metrics
 SMBO_Mat <- t(rbind(pointSummariesMat, optBuffsMat))
@@ -120,24 +120,28 @@ SMBO_SDM_Mat <- SMBO_Mat[-c(1:4,9),]
 SMBO_Mat <- SMBO_Mat[,-9]
 
 # BUILDING AND PLOTTING CORRELATION MATRICES ----
+# Setting the correlation type to Spearman, since we don't know whether the relationship
+# between the optimal buffer sizes and each point statistic is linear (and data likely
+# isn't Normally distributed)
+corType <- 'spearman'
 # GEO/ECO COVERAGES
 # Build a correlation matrix based off of values
-corMat_SMBO <- rcorr(SMBO_Mat)
+corMat_SMBO <- rcorr(SMBO_Mat, type=corType)
 # Replace NAs in diagonal of p-value matrix with 0s, to match dimensions
 corMat_SMBO$P[which(is.na(corMat_SMBO$P))] <- 0
 # Plot correlation matrix using corrplot. Label significant correlations using
 # asterisks
 corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P, 
          sig.level = 0.01, insig = "label_sig", diag = FALSE)
-mtext('Point Summaries: Geo/Eco Coverages', side=3, line=1.2, adj=0.05, cex=1.2)
+mtext('Spearman correlation: Point stats and Geo/Eco coverages', side=3, line=1.2, adj=0.05, cex=1.2)
 
 # SDM COVERAGES
 # Build a correlation matrix based off of values
-corMat_SMBO_SDM <- rcorr(SMBO_SDM_Mat)
+corMat_SMBO_SDM <- rcorr(SMBO_SDM_Mat, type=corType)
 # Replace NAs in diagonal of p-value matrix with 0s, to match dimensions
 corMat_SMBO_SDM$P[which(is.na(corMat_SMBO_SDM$P))] <- 0
 # Plot correlation matrix using corrplot. Label significant correlations using
 # asterisks
 corrplot(corMat_SMBO_SDM$r, type="upper", order="original", p.mat = corMat_SMBO_SDM$P, 
          sig.level = 0.01, insig = "label_sig", diag = FALSE)
-mtext('Point Summaries: Geo/SDM/Eco Coverages', side=3, line=1.2, adj=0.05, cex=1.2)
+mtext('Spearman correlation: Point stats and Geo/SDM/Eco coverages', side=3, line=1.2, adj=0.05, cex=1.2)
