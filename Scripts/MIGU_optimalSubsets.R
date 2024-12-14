@@ -14,6 +14,88 @@ GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
 
+# Specify filepath for MIGU geographic and genetic data
+MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
+
+# Building a script which removes non-native individuals from MIGU VCF
+
+# Read in coordinate file of strictly individuals from North America (255)
+MIGU_coordinates <- 
+  read.csv(file=paste0(MIGU_filePath, 'Geographic/MIGU_coordinates.csv'), header = TRUE)
+colnames(MIGU_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
+
+# Read in original VCF, containing native and international MIGU individuals (474)
+MIGU_vcf <- 
+  read.vcfR(file=paste0(MIGU_filePath, 'Genetic/mgut_all_20180305_gut_filter_75.i50.recode.pruned.plink_20180326.vcf'))
+
+MIGU_natNames <- MIGU_coordinates$Sample.Name
+
+
+MIGU_natNames_outFile <- 
+  file('/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Genetic/MIGU_natNames.txt')
+writeLines(MIGU_natNames, MIGU_natNames_outFile)
+close(MIGU_natNames_outFile)
+
+
+# Build a list of the names of international samples
+MIGU_intNames <- colnames(MIGU_vcf@gt)[which(!(colnames(MIGU_vcf@gt) %in% MIGU_coordinates$Sample.Name))]
+# Remove the "FORMAT" argument from the list
+MIGU_intNames <- MIGU_intNames[-1]
+# Checking that the length is correct
+474 - length(MIGU_intNames) == 255
+# Append the vcftools "--remove-indv" flag before each sample name
+BCF_text <- paste0(rep('^', length(MIGU_intNames)), MIGU_intNames)
+# Collapse text into a single, long string
+BCF_text <- paste(BCF_text, collapse=" ")
+
+
+# Write list of international samples to disk
+MIGU_intNames_outFile <- 
+  file('/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Genetic/MIGU_intNames.txt')
+writeLines(BCF_text, MIGU_intNames_outFile)
+close(MIGU_intNames_outFile)
+
+
+
+# Build a list of the names of international samples
+MIGU_intNames <- colnames(MIGU_vcf@gt)[which(!(colnames(MIGU_vcf@gt) %in% MIGU_coordinates$Sample.Name))]
+# Remove the "FORMAT" argument from the list
+MIGU_intNames <- MIGU_intNames[-1]
+# Checking that the length is correct
+474 - length(MIGU_intNames) == 255
+# Append the vcftools "--remove-indv" flag before each sample name
+VCF_text <- paste0(rep('--remove-indv ', length(MIGU_intNames)), MIGU_intNames)
+# Collapse text into a single, long string
+VCF_text <- paste(text, collapse=" ")
+# Write list of international samples to disk
+MIGU_intNames_outFile <- 
+  file('/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Genetic/MIGU_intNames.txt')
+writeLines(VCF_text, MIGU_intNames_outFile)
+close(MIGU_intNames_outFile)
+
+
+# Read in CSV containing core sets. This is a list of 8 sets of 27 individuals each, where each
+# set represents 90% of the genetic diversity found in the complete dataset of 
+
+
+
+
+# Read in the VCF file provided in Vallejo-Martin et al. 2021 using vcfR::read.vcfR
+MIGU_TEST <- 
+  read.vcfR(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Genetic/MIGU_Nat255.vcf')
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ---- VARIABLES ----
 # Specify number of resampling replicates
 num_reps <- 5
