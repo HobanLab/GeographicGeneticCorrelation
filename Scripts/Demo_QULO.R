@@ -240,7 +240,7 @@ legend(x=300, y=63, inset = 0.05, xpd=TRUE,
 # Specify filepath for QULO geographic and genetic data, including resampling array
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
 arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO3_G2G2E_5r_resampArr.Rdata')
-# Read in array and build a data.frame of values
+# Read in array 
 QULO_SMBO3_array <- readRDS(arrayDir)
 
 # ---- CALCULATIONS ----
@@ -337,6 +337,20 @@ mtext(text='*Optimal geographic buffer size: 120 km', side=1, line=-1.7, at=200,
 legend(x=300, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'),
        legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
        y.intersp = 0.75)
+
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Specify plot colors
+plotColors <- alpha(c('red','red4','darkorange3','coral','darkblue', 'purple'), 0.15)
+# Read in QULO SMBO2 resampling array amd convert to data.frame
+QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
+QULO_arrayDir <- paste0(QULO_filePath, 'resamplingData/SMBO2/QULO_SMBO2_G2E_5r_resampArr.Rdata')
+# From QULO resampling array, return a matrix of average coverage values for optimal buffer sizes
+QULO_optCovMat <- extractOptCovs(QULO_arrayDir)
+
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(QULO_optCovMat, ylim=c(0,110), col=plotColors, pch=16, ylab='Coverage (%)')
+# Issue is, coverages are kind of difficult to see because they're all stack (which makes sense)...
+# May just have to plot this out one by one
 
 # SMBO3 ----
 # ALLELIC AND GENETIC DISTANCE COVERAGE
