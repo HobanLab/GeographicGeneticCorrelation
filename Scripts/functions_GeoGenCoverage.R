@@ -790,6 +790,8 @@ getOptBuffers <- function(nrmseMat){
 # Wrapper function which, given a filepath to a resampling array, will return the optimal 
 # buffer sizes according to the data in that array
 extractOptBuffs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'), sdmFlag=FALSE){
+  # Match genetic coverage type argument
+  genCovType <- match.arg(genCovType)
   # Read in the array, then convert it into a data.frame
   array <- readRDS(arrayDir)
   df <- resample.array2dataframe(array)
@@ -800,6 +802,32 @@ extractOptBuffs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'),
   # From the NRMSE matrix, extract the optimal buffer sizes, and return
   optBuffs <- getOptBuffers(nrmseMat)
   return(optBuffs)
+}
+
+# Function for building a matrix of average coverage values for optimal buffer sizes
+extractOptCovs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'), sdmFlag=FALSE){
+  # Match genetic coverage type argument
+  genCovType <- match.arg(genCovType) 
+  # Read in the array, then convert it into a data.frame
+  array <- readRDS(arrayDir)
+  df <- resample.array2dataframe(array)
+  # From the data.frame, calculate a matrix of NRMSE values for each coverage type. Pass arguments
+  # along for the genetic coverage type (allelic/haplotypic coverage vs. genetic distance; whether
+  # or not SDM is included)
+  nrmseMat <- buildNRMSEmatrix(resampDF=df, genCovType=genCovType, sdmFlag=sdmFlag)
+  # From the NRMSE matrix, extract the optimal buffer sizes
+  optBuffs <- getOptBuffers(nrmseMat)
+  # From array, generate average value matrix (across resampling replicates)
+  averageValMat <- meanArrayValues(array)
+  # Subset the average value matrix to only optimal buffer size values
+  if(genCovType=='CV'){
+    optCovMat <- averageValMat[,paste0(strsplit(names(optBuffs),split = '_CV'),'_', optBuffs,'km'),]
+  } else {
+    optCovMat <- averageValMat[,paste0(strsplit(names(optBuffs),split = '_GD'),'_', optBuffs,'km'),]
+  }
+  # Add, as the first column, the average genetic coverage value (Total), and return
+  optCovMat <- cbind(averageValMat[,'Total'], optCovMat); colnames(optCovMat)[[1]] <- 'Gen_Total'
+  return(optCovMat)
 }
 
 # Function for generating a vector of wild allele frequencies from a genind object
