@@ -279,3 +279,15 @@ mtext(text='*Optimal geographic buffer size: 35 km', side=1, line=-1.7, at=200, 
 legend(x=300, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'),
        legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
        y.intersp = 0.75)
+
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Read in QUAC SMBO2 resampling array amd convert to data.frame
+QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
+QUAC_arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata')
+# From QUAC resampling array, return a matrix of average coverage values for optimal buffer sizes
+QUAC_optCovMat <- extractOptCovs(QUAC_arrayDir)
+# Calculate MSSEs: minimum number of samples for 95% of each coverage type
+QUAC_Gen_MSSE <- min(which(QUAC_optCovMat[,1] > 95)) ; QUAC_Gen_MSSE
+QUAC_GeoBuff_MSSE <- min(which(QUAC_optCovMat[,2] > 95)) ; QUAC_GeoBuff_MSSE
+QUAC_GeoSDM_MSSE <- min(which(QUAC_optCovMat[,3] > 95)) ; QUAC_GeoSDM_MSSE
+QUAC_Eco_MSSE <- min(which(QUAC_optCovMat[,4] > 95)) ; QUAC_Eco_MSSE

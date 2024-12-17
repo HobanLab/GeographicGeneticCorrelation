@@ -108,60 +108,6 @@ arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_50km_GE_5r_resampArr.Rdat
 # Read in the resampling array .Rdata object, saved to disk
 HIWA_demoArray_Par <- readRDS(arrayDir)
 
-# ---- CORRELATION ----
-# Build a data.frame from array values, to pass to linear models
-HIWA_DF <- resample.array2dataframe(HIWA_demoArray_Par)
-# Calculate normalized root mean square value
-HIWA_nrmse_geo <- nrmse_func(obs=HIWA_DF$Geo, pred=HIWA_DF$Total) ; HIWA_nrmse_geo
-HIWA_nrmse_eco <- nrmse_func(obs=HIWA_DF$Eco, pred=HIWA_DF$Total) ; HIWA_nrmse_eco
-
-# ---- PLOTTING ----
-# Generate the average values (across replicates) for all proportions
-# This function has default arguments for returning just Total allelic geographic proportions
-averageValueMat <- meanArrayValues(HIWA_demoArray_Par, allValues = TRUE)
-# Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
-averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
-# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
-averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
-averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
-names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
-# Specify plot colors
-plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
-plotColors <- alpha(plotColors, 0.45)
-plotColors_Sub <- plotColors[-(2:4)]
-# Two plots in a single window
-par(mfrow=c(2,1))
-
-# ---- CORRELATION PLOTS
-plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
-     main='Q. lobata: Geographic/Ecological by genetic coverage',xlab='', ylab='', col=plotColors[[5]])
-mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
-mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Add points for ecological coverage
-points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
-# Add NRMSE values for each comparison
-text(x = 76, y = 35, labels = paste0('NRMSE: ', HIWA_nrmse_geo), col='darkblue', cex=0.9)
-text(x = 76, y = 20, labels = paste0('NRMSE: ', HIWA_nrmse_eco), col='purple', cex=0.9)
-# Add legend
-legend(x=57, y=53, inset = 0.05, xpd=TRUE,
-       legend = c('Geographic', 'Ecological'),
-       col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
-# ---- COVERAGE PLOTS
-# Use the matplot function to plot the matrix of average values, with specified settings
-matplot(averageValueMat_TEG[,1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
-# Add title and x-axis labels to the graph
-title(main='Q. lobata: Geo-Eco-Gen Coverage', line=1.5)
-mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
-mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
-# Add legend
-legend(x=275, y=60, inset = 0.05,
-       legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)',
-                  'Ecological coverage (50 km buffer, EPA Level IV)'),
-       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
-       y.intersp = 0.8)
-
 # %%%% SMBO: MULTIPLE BUFFER SIZES ----
 # Specify filepath for HIWA geographic and genetic data, including resampling array
 HIWA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/HIWA/')
@@ -181,3 +127,14 @@ HIWA_NRMSE_Mat <- cbind(HIWA_NRMSE_Mat_CV, HIWA_NRMSE_Mat_GD)
 # Store the matrix as a CSV to disk
 write.table(HIWA_NRMSE_Mat,
             file=paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO3_NRMSE.csv'), sep=',')
+
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Read in HIWA SMBO2 resampling array amd convert to data.frame
+HIWA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/HIWA/')
+HIWA_arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata')
+# From HIWA resampling array, return a matrix of average coverage values for optimal buffer sizes
+HIWA_optCovMat <- extractOptCovs(HIWA_arrayDir)
+# Calculate MSSEs: minimum number of samples for 95% of each coverage type
+HIWA_Gen_MSSE <- min(which(HIWA_optCovMat[,1] > 95)) ; HIWA_Gen_MSSE
+HIWA_GeoBuff_MSSE <- min(which(HIWA_optCovMat[,2] > 95)) ; HIWA_GeoBuff_MSSE
+HIWA_Eco_MSSE <- min(which(HIWA_optCovMat[,3] > 95)) ; HIWA_Eco_MSSE

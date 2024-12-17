@@ -211,3 +211,37 @@ ARTH_NRMSE_Mat <- cbind(ARTH_NRMSE_Mat_CV, ARTH_NRMSE_Mat_GD)
 # Store the matrix as a CSV to disk
 write.table(ARTH_NRMSE_Mat,
             file=paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO3_NRMSE.csv'), sep=',')
+
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Read in ARTH SMBO2 resampling array amd convert to data.frame
+ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
+ARTH_arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata')
+# From ARTH resampling array, return a matrix of average coverage values for optimal buffer sizes
+ARTH_optCovMat <- extractOptCovs(ARTH_arrayDir)
+# Calculate MSSEs: minimum number of samples for 95% of each coverage type
+ARTH_Gen_MSSE <- min(which(ARTH_optCovMat[,1] > 95)) ; ARTH_Gen_MSSE
+ARTH_GeoBuff_MSSE <- min(which(ARTH_optCovMat[,2] > 95)) ; ARTH_GeoBuff_MSSE
+ARTH_Eco_MSSE <- min(which(ARTH_optCovMat[,3] > 95)) ; ARTH_Eco_MSSE
+
+# PLOTTING
+# Specify plot colors
+plotColors <- c('red', 'darkblue','darkorange3', 'purple')
+plotColors_Fade <- alpha(plotColors, c(0.45, rep(0.85, length(plotColors)-1)))
+# Set plotting window to stack 2 graphs vertically
+par(mfcol=c(2,1), oma=rep(0.2,4), mar=c(2,4,3,1)+0.1)
+# Geo Buff
+matplot(ARTH_optCovMat[,c(1,2)], ylim=c(0,110), col=plotColors_Fade[c(1, 2)], pch=16, ylab='')
+abline(h=95, col="black", lty=3) 
+abline(v=ARTH_Gen_MSSE, col="red") ; abline(v=ARTH_GeoBuff_MSSE, col="darkblue")
+mtext(text=paste0('MSSE: ', ARTH_Gen_MSSE), side=1, line=-1, at=ARTH_Gen_MSSE+45, cex=0.7, col='red')
+mtext(text=paste0(' MSSE: ', ARTH_GeoBuff_MSSE), line=-1.5, side=1, at=ARTH_GeoBuff_MSSE-45, cex=0.7, col='darkblue')
+title('Arabidopsis thaliana: Coverages at Optimal Buffer Sizes', cex.sub=1.2, line = 2)
+mtext(text='Geographic (Total Buffer): 500 km', side=3, at=80, cex=0.8)
+# Eco Buff
+par(mar=c(3,4,2,1)+0.1)
+matplot(ARTH_optCovMat[,c(1,3)], ylim=c(0,110), col=plotColors_Fade[c(1, 4)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=ARTH_Gen_MSSE, col="red") ; abline(v=ARTH_Eco_MSSE, col="purple")
+mtext(text=paste0('MSSE: ', ARTH_Gen_MSSE), side=1, line=-1, at=ARTH_Gen_MSSE+45, cex=0.7, col='red')
+mtext(text=paste0(' MSSE: ', ARTH_Eco_MSSE), line=-1.5, side=1, at=ARTH_Eco_MSSE-45, cex=0.7, col='purple')
+mtext(text='Ecological: 500 km', side=3, at=c(80), cex=0.8)

@@ -364,3 +364,15 @@ mtext(text='*Optimal geographic buffer size: 120 km', side=1, line=-1.7, at=300,
 legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'), 
        legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
        y.intersp = 0.75)
+
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Read in PICO SMBO2 resampling array amd convert to data.frame
+PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
+PICO_arrayDir <- paste0(PICO_filePath, 'resamplingData/SMBO2_G2E/PICO_SMBO2_G2E_5r_resampArr.Rdata')
+# From PICO resampling array, return a matrix of average coverage values for optimal buffer sizes
+PICO_optCovMat <- extractOptCovs(PICO_arrayDir)
+# Calculate MSSEs: minimum number of samples for 95% of each coverage type
+PICO_Gen_MSSE <- min(which(PICO_optCovMat[,1] > 95)) ; PICO_Gen_MSSE
+PICO_GeoBuff_MSSE <- min(which(PICO_optCovMat[,2] > 95)) ; PICO_GeoBuff_MSSE
+PICO_GeoSDM_MSSE <- min(which(PICO_optCovMat[,3] > 95)) ; PICO_GeoSDM_MSSE
+PICO_Eco_MSSE <- min(which(PICO_optCovMat[,4] > 95)) ; PICO_Eco_MSSE

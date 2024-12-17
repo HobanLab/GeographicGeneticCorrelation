@@ -198,3 +198,14 @@ print(COGL_NRMSE_Mat)
 # Store the matrix as a CSV to disk
 write.table(COGL_NRMSE_Mat,
             file=paste0(COGL_filePath, 'resamplingData/COGL_SMBO2_NRMSE.csv'), sep=',')
+
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Read in COGL SMBO2 resampling array amd convert to data.frame
+COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
+COGL_arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO2_GE_5r_resampArr.Rdata')
+# From COGL resampling array, return a matrix of average coverage values for optimal buffer sizes
+COGL_optCovMat <- extractOptCovs(COGL_arrayDir)
+# Calculate MSSEs: minimum number of samples for 95% of each coverage type
+COGL_Gen_MSSE <- min(which(COGL_optCovMat[,1] > 95)) ; COGL_Gen_MSSE
+COGL_GeoBuff_MSSE <- min(which(COGL_optCovMat[,2] > 95)) ; COGL_GeoBuff_MSSE
+COGL_Eco_MSSE <- min(which(COGL_optCovMat[,3] > 95)) ; COGL_Eco_MSSE

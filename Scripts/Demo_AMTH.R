@@ -231,3 +231,14 @@ print(AMTH_NRMSE_Mat)
 # Store the matrix as a CSV to disk
 write.table(AMTH_NRMSE_Mat,
             file=paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_NRMSE.csv'), sep=',')
+
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Read in AMTH SMBO2 resampling array amd convert to data.frame
+AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
+AMTH_arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata')
+# From AMTH resampling array, return a matrix of average coverage values for optimal buffer sizes
+AMTH_optCovMat <- extractOptCovs(AMTH_arrayDir)
+# Calculate MSSEs: minimum number of samples for 95% of each coverage type
+AMTH_Gen_MSSE <- min(which(AMTH_optCovMat[,1] > 95)) ; AMTH_Gen_MSSE
+AMTH_GeoBuff_MSSE <- min(which(AMTH_optCovMat[,2] > 95)) ; AMTH_GeoBuff_MSSE
+AMTH_Eco_MSSE <- min(which(AMTH_optCovMat[,3] > 95)) ; AMTH_Eco_MSSE

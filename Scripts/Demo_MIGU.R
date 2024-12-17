@@ -262,3 +262,15 @@ print(MIGU_NRMSE_Mat)
 # Store the matrix as a CSV to disk
 write.table(MIGU_NRMSE_Mat,
             file=paste0(MIGU_filePath, 'resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_NRMSE.csv'), sep=',')
+
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Read in MIGU SMBO2 resampling array amd convert to data.frame
+MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
+MIGU_arrayDir <- paste0(MIGU_filePath, 'resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata')
+# From MIGU resampling array, return a matrix of average coverage values for optimal buffer sizes
+MIGU_optCovMat <- extractOptCovs(MIGU_arrayDir)
+# Calculate MSSEs: minimum number of samples for 95% of each coverage type
+MIGU_Gen_MSSE <- min(which(MIGU_optCovMat[,1] > 95)) ; MIGU_Gen_MSSE
+MIGU_GeoBuff_MSSE <- min(which(MIGU_optCovMat[,2] > 95)) ; MIGU_GeoBuff_MSSE
+MIGU_GeoSDM_MSSE <- min(which(MIGU_optCovMat[,3] > 95)) ; MIGU_GeoSDM_MSSE
+MIGU_Eco_MSSE <- min(which(MIGU_optCovMat[,4] > 95)) ; MIGU_Eco_MSSE

@@ -362,3 +362,15 @@ mtext(text='*Optimal ecological buffer size: 25 km', side=1, line=-1.7, at=60, c
 legend(x=550, y=55, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4'),
        legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Genetic values'),
        y.intersp = 0.75)
+
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Read in YUBR SMBO2 resampling array amd convert to data.frame
+YUBR_filePath <- paste0(GeoGenCorr_wd, 'Datasets/YUBR/')
+YUBR_arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
+# From YUBR resampling array, return a matrix of average coverage values for optimal buffer sizes
+YUBR_optCovMat <- extractOptCovs(YUBR_arrayDir)
+# Calculate MSSEs: minimum number of samples for 95% of each coverage type
+YUBR_Gen_MSSE <- min(which(YUBR_optCovMat[,1] > 95)) ; YUBR_Gen_MSSE
+YUBR_GeoBuff_MSSE <- min(which(YUBR_optCovMat[,2] > 95)) ; YUBR_GeoBuff_MSSE
+YUBR_GeoSDM_MSSE <- min(which(YUBR_optCovMat[,3] > 95)) ; YUBR_GeoSDM_MSSE
+YUBR_Eco_MSSE <- min(which(YUBR_optCovMat[,4] > 95)) ; YUBR_Eco_MSSE
