@@ -266,16 +266,10 @@ gen.getAlleleCategories <- function(freqVector, sampleMat){
 
 # Declare a function which, given a genind object, builds a matrix of Euclidean distances between every individual
 gen.buildDistMat <- function(genObj){
-  browser()
   # Convert genind object to data.frame, ignoring any population designations
   df <- genind2df(genObj, usepop=FALSE)
-  # Convert data.frame to genlight object
-  genLight <- as.genlight(df)
-  # Build a genetic distance matrix from the genlight object. The default method (Euclidean) is used.
-  distMat <- dist(genLight)
-  # Check that total genetic distance is a number; if it isn't, genetic distance calculations will fail
-  if(is.na(sum(c(distMat)))){
-    stop('Total genetic distance is NA, so genetic distance coverage cannot be calculated!')}
+  # Calculate distance matrix, removing loci with at least one missing value, and return
+  distMat <- dist.gene(df, method='pairwise', pairwise.deletion=TRUE)
   return(distMat)
 }
 
