@@ -208,3 +208,14 @@ print(VILA_NRMSE_Mat)
 # Store the matrix as a CSV to disk
 write.table(VILA_NRMSE_Mat,
             file=paste0(VILA_filePath, 'resamplingData/VILA_SMBO2_NRMSE.csv'), sep=',')
+
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Read in VILA SMBO2 resampling array amd convert to data.frame
+VILA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/VILA/')
+VILA_arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_SMBO2_5r_resampArr.Rdata')
+# From VILA resampling array, return a matrix of average coverage values for optimal buffer sizes
+VILA_optCovMat <- extractOptCovs(VILA_arrayDir)
+# Calculate MSSEs: minimum number of samples for 95% of each coverage type
+VILA_Gen_MSSE <- min(which(VILA_optCovMat[,1] > 95)) ; VILA_Gen_MSSE
+VILA_GeoBuff_MSSE <- min(which(VILA_optCovMat[,2] > 95)) ; VILA_GeoBuff_MSSE
+VILA_Eco_MSSE <- min(which(VILA_optCovMat[,3] > 95)) ; VILA_Eco_MSSE
