@@ -19,6 +19,7 @@
 # of the most relevant functions are within the 'BUILDING THE RESAMPLING ARRAY" section. 
 
 library(adegenet)
+library(ape)
 library(terra)
 library(parallel)
 
