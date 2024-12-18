@@ -71,7 +71,8 @@ pointsDataList <- list(
     dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude)
 )
 # Apply function which calculates multiple point summary metrics to list of datasets
-pointSummaries <- lapply(pointsDataList, geo.calc.pointSummaries)
+# pointSummaries <- lapply(pointsDataList, geo.calc.pointSummaries)
+pointSummaries <- readRDS(paste0(GeoGenCorr_wd,'Datasets/pointSummariesList.Rdata'))
 # Transform the point summary values into a list, where columns are the species and rows are the metrics
 pointSummariesMat <- matrix(unlist(pointSummaries), ncol = length(pointSummaries), byrow = FALSE)
 colnames(pointSummariesMat) <- toupper(names(pointSummaries))
