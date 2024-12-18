@@ -31,7 +31,7 @@ ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
 # samples outside of the native range of Eurasia (in the U.S. and Japan) are removed
 # Check if the processed file (called ARTH_coordinates.csv) already exists; if not, then 
 # run the necessary processing steps.
-if(file.exists(paste0(YUBR_filePath, 'Geographic/ARTH_coordinates.csv'))){
+if(file.exists(paste0(ARTH_filePath, 'Geographic/ARTH_coordinates.csv'))){
   # Read in the CSV of processed coordinates. The first column contains row numbers
   ARTH_coordinates <- read.csv(
     paste0(ARTH_filePath, 'Geographic/ARTH_coordinates.csv'), header=TRUE)
@@ -75,7 +75,7 @@ ARTH_vcf <- read.vcfR(file=paste0(ARTH_filePath, 'Genetic/ARTH_10k.vcf'))
 ARTH_genind_global <- vcfR2genind(ARTH_vcf, sep = "/", return.alleles = FALSE)
 # REMOVE INTRODUCED POPULATIONS: Subset global genind object to only contain individuals from native range. 
 # The 'drop' argument removes alleles no longer present in the dataset.
-ARTH_genind <- ARTH_genind_global[ARTH_coordinates[,1], drop=TRUE]
+ARTH_genind <- ARTH_genind_global[as.character(ARTH_coordinates[,1]),, drop=TRUE]
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel
