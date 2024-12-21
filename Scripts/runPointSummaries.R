@@ -146,3 +146,8 @@ corMat_SMBO_SDM$P[which(is.na(corMat_SMBO_SDM$P))] <- 0
 corrplot(corMat_SMBO_SDM$r, type="upper", order="original", p.mat = corMat_SMBO_SDM$P, 
          sig.level = 0.01, insig = "label_sig", diag = FALSE)
 mtext('Spearman correlation: Point stats and Geo/SDM/Eco coverages', side=3, line=1.2, adj=0.05, cex=1.2)
+
+# PLOTTING OPTIMAL BUFFER SIZES VERSUS POINTS BASED METRICS
+plot(SMBO_Mat[,'Opt_Geo-Buff'],SMBO_Mat[,'ANN'], pch=16, col='black',
+     ylab='Average Nearest Neighbor Values', xlab='Optimal Geographic Buffer Sizes',
+     main='SMBO: Buffer sizes across points-based metrics')
