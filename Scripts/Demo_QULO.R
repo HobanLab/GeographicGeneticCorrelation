@@ -237,7 +237,7 @@ legend(x=300, y=63, inset = 0.05, xpd=TRUE,
 # # ---- MAP OF SDM AND SAMPLED POINTS
 # makeAMap(QULO_points, raster = QULO_sdm, buffer = geo_buffSize)
 
-# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# %%%% SMBO3 ----
 # Specify filepath for QULO geographic and genetic data, including resampling array
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
 arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO3_G2G2E_5r_resampArr.Rdata')
