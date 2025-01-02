@@ -1179,7 +1179,7 @@ geo.calc.stdDistanceEllipseArea <- function(data){
 }
 
 #' geo.calc.stdDeviationEllipseArea
-#' Calculate the standard deviation of the ellipse area. Units: meters
+#' Calculate the standard deviation of the ellipse perimeter. Units: meters
 geo.calc.stdDevationEllipseArea <- function(data){
   stdDevElli <- std_dev_ellipse(geometry = data)
   # Points for the ellipse 
