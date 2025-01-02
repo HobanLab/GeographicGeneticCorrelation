@@ -31,6 +31,7 @@ invisible(clusterEvalQ(cl, library('adegenet')))
 invisible(clusterEvalQ(cl, library('terra')))
 invisible(clusterEvalQ(cl, library('parallel')))
 invisible(clusterEvalQ(cl, library('usedist')))
+invisible(clusterEvalQ(cl, library('ape')))
 
 # %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
@@ -87,18 +88,17 @@ clusterExport(cl, varlist = c('COGL_coordinates','COGL_genind','num_reps','geo_b
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
                               'eco.intersectBuff','eco.compareBuff','eco.totalEcoregionCount',
-                              'gen.getAlleleCategories','calculateCoverage','exSituResample.Par',
-                              'geo.gen.Resample.Par'))
+                              'gen.getAlleleCategories','gen.buildDistMat', 'gen.calcGenDistCov', 
+                              'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO2_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO3_G2GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
-print("%%% BEGINNING RESAMPLING %%%")
 COGL_demoArray_Par <- 
-  geo.gen.Resample.Par(gen_obj = COGL_genind, geoFlag = TRUE, coordPts = COGL_coordinates, 
-                       geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
-                       ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', 
-                       reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
+  geo.gen.Resample.Par(genObj=COGL_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts=COGL_coordinates, 
+                       geoBuff=geo_buffSize, boundary=world_poly_clip_W, ecoFlag=TRUE, 
+                       ecoBuff=eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer='NA', 
+                       reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
 
 # Close cores
 stopCluster(cl)
@@ -164,40 +164,25 @@ legend(x=350, y=80, inset = 0.05,
        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
        y.intersp = 0.8)
 
-# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# %%%% SMBO3 ----
 # Specify filepath for COGL geographic and genetic data, including resampling array
 COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
-arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO2_GE_5r_resampArr.Rdata')
-# Read in array and build a data.frame of values
-COGL_MultBuff_array <- readRDS(arrayDir)
-# Specify geographic buffer size in meters (used above)
-geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO3_G2GE_5r_resampArr.Rdata')
+# Read in array
+COGL_SMBO3_array <- readRDS(arrayDir)
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
-COGL_MultBuff_DF <- resample.array2dataframe(COGL_MultBuff_array)
-# Build a matrix to capture NRMSE values
-COGL_NRMSE_Mat <- matrix(NA, nrow=length(geo_buffSize), ncol=2)
-# The names of this matrix match the different parts of the dataframe names
-colnames(COGL_NRMSE_Mat) <- c('Geo_Buff','Eco_Buff')
-rownames(COGL_NRMSE_Mat) <- paste0(geo_buffSize/1000, 'km')
-# Loop through the dataframe columns. The first two columns are skipped, as they're sampleNumber and the
-# predictve variable (genetic coverages)
-for(i in 3:ncol(COGL_MultBuff_DF)){
-  # Calculate NRMSE for the current column in the dataframe
-  COGL_NRMSEvalue <- nrmse.func(COGL_MultBuff_DF[,i], pred = COGL_MultBuff_DF$Total)
-  # Get the name of the current dataframe column
-  dataName <- unlist(strsplit(names(COGL_MultBuff_DF)[[i]],'_'))
-  # Match the data name to the relevant rows/columns of the receiving matrix
-  matRow <- which(rownames(COGL_NRMSE_Mat) == dataName[[3]])
-  matCol <- which(colnames(COGL_NRMSE_Mat) == paste0(dataName[[1]],'_',dataName[[2]]))
-  # Locate the NRMSE value accordingly
-  COGL_NRMSE_Mat[matRow,matCol] <- COGL_NRMSEvalue
-}
-print(COGL_NRMSE_Mat)
+COGL_SMBO3_DF <- resample.array2dataframe(COGL_SMBO3_array)
+# Build tables of NRSMSE values, calculated based on data.frame
+COGL_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=COGL_SMBO3_DF, genCovType='CV', sdmFlag=FALSE)
+COGL_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=COGL_SMBO3_DF, genCovType='GD', sdmFlag=FALSE)
+# Combine the results of the NRMSE values calculated using allelic coverages and using
+# genetic distances, and then rename the columns accordingly
+COGL_NRMSE_Mat <- cbind(COGL_NRMSE_Mat_CV, COGL_NRMSE_Mat_GD)
 # Store the matrix as a CSV to disk
 write.table(COGL_NRMSE_Mat,
-            file=paste0(COGL_filePath, 'resamplingData/COGL_SMBO2_NRMSE.csv'), sep=',')
+            file=paste0(COGL_filePath, 'resamplingData/COGL_SMBO3_NRMSE.csv'), sep=',')
 
 # SMBO2: OPTIMAL BUFFER SIZES ----
 # Read in COGL SMBO2 resampling array amd convert to data.frame

@@ -32,6 +32,7 @@ invisible(clusterEvalQ(cl, library('adegenet')))
 invisible(clusterEvalQ(cl, library('terra')))
 invisible(clusterEvalQ(cl, library('parallel')))
 invisible(clusterEvalQ(cl, library('usedist')))
+invisible(clusterEvalQ(cl, library('ape')))
 
 # %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
@@ -284,11 +285,11 @@ legend(x=200, y=85, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (1 km)', 'Geographic, SDM (1 km)'),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 
-# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# %%%% SMBO3 ----
 # Specify filepath for YUBR geographic and genetic data, including resampling array
 YUBR_filePath <- paste0(GeoGenCorr_wd, 'Datasets/YUBR/')
 arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO3_G2G2E_resampArr.Rdata')
-# Read in array and build a data.frame of values
+# Read in array
 YUBR_SMBO3_array <- readRDS(arrayDir)
 
 # ---- CALCULATIONS ----

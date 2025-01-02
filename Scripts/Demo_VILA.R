@@ -30,6 +30,7 @@ invisible(clusterEvalQ(cl, library('adegenet')))
 invisible(clusterEvalQ(cl, library('terra')))
 invisible(clusterEvalQ(cl, library('parallel')))
 invisible(clusterEvalQ(cl, library('usedist')))
+invisible(clusterEvalQ(cl, library('ape')))
 
 # %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
@@ -83,7 +84,7 @@ VILA_genind <- vcfR2genind(VILA_vcf, return.alleles = TRUE)
 # 104_5_104_5). To address this, first, use the sub command to replace names
 indNames(VILA_genind) <- sub("(.*?_.*?)_.*", "\\1", indNames(VILA_genind))
 # Match the individuals in the genind file to those in the coordinate dataframe.
-# This essentially drops germplasm individuals
+# This essentially drops 25 germplasm individuals
 VILA_genind <- VILA_genind[VILA_coordinates[,1], drop=TRUE]
 
 # ---- RESAMPLING ----
@@ -96,11 +97,11 @@ clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuff
                               'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
                               'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_SMBO2_5r_resampArr.Rdata')
+arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_SMBO3_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 VILA_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj=VILA_genind, geoFlag=TRUE, coordPts=VILA_coordinates, 
+  geo.gen.Resample.Par(genObj=VILA_genind, geoFlag=TRUE, genDistFlag=TRUE, coordPts=VILA_coordinates, 
                        geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag=TRUE, ecoBuff=eco_buffSize, 
                        ecoRegions=ecoregion_poly_W, ecoLayer='US', reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
 # Close cores
@@ -208,6 +209,26 @@ print(VILA_NRMSE_Mat)
 # Store the matrix as a CSV to disk
 write.table(VILA_NRMSE_Mat,
             file=paste0(VILA_filePath, 'resamplingData/VILA_SMBO2_NRMSE.csv'), sep=',')
+
+# %%%% SMBO3 ----
+# Specify filepath for VILA geographic and genetic data, including resampling array
+VILA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/VILA/')
+arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_SMBO3_5r_resampArr.Rdata')
+# Read in array
+VILA_SMBO3_array <- readRDS(arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values
+VILA_SMBO3_DF <- resample.array2dataframe(VILA_SMBO3_array)
+# Build tables of NRSMSE values, calculated based on data.frame
+VILA_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=VILA_SMBO3_DF, genCovType='CV', sdmFlag=FALSE)
+VILA_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=VILA_SMBO3_DF, genCovType='GD', sdmFlag=FALSE)
+# Combine the results of the NRMSE values calculated using allelic coverages and using
+# genetic distances, and then rename the columns accordingly
+VILA_NRMSE_Mat <- cbind(VILA_NRMSE_Mat_CV, VILA_NRMSE_Mat_GD)
+# Store the matrix as a CSV to disk
+write.table(VILA_NRMSE_Mat,
+            file=paste0(VILA_filePath, 'resamplingData/VILA_SMBO3_NRMSE.csv'), sep=',')
 
 # SMBO2: OPTIMAL BUFFER SIZES ----
 # Read in VILA SMBO2 resampling array amd convert to data.frame

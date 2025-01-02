@@ -21,9 +21,9 @@ source('Scripts/functions_GeoGenCoverage.R')
 num_reps <- 5
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
-geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+geo_buffSize <- 1000*(c(2,3,4,5,seq(10,100,5),seq(110,250,10),500,1000,1500,2000))
 # Specify ecological buffer size in meters 
-eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
+eco_buffSize <- 1000*(c(2,3,4,5,seq(10,100,5),seq(110,250,10),500,1000,1500,2000))
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
@@ -34,6 +34,7 @@ invisible(clusterEvalQ(cl, library('adegenet')))
 invisible(clusterEvalQ(cl, library('terra')))
 invisible(clusterEvalQ(cl, library('parallel')))
 invisible(clusterEvalQ(cl, library('usedist')))
+invisible(clusterEvalQ(cl, library('ape')))
 
 # %%% CONDUCT RESAMPLING %%% ----
 # ---- READ IN DATA ----
@@ -86,19 +87,30 @@ clusterExport(cl, varlist = c('MIGU_coordinates','MIGU_genind','num_reps','geo_b
                               'world_poly_clip_W','ecoregion_poly_W','MIGU_sdm_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
-                              'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories',
-                              'eco.totalEcoregionCount','calculateCoverage','exSituResample.Par',
-                              'geo.gen.Resample.Par'))
+                              'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories', 
+                              'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
+                              'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(MIGU_filePath, 'resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/SMBO3/MIGU_SMBO3_G2G2E_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 MIGU_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj = MIGU_genind, geoFlag = TRUE, coordPts = MIGU_coordinates, 
-                       geoBuff = geo_buffSize, SDMrast = MIGU_sdm_W, 
+  geo.gen.Resample.Par(genObj = MIGU_genind, genDistFlag = TRUE, geoFlag = TRUE, 
+                       coordPts = MIGU_coordinates, geoBuff = geo_buffSize, SDMrast = MIGU_sdm_W, 
                        boundary=world_poly_clip_W, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
                        ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', reps = num_reps, 
                        arrayFilepath = arrayDir, cluster = cl)
+
+# Specify file path, for saving resampling array
+arrayDir2 <- paste0(MIGU_filePath, 'resamplingData/SMBO3/MIGU_SMBO3_0.5_5r_resampArr.Rdata')
+
+# Run resampling (in parallel)
+MIGU_demoArray_Par2 <- 
+  geo.gen.Resample.Par(genObj = MIGU_genind, genDistFlag=TRUE, geoFlag = TRUE, 
+                       coordPts = MIGU_coordinates, geoBuff = c(500,1000), SDMrast = NA, 
+                       boundary=world_poly_clip_W, ecoFlag = TRUE, ecoBuff = c(500,1000), 
+                       ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', reps = num_reps, 
+                       arrayFilepath = arrayDir2, cluster = cl)
 # Close cores
 stopCluster(cl)
 
@@ -274,3 +286,23 @@ MIGU_Gen_MSSE <- min(which(MIGU_optCovMat[,1] > 95)) ; MIGU_Gen_MSSE
 MIGU_GeoBuff_MSSE <- min(which(MIGU_optCovMat[,2] > 95)) ; MIGU_GeoBuff_MSSE
 MIGU_GeoSDM_MSSE <- min(which(MIGU_optCovMat[,3] > 95)) ; MIGU_GeoSDM_MSSE
 MIGU_Eco_MSSE <- min(which(MIGU_optCovMat[,4] > 95)) ; MIGU_Eco_MSSE
+
+# %%%% SMBO3 ----
+# Specify filepath for MIGU geographic and genetic data, including resampling array
+MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/SMBO3/MIGU_SMBO3_G2G2E_5r_resampArr.Rdata')
+# Read in array
+MIGU_SMBO3_array <- readRDS(arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values
+MIGU_SMBO3_DF <- resample.array2dataframe(MIGU_SMBO3_array)
+# Build tables of NRSMSE values, calculated based on data.frame
+MIGU_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=MIGU_SMBO3_DF, genCovType='CV', sdmFlag=TRUE)
+MIGU_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=MIGU_SMBO3_DF, genCovType='GD', sdmFlag=TRUE)
+# Combine the results of the NRMSE values calculated using allelic coverages and using
+# genetic distances, and then rename the columns accordingly
+MIGU_NRMSE_Mat <- cbind(MIGU_NRMSE_Mat_CV, MIGU_NRMSE_Mat_GD)
+# Store the matrix as a CSV to disk
+write.table(MIGU_NRMSE_Mat,
+            file=paste0(MIGU_filePath, 'resamplingData/MIGU_SMBO3_NRMSE.csv'), sep=',')

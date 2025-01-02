@@ -69,6 +69,7 @@ if(parFlag==TRUE){
   invisible(clusterEvalQ(cl, library('terra')))
   invisible(clusterEvalQ(cl, library('parallel')))
   invisible(clusterEvalQ(cl, library('usedist')))
+  invisible(clusterEvalQ(cl, library('ape')))
   # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
   # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
   world_poly_clip_W <- wrap(world_poly_clip)
@@ -79,7 +80,7 @@ if(parFlag==TRUE){
 # ---- RESAMPLING ----
 if(parFlag==TRUE){
   # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
-  clusterExport(cl, varlist = c('QUAC_coordinatess','QUAC_genind','num_reps','geo_buffSize','eco_buffSize',
+  clusterExport(cl, varlist = c('QUAC_coordinates','QUAC_genind','num_reps','geo_buffSize','eco_buffSize',
                                 'world_poly_clip_W','ecoregion_poly_W','QUAC_sdm_W'))
   # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
   clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
@@ -90,7 +91,7 @@ if(parFlag==TRUE){
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO3_G2G2E_5r_resampArr.Rdata')
   # Run resampling in parallel
   QUAC_demoArray_IND_Par <- 
-    geo.gen.Resample.Par(genObj=QUAC_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts=QUAC_coordinatess, 
+    geo.gen.Resample.Par(genObj=QUAC_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts=QUAC_coordinates, 
                          SDMrast=QUAC_sdm_W, geoBuff=geo_buffSize, boundary=world_poly_clip_W, 
                          ecoFlag=TRUE, ecoBuff=eco_buffSize, ecoRegions=ecoregion_poly_W, ecoLayer='US',
                          reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
@@ -187,7 +188,7 @@ QUAC_SMBO3_meanValues <- as.matrix(meanArrayValues(QUAC_SMBO3_array))
 # Subset the total mean Values to just Total, GenDist, and GeoBuff_0.5km
 QUAC_SMBO3_Gen2GeoValues <- QUAC_SMBO3_meanValues[,1:3]
 # Plot allelic coverage, genetic distance coverage, and geographic coverage at optimal buffer size
-matplot(QUAC_SMBO3_Gen2GeoValues, ylim=c(0,100), col=c('red','darkred','purple'), 
+matplot(QUAC_SMBO3_Gen2GeoValues, ylim=c(0,100), col=c('red','darkred','purple'),
         pch=16, ylab='Coverage (%)', xlab='Number of individuals',
         main='Q. acerifolia: Allelic and Genetic Distance Coverage')
 mtext(text='91 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
