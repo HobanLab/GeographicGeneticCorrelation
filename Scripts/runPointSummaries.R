@@ -63,7 +63,7 @@ pointsDataList <- list(
   qulo = read_csv(qulo)|> 
     dplyr::mutate(taxon = "QULO")|>
     dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude),
-  vila = read_csv(qulo)|> 
+  vila = read_csv(vila)|> 
     dplyr::mutate(taxon = "VILA")|>
     dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude),
   yubr = read_csv(yubr)|>
@@ -78,7 +78,7 @@ pointSummariesMat <- matrix(unlist(pointSummaries), ncol = length(pointSummaries
 colnames(pointSummariesMat) <- toupper(names(pointSummaries))
 rownames(pointSummariesMat) <- c("EOO", "AOO", "ANN", "Vor", "StDist", "StDistEllA", "StDevEllP")
 # Write the matrix of point values to disk
-write_csv(x = as.data.frame(pointSummariesMat), file = paste0(GeoGenCorr_wd,"Datasets/pointSummaryMeasures.csv"))
+# write_csv(x = as.data.frame(pointSummariesMat), file = paste0(GeoGenCorr_wd,"Datasets/pointSummaryMeasures.csv"))
 
 # EXTRACTING OPTIMAL BUFFER SIZES ----
 # To measure any possible correlation between optimal buffer sizes and the point summary statistics,
