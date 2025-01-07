@@ -305,4 +305,4 @@ MIGU_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=MIGU_SMBO3_DF, genCovType='GD', s
 MIGU_NRMSE_Mat <- cbind(MIGU_NRMSE_Mat_CV, MIGU_NRMSE_Mat_GD)
 # Store the matrix as a CSV to disk
 write.table(MIGU_NRMSE_Mat,
-            file=paste0(MIGU_filePath, 'resamplingData/MIGU_SMBO3_NRMSE.csv'), sep=',')
+            file=paste0(MIGU_filePath, 'resamplingData/SMBO3/MIGU_SMBO3_NRMSE.csv'), sep=',')
