@@ -109,7 +109,7 @@ arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_50km_GE_5r_resampArr.Rdat
 # Read in the resampling array .Rdata object, saved to disk
 HIWA_demoArray_Par <- readRDS(arrayDir)
 
-# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# %%%% SMBO3 ----
 # Specify filepath for HIWA geographic and genetic data, including resampling array
 HIWA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/HIWA/')
 arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO3_G2GE_5r_resampArr.Rdata')
@@ -129,23 +129,42 @@ HIWA_NRMSE_Mat <- cbind(HIWA_NRMSE_Mat_CV, HIWA_NRMSE_Mat_GD)
 write.table(HIWA_NRMSE_Mat,
             file=paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO3_NRMSE.csv'), sep=',')
 
-# %%%% SMBO3 ----
-# Specify filepath for HIWA geographic and genetic data, including resampling array
+# SMBO2: OPTIMAL BUFFER SIZES ----
+# Read in HIWA SMBO2 resampling array amd convert to data.frame
 HIWA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/HIWA/')
-arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO3_G2GE_5r_resampArr.Rdata')
-# Read in array
-HIWA_SMBO3_array <- readRDS(arrayDir)
+HIWA_arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata')
+# From HIWA resampling array, return a matrix of average coverage values for optimal buffer sizes
+HIWA_optCovMat <- extractOptCovs(HIWA_arrayDir)
+# Calculate MSSEs: minimum number of samples for 95% of each coverage type
+HIWA_Gen_MSSE <- min(which(HIWA_optCovMat[,1] > 95)) ; HIWA_Gen_MSSE
+HIWA_GeoBuff_MSSE <- min(which(HIWA_optCovMat[,2] > 95)) ; HIWA_GeoBuff_MSSE
+HIWA_Eco_MSSE <- min(which(HIWA_optCovMat[,3] > 95)) ; HIWA_Eco_MSSE
 
-# ---- CALCULATIONS ----
-# Build a data.frame from array values
-HIWA_SMBO3_DF <- resample.array2dataframe(HIWA_SMBO3_array)
-# Build tables of NRSMSE values, calculated based on data.frame
-HIWA_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=HIWA_SMBO3_DF, genCovType='CV', sdmFlag=FALSE)
-HIWA_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=HIWA_SMBO3_DF, genCovType='GD', sdmFlag=FALSE)
-# Combine the results of the NRMSE values calculated using allelic coverages and using
-# genetic distances, and then rename the columns accordingly
-HIWA_NRMSE_Mat <- cbind(HIWA_NRMSE_Mat_CV, HIWA_NRMSE_Mat_GD)
-# Store the matrix as a CSV to disk
-write.table(HIWA_NRMSE_Mat,
-            file=paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO3_NRMSE.csv'), sep=',')
+# PLOTTING
+# Specify plot colors
+plotColors <- c('red', 'darkblue','purple')
+plotColors_Fade <- alpha(plotColors, c(0.45, rep(0.85, length(plotColors)-1)))
+# Set plotting window to stack 3 graphs vertically
+par(mfcol=c(2,1), oma=rep(0.2,4), mar=c(2,4,3,1)+0.1)
+# Geo Buff
+matplot(HIWA_optCovMat[,c(1,2)], ylim=c(0,110), col=plotColors_Fade[c(1, 2)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=HIWA_Gen_MSSE, col="red") ; abline(v=HIWA_GeoBuff_MSSE, col="darkblue")
+mtext(text=paste0('MSSE: ', HIWA_Gen_MSSE), side=1, line=-1, at=HIWA_Gen_MSSE+5, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', HIWA_GeoBuff_MSSE), line=-1.5, side=1, at=HIWA_GeoBuff_MSSE-5, cex=0.8, col='darkblue')
+title('Hibiscus waimeae: Coverages at Optimal Buffer Sizes', cex.sub=1.2, line = 2)
+mtext(text='Geographic (Total Buffer): 30 km', side=3, at=15, cex=0.9)
+# Legend
+legend(x=60, y=95, xpd=TRUE, cex=1, pch=rep(19,3),
+       col=c('red','darkblue','purple'),
+       legend=c('Genetic', 'Geographic (Total Buffer)', 'Ecological'),
+       y.intersp = 0.3, bty='n')
+# Eco Buff
+par(mar=c(3,4,2,1)+0.1)
+matplot(HIWA_optCovMat[,c(1,3)], ylim=c(0,110), col=plotColors_Fade[c(1, 3)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=HIWA_Gen_MSSE, col="red") ; abline(v=HIWA_Eco_MSSE, col="purple")
+mtext(text=paste0('MSSE: ', HIWA_Gen_MSSE), side=1, line=-1, at=HIWA_Gen_MSSE+5, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', HIWA_Eco_MSSE), line=-1.5, side=1, at=HIWA_Eco_MSSE-4, cex=0.8, col='purple')
+mtext(text='Ecological: 0.5 km', side=3, at=15, cex=0.9)
 

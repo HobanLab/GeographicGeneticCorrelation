@@ -194,3 +194,31 @@ COGL_optCovMat <- extractOptCovs(COGL_arrayDir)
 COGL_Gen_MSSE <- min(which(COGL_optCovMat[,1] > 95)) ; COGL_Gen_MSSE
 COGL_GeoBuff_MSSE <- min(which(COGL_optCovMat[,2] > 95)) ; COGL_GeoBuff_MSSE
 COGL_Eco_MSSE <- min(which(COGL_optCovMat[,3] > 95)) ; COGL_Eco_MSSE
+
+# PLOTTING
+# Specify plot colors
+plotColors <- c('red', 'darkblue','purple')
+plotColors_Fade <- alpha(plotColors, c(0.45, rep(0.85, length(plotColors)-1)))
+# Set plotting window to stack 3 graphs vertically
+par(mfcol=c(2,1), oma=rep(0.2,4), mar=c(2,4,3,1)+0.1)
+# Geo Buff
+matplot(COGL_optCovMat[,c(1,2)], ylim=c(0,110), col=plotColors_Fade[c(1, 2)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=COGL_Gen_MSSE, col="red") ; abline(v=COGL_GeoBuff_MSSE, col="darkblue")
+mtext(text=paste0('MSSE: ', COGL_Gen_MSSE), side=1, line=-1, at=COGL_Gen_MSSE+18, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', COGL_GeoBuff_MSSE), line=-1.5, side=1, at=COGL_GeoBuff_MSSE-20, cex=0.8, col='darkblue')
+title('Conradina glabra: Coverages at Optimal Buffer Sizes', cex.sub=1.2, line = 2)
+mtext(text='Geographic (Total Buffer): 15 km', side=3, at=80, cex=0.9)
+# Legend
+legend(x=240, y=95, xpd=TRUE, cex=1, pch=rep(19,3),
+       col=c('red','darkblue','purple'),
+       legend=c('Genetic', 'Geographic (Total Buffer)', 'Ecological'),
+       y.intersp = 0.3, bty='n')
+# Eco Buff
+par(mar=c(3,4,2,1)+0.1)
+matplot(COGL_optCovMat[,c(1,3)], ylim=c(0,110), col=plotColors_Fade[c(1, 3)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=COGL_Gen_MSSE, col="red") ; abline(v=COGL_Eco_MSSE, col="purple")
+mtext(text=paste0('MSSE: ', COGL_Gen_MSSE), side=1, line=-1, at=COGL_Gen_MSSE+18, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', COGL_Eco_MSSE), line=-1.5, side=1, at=COGL_Eco_MSSE-14, cex=0.8, col='purple')
+mtext(text='Ecological: 240 km', side=3, at=80, cex=0.9)

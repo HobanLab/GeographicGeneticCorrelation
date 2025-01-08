@@ -361,21 +361,21 @@ par(mfcol=c(3,1), oma=rep(0.2,4), mar=c(2,4,3,1)+0.1)
 matplot(QULO_optCovMat[,c(1,2)], ylim=c(0,110), col=plotColors_Fade[c(1, 2)], pch=16, ylab='')
 abline(h=95, col="black", lty=3)
 abline(v=QULO_Gen_MSSE, col="red") ; abline(v=QULO_GeoBuff_MSSE, col="darkblue")
-mtext(text=paste0('MSSE: ', QULO_Gen_MSSE), side=1, line=-1, at=QULO_Gen_MSSE+15, cex=0.7, col='red')
-mtext(text=paste0(' MSSE: ', QULO_GeoBuff_MSSE), line=-1.5, side=1, at=QULO_GeoBuff_MSSE-15, cex=0.7, col='darkblue')
+mtext(text=paste0('MSSE: ', QULO_Gen_MSSE), side=1, line=-1, at=QULO_Gen_MSSE+15, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', QULO_GeoBuff_MSSE), line=-1.5, side=1, at=QULO_GeoBuff_MSSE-15, cex=0.8, col='darkblue')
 title('Quercus lobata: Coverages at Optimal Buffer Sizes', cex.sub=1.2, line = 2)
-mtext(text='Geographic (Total Buffer): 250 km', side=3, at=80, cex=0.8)
+mtext(text='Geographic (Total Buffer): 250 km', side=3, at=80, cex=0.9)
 # Geo SDM
 par(mar=c(2,4,2,1)+0.1)
 matplot(QULO_optCovMat[,c(1,3)], ylim=c(0,110), col=plotColors_Fade[c(1, 3)], pch=16, ylab='')
 abline(h=95, col="black", lty=3)
 abline(v=QULO_Gen_MSSE, col="red") ; abline(v=QULO_GeoSDM_MSSE, col="darkorange3")
-mtext(text=paste0('MSSE: ', QULO_Gen_MSSE), side=1, line=-1, at=QULO_Gen_MSSE+15, cex=0.7, col='red')
-mtext(text=paste0(' MSSE: ', QULO_GeoSDM_MSSE), line=-1.5, side=1, at=QULO_GeoSDM_MSSE-15, cex=0.7, col='darkorange3')
-mtext(text='Geographic (SDM): 120 km', side=3, at=c(80), cex=0.8)
+mtext(text=paste0('MSSE: ', QULO_Gen_MSSE), side=1, line=-1, at=QULO_Gen_MSSE+15, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', QULO_GeoSDM_MSSE), line=-1.5, side=1, at=QULO_GeoSDM_MSSE-15, cex=0.8, col='darkorange3')
+mtext(text='Geographic (SDM): 120 km', side=3, at=80, cex=0.9)
 mtext(text="Coverage (%)", side=2, line=2.6, cex=1.2, srt=90)
 # Legend
-legend(x=300, y=125, xpd=TRUE, cex=1.2, pch=rep(19,4),
+legend(x=300, y=105, xpd=TRUE, cex=1.4, pch=rep(19,4),
        col=c('red','darkblue','darkorange3', 'purple'),
        legend=c('Genetic', 'Geographic (Total Buffer)','Geographic (SDM)', 'Ecological'),
        y.intersp = 0.3, bty='n')
@@ -384,9 +384,9 @@ par(mar=c(3,4,2,1)+0.1)
 matplot(QULO_optCovMat[,c(1,4)], ylim=c(0,110), col=plotColors_Fade[c(1, 4)], pch=16, ylab='')
 abline(h=95, col="black", lty=3)
 abline(v=QULO_Gen_MSSE, col="red") ; abline(v=QULO_Eco_MSSE, col="purple")
-mtext(text=paste0('MSSE: ', QULO_Gen_MSSE), side=1, line=-1, at=QULO_Gen_MSSE+15, cex=0.7, col='red')
-mtext(text=paste0(' MSSE: ', QULO_Eco_MSSE), line=-1.5, side=1, at=QULO_Eco_MSSE-15, cex=0.7, col='purple')
-mtext(text='Ecological: 130 km', side=3, at=c(80), cex=0.8)
+mtext(text=paste0('MSSE: ', QULO_Gen_MSSE), side=1, line=-1, at=QULO_Gen_MSSE+15, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', QULO_Eco_MSSE), line=-1.5, side=1, at=QULO_Eco_MSSE-15, cex=0.8, col='purple')
+mtext(text='Ecological: 130 km', side=3, at=80, cex=0.9)
 
 # SMBO3 ----
 # ALLELIC AND GENETIC DISTANCE COVERAGE

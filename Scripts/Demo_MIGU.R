@@ -287,6 +287,42 @@ MIGU_GeoBuff_MSSE <- min(which(MIGU_optCovMat[,2] > 95)) ; MIGU_GeoBuff_MSSE
 MIGU_GeoSDM_MSSE <- min(which(MIGU_optCovMat[,3] > 95)) ; MIGU_GeoSDM_MSSE
 MIGU_Eco_MSSE <- min(which(MIGU_optCovMat[,4] > 95)) ; MIGU_Eco_MSSE
 
+# PLOTTING
+# Specify plot colors
+plotColors <- c('red', 'darkblue','darkorange3', 'purple')
+plotColors_Fade <- alpha(plotColors, c(0.45, rep(0.85, length(plotColors)-1)))
+# Set plotting window to stack 3 graphs vertically
+par(mfcol=c(3,1), oma=rep(0.2,4), mar=c(2,4,3,1)+0.1)
+# Geo Buff
+matplot(MIGU_optCovMat[,c(1,2)], ylim=c(0,110), col=plotColors_Fade[c(1, 2)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=MIGU_Gen_MSSE, col="red") ; abline(v=MIGU_GeoBuff_MSSE, col="darkblue")
+mtext(text=paste0('MSSE: ', MIGU_Gen_MSSE), side=1, line=-1, at=MIGU_Gen_MSSE-9, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', MIGU_GeoBuff_MSSE), line=-1.5, side=1, at=MIGU_GeoBuff_MSSE+9, cex=0.8, col='darkblue')
+title('Mimulus guttatus: Coverages at Optimal Buffer Sizes', cex.sub=1.2, line = 2)
+mtext(text='Geographic (Total Buffer): 500 km', side=3, at=15, cex=0.9)
+# Geo SDM
+par(mar=c(2,4,2,1)+0.1)
+matplot(MIGU_optCovMat[,c(1,3)], ylim=c(0,110), col=plotColors_Fade[c(1, 3)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=MIGU_Gen_MSSE, col="red")
+mtext(text=paste0('MSSE: ', MIGU_Gen_MSSE), side=1, line=-1, at=MIGU_Gen_MSSE+9, cex=0.8, col='red')
+mtext(text='Geographic (SDM): 500 km', side=3, at=15, cex=0.9)
+mtext(text="Coverage (%)", side=2, line=2.6, cex=1.2, srt=90)
+# Legend
+legend(x=180, y=105, xpd=TRUE, cex=1.4, pch=rep(19,4),
+       col=c('red','darkblue','darkorange3', 'purple'),
+       legend=c('Genetic', 'Geographic (Total Buffer)','Geographic (SDM)', 'Ecological'),
+       y.intersp = 0.3, bty='n')
+# Eco Buff
+par(mar=c(3,4,2,1)+0.1)
+matplot(MIGU_optCovMat[,c(1,4)], ylim=c(0,110), col=plotColors_Fade[c(1, 4)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=MIGU_Gen_MSSE, col="red") ; abline(v=MIGU_Eco_MSSE, col="purple")
+mtext(text=paste0('MSSE: ', MIGU_Gen_MSSE), side=1, line=-1, at=MIGU_Gen_MSSE+9, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', MIGU_Eco_MSSE), line=-1.5, side=1, at=MIGU_Eco_MSSE-9, cex=0.8, col='purple')
+mtext(text='Ecological: 500 km', side=3, at=15, cex=0.9)
+
 # %%%% SMBO3 ----
 # Specify filepath for MIGU geographic and genetic data, including resampling array
 MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')

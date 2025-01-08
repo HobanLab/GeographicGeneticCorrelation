@@ -375,3 +375,40 @@ YUBR_Gen_MSSE <- min(which(YUBR_optCovMat[,1] > 95)) ; YUBR_Gen_MSSE
 YUBR_GeoBuff_MSSE <- min(which(YUBR_optCovMat[,2] > 95)) ; YUBR_GeoBuff_MSSE
 YUBR_GeoSDM_MSSE <- min(which(YUBR_optCovMat[,3] > 95)) ; YUBR_GeoSDM_MSSE
 YUBR_Eco_MSSE <- min(which(YUBR_optCovMat[,4] > 95)) ; YUBR_Eco_MSSE
+
+# PLOTTING
+# Specify plot colors
+plotColors <- c('red', 'darkblue','darkorange3', 'purple')
+plotColors_Fade <- alpha(plotColors, c(0.45, rep(0.85, length(plotColors)-1)))
+# Set plotting window to stack 3 graphs vertically
+par(mfcol=c(3,1), oma=rep(0.2,4), mar=c(2,4,3,1)+0.1)
+# Geo Buff
+matplot(YUBR_optCovMat[,c(1,2)], ylim=c(0,110), col=plotColors_Fade[c(1, 2)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=YUBR_Gen_MSSE, col="red") ; abline(v=YUBR_GeoBuff_MSSE, col="darkblue")
+mtext(text=paste0('MSSE: ', YUBR_Gen_MSSE), side=1, line=-1, at=YUBR_Gen_MSSE+13, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', YUBR_GeoBuff_MSSE), line=-1.5, side=1, at=YUBR_GeoBuff_MSSE-13, cex=0.8, col='darkblue')
+title('Yucca brevifolia: Coverages at Optimal Buffer Sizes', cex.sub=1.2, line = 2)
+mtext(text='Geographic (Total Buffer): 4 km', side=3, at=80, cex=0.9)
+# Geo SDM
+par(mar=c(2,4,2,1)+0.1)
+matplot(YUBR_optCovMat[,c(1,3)], ylim=c(0,110), col=plotColors_Fade[c(1, 3)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=YUBR_Gen_MSSE, col="red") ; abline(v=YUBR_GeoSDM_MSSE, col="darkorange3")
+mtext(text=paste0('MSSE: ', YUBR_Gen_MSSE), side=1, line=-1, at=YUBR_Gen_MSSE+13, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', YUBR_GeoSDM_MSSE), line=-1.5, side=1, at=YUBR_GeoSDM_MSSE+13, cex=0.8, col='darkorange3')
+mtext(text='Geographic (SDM): 20 km', side=3, at=80, cex=0.9)
+mtext(text="Coverage (%)", side=2, line=2.6, cex=1.2, srt=90)
+# Legend
+legend(x=240, y=105, xpd=TRUE, cex=1.4, pch=rep(19,4),
+       col=c('red','darkblue','darkorange3', 'purple'),
+       legend=c('Genetic', 'Geographic (Total Buffer)','Geographic (SDM)', 'Ecological'),
+       y.intersp = 0.3, bty='n')
+# Eco Buff
+par(mar=c(3,4,2,1)+0.1)
+matplot(YUBR_optCovMat[,c(1,4)], ylim=c(0,110), col=plotColors_Fade[c(1, 4)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=YUBR_Gen_MSSE, col="red") ; abline(v=YUBR_Eco_MSSE, col="purple")
+mtext(text=paste0('MSSE: ', YUBR_Gen_MSSE), side=1, line=-1, at=YUBR_Gen_MSSE+13, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', YUBR_Eco_MSSE), line=-1.5, side=1, at=YUBR_Eco_MSSE-13, cex=0.8, col='purple')
+mtext(text='Ecological: 25 km', side=3, at=80, cex=0.9)

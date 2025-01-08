@@ -161,7 +161,7 @@ legend(x=60, y=75, inset = 0.05,
        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
        y.intersp = 0.8)
 
-# %%%% SMBO: MULTIPLE BUFFER SIZES ----
+# %%%% SMBO3 ----
 # Specify filepath for QUAC geographic and genetic data, including resampling array
 QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
 arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO3_G2G2E_5r_resampArr.Rdata')
@@ -290,5 +290,41 @@ QUAC_optCovMat <- extractOptCovs(QUAC_arrayDir)
 # Calculate MSSEs: minimum number of samples for 95% of each coverage type
 QUAC_Gen_MSSE <- min(which(QUAC_optCovMat[,1] > 95)) ; QUAC_Gen_MSSE
 QUAC_GeoBuff_MSSE <- min(which(QUAC_optCovMat[,2] > 95)) ; QUAC_GeoBuff_MSSE
-QUAC_GeoSDM_MSSE <- min(which(QUAC_optCovMat[,3] > 95)) ; QUAC_GeoSDM_MSSE
+QUAC_GeoSDM_MSSE <- min(which(QUAC_optCovMat[,3] > 95)) ; QUAC_GeoSDM_MSSE # This will return Inf, as max coverage is 83%
 QUAC_Eco_MSSE <- min(which(QUAC_optCovMat[,4] > 95)) ; QUAC_Eco_MSSE
+
+# PLOTTING
+# Specify plot colors
+plotColors <- c('red', 'darkblue','darkorange3', 'purple')
+plotColors_Fade <- alpha(plotColors, c(0.45, rep(0.85, length(plotColors)-1)))
+# Set plotting window to stack 3 graphs vertically
+par(mfcol=c(3,1), oma=rep(0.2,4), mar=c(2,4,3,1)+0.1)
+# Geo Buff
+matplot(QUAC_optCovMat[,c(1,2)], ylim=c(0,110), col=plotColors[c(1, 2)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=QUAC_Gen_MSSE, col="red") ; abline(v=QUAC_GeoBuff_MSSE, col="darkblue")
+mtext(text=paste0('MSSE: ', QUAC_Gen_MSSE), side=1, line=-1, at=QUAC_Gen_MSSE+3, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', QUAC_GeoBuff_MSSE), line=-1.5, side=1, at=QUAC_GeoBuff_MSSE-3, cex=0.8, col='darkblue')
+title('Quercus acerifolia: Coverages at Optimal Buffer Sizes', cex.sub=1.2, line = 2)
+mtext(text='Geographic (Total Buffer): 0.5 km', side=3, at=15, cex=0.9)
+# Geo SDM
+par(mar=c(2,4,2,1)+0.1)
+matplot(QUAC_optCovMat[,c(1,3)], ylim=c(0,110), col=plotColors[c(1, 3)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=QUAC_Gen_MSSE, col="red")
+mtext(text=paste0('MSSE: ', QUAC_Gen_MSSE), side=1, line=-1, at=QUAC_Gen_MSSE+3, cex=0.8, col='red')
+mtext(text='Geographic (SDM): 15 km', side=3, at=15, cex=0.9)
+mtext(text="Coverage (%)", side=2, line=2.6, cex=1.2, srt=90)
+# Legend
+legend(x=45, y=95, xpd=TRUE, cex=1.4, pch=rep(19,4),
+       col=c('red','darkblue','darkorange3', 'purple'),
+       legend=c('Genetic', 'Geographic (Total Buffer)','Geographic (SDM)', 'Ecological'),
+       y.intersp = 0.3, bty='n')
+# Eco Buff
+par(mar=c(3,4,2,1)+0.1)
+matplot(QUAC_optCovMat[,c(1,4)], ylim=c(0,110), col=plotColors[c(1, 4)], pch=16, ylab='')
+abline(h=95, col="black", lty=3)
+abline(v=QUAC_Gen_MSSE, col="red") ; abline(v=QUAC_Eco_MSSE, col="purple")
+mtext(text=paste0('MSSE: ', QUAC_Gen_MSSE), side=1, line=-1, at=QUAC_Gen_MSSE+3, cex=0.8, col='red')
+mtext(text=paste0(' MSSE: ', QUAC_Eco_MSSE), line=-1.5, side=1, at=QUAC_Eco_MSSE-3, cex=0.8, col='purple')
+mtext(text='Ecological: 120 km', side=3, at=15, cex=0.9)
