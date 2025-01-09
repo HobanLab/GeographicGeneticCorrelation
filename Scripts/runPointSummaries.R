@@ -118,6 +118,7 @@ SMBO_Mat <- t(rbind(pointSummariesMat, optBuffsMat))
 SMBO_Mat <- SMBO_Mat[order(SMBO_Mat[,'Opt_Geo-Buff']),]
 # Create a separate matrix identical to the first, but only for species with SDMs
 SMBO_SDM_Mat <- SMBO_Mat[-which(is.na(SMBO_Mat[,'Opt_SDM-Buff'])),]
+SMBO_SDM_Mat <- SMBO_SDM_Mat[,-c(8,10)]
 # Remove the row corresponding to SDM optimal buffer sizes from the original matrix
 SMBO_Mat <- SMBO_Mat[,-9]
 
