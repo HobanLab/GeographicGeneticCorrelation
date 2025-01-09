@@ -113,10 +113,11 @@ optBuffsMat <- matrix(unlist(optBuffs), ncol = length(optBuffs), byrow = FALSE)
 colnames(optBuffsMat) <- names(optBuffs)
 rownames(optBuffsMat) <- c('Opt_Geo-Buff', 'Opt_SDM-Buff', 'Opt_Eco-Buff')
 # Combine the point summary matrix to the optimal buffer size matrix. Transpose such that 
-# rows are datasets and columns are summary metrics
+# rows are datasets and columns are summary metrics, and order by optimal GeoBuff size
 SMBO_Mat <- t(rbind(pointSummariesMat, optBuffsMat))
+SMBO_Mat <- SMBO_Mat[order(SMBO_Mat[,'Opt_Geo-Buff']),]
 # Create a separate matrix identical to the first, but only for species with SDMs
-SMBO_SDM_Mat <- SMBO_Mat[-c(1:4,9),]
+SMBO_SDM_Mat <- SMBO_Mat[-which(is.na(SMBO_Mat[,'Opt_SDM-Buff'])),]
 # Remove the row corresponding to SDM optimal buffer sizes from the original matrix
 SMBO_Mat <- SMBO_Mat[,-9]
 
@@ -148,6 +149,14 @@ corrplot(corMat_SMBO_SDM$r, type="upper", order="original", p.mat = corMat_SMBO_
 mtext('Spearman correlation: Point stats and Geo/SDM/Eco coverages', side=3, line=1.2, adj=0.05, cex=1.2)
 
 # PLOTTING OPTIMAL BUFFER SIZES VERSUS POINTS BASED METRICS
-plot(SMBO_Mat[,'Opt_Geo-Buff'],SMBO_Mat[,'ANN'], pch=16, col='black',
-     ylab='Average Nearest Neighbor Values', xlab='Optimal Geographic Buffer Sizes',
-     main='SMBO: Buffer sizes across points-based metrics')
+plot(SMBO_Mat[,'ANN'], SMBO_Mat[,'Opt_Geo-Buff'], pch=16, col='black',
+     ylab='Optimal Geographic Buffer Sizes', xlab='Average Nearest Neighbor Values',
+     main='SMBO2: Buffer sizes across ANN metrics', ylim=c(-10,600))
+
+plot(SMBO_Mat[,'EOO'], SMBO_Mat[,'Opt_Geo-Buff'], pch=16, col='black',
+     ylab='Optimal Geographic Buffer Sizes', xlab='Extent of Occurrence Values',
+     main='SMBO2: Buffer sizes across EOO metrics')
+
+plot(SMBO_Mat[,'StDevEllP'], SMBO_Mat[,'Opt_Geo-Buff'], pch=16, col='black',
+     ylab='Optimal Geographic Buffer Sizes', xlab='Standard Deviation Ellipses Perimeter Values',
+     main='SMBO2: Buffer sizes across St. Dev. Ellipse Perimeter metrics')
