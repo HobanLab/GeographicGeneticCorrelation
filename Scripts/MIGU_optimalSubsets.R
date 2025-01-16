@@ -75,7 +75,7 @@ write.table(geoBuffRateMat, file=paste0(MIGU_filePath,'MIGU_CoreSets_GeoBuffRate
 
 # %%% CALCULATE GEOGRAPHIC (SDM) COVERAGES ----
 # Declare vector of geographic buffer sizes
-geoSDMBuff <- 1000*(c(2,3,4,5,seq(10,100,5),seq(110,250,10),500,1000,1500,2000))
+geoSDMBuff <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500,1000,1500,2000))
 # The SDM needs to be resampled according to the buffer size, to ensure the buffer isn't smaller than the 
 # SDM resolution. This function compares the buffer size to the SDM resolution, resamples the SDM if necessary,
 # and then returns a list of SDMs.
