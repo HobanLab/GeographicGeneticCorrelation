@@ -111,7 +111,7 @@ stopCluster(cl)
 # %%% ANALYZE DATA %%% ----
 # Specify filepath for QULO geographic and genetic data, including resampling array
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_50km_G2E_Carver_5r_resampArr.Rdata')
 # Read in the resampling array .Rdata object, saved to disk
 QULO_demoArray_Par <- readRDS(arrayDir)
 
@@ -124,28 +124,22 @@ QULO_nrmse_eco <- nrmse_func(obs=QULO_DF$Eco, pred=QULO_DF$Total) ; QULO_nrmse_e
 
 # ---- PLOTTING ----
 # Generate the average values (across replicates) for all proportions
-# This function has default arguments for returning just Total allelic geographic proportions
-averageValueMat <- meanArrayValues(QULO_demoArray_Par, allValues = TRUE)
-# Subset matrix of all average values to just Total allelic, geographic, and ecological coverage
-averageValueMat_TEG <- averageValueMat[,c(1,6,7)]
-# Calculate the absolute difference between genetic and geographic/ecological, and add to data.frame
-averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Geo))
-averageValueMat_TEG <- cbind(averageValueMat_TEG, abs(averageValueMat_TEG$Total-averageValueMat_TEG$Eco))
-names(averageValueMat_TEG) <- c(names(averageValueMat_TEG)[1:3], 'Geo_Difference', 'Eco_Difference')
+# Only retain "Total" genetic diversity values
+averageValueMat <- meanArrayValues(QULO_demoArray_Par, allValues = FALSE)
 # Specify plot colors
-plotColors <- c('red','red4','darkorange3','coral','darkblue', 'purple')
-plotColors <- alpha(plotColors, 0.45)
-plotColors_Sub <- plotColors[-(2:4)]
+plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue')
+plotColors_Fade <- alpha(plotColors, 0.45)
 # Two plots in a single window
 par(mfrow=c(2,1))
 
 # ---- CORRELATION PLOTS
-plot(averageValueMat_TEG$Geo, averageValueMat_TEG$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
+plot(averageValueMat$Geo_Buff, averageValueMat$Total, pch=20, xlim=c(0,100), ylim=c(0,110),
      main='Q. lobata: Geographic/Ecological by genetic coverage',xlab='', ylab='', col=plotColors[[5]])
 mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Geographic/Ecological coverage (%)', side=1, line=3, cex=1.6)
 mtext(text='Genetic coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add points for ecological coverage
+points(x=averageValueMat$Geo_SDM, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
 points(x=averageValueMat$Eco, y=averageValueMat$Total, pch=20, col=plotColors[[6]])
 # Add NRMSE values for each comparison
 text(x = 76, y = 35, labels = paste0('NRMSE: ', QULO_nrmse_geo), col='darkblue', cex=0.9)
@@ -156,18 +150,19 @@ legend(x=57, y=53, inset = 0.05, xpd=TRUE,
        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
-matplot(averageValueMat_TEG[,1:3], ylim=c(0,100), col=plotColors_Sub, pch=16, ylab='')
+matplot(averageValueMat, ylim=c(0,100), col=plotColors_Fade[c(1,6,3,5)], 
+        pch=16, ylab='')
 # Add title and x-axis labels to the graph
-title(main='Q. lobata: Geo-Eco-Gen Coverage', line=1.5)
+title(main='Q. lobata: Genetic, Geograpihc, and Ecological Coverages', line=1.5)
 mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.3, cex=1.3)
 mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
 mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 # Add legend
-legend(x=275, y=60, inset = 0.05,
-       legend = c('Genetic coverage', 'Geographic coverage (50 km buffer)',
-                  'Ecological coverage (50 km buffer, EPA Level IV)'),
-       col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
-       y.intersp = 0.8)
+legend(x=215, y=80, inset = 0.05,
+       legend = c('Genetic', 'Geographic (Total buffer)','Geographic (SDM)',
+                  'Ecological (EPA Level IV)'),
+       col=plotColors[c(1,6,3,5)], pch = c(20,20,20,20), cex=0.9, 
+       pt.cex = 2, bty='n', y.intersp = 0.8)
 
 # %%%% SDM AND TOTAL BUFFER COMPARISON ----
 # Specify filepath for QULO geographic and genetic data, including resampling array
@@ -236,26 +231,6 @@ legend(x=300, y=63, inset = 0.05, xpd=TRUE,
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 # # ---- MAP OF SDM AND SAMPLED POINTS
 # makeAMap(QULO_points, raster = QULO_sdm, buffer = geo_buffSize)
-
-# %%%% SMBO3 ----
-# Specify filepath for QULO geographic and genetic data, including resampling array
-QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO3_G2G2E_5r_resampArr.Rdata')
-# Read in array
-QULO_SMBO3_array <- readRDS(arrayDir)
-
-# ---- CALCULATIONS ----
-# Build a data.frame from array values
-QULO_SMBO3_DF <- resample.array2dataframe(QULO_SMBO3_array)
-# Build tables of NRSMSE values, calculated based on data.frame
-QULO_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=QULO_SMBO3_DF, genCovType='CV', sdmFlag=TRUE)
-QULO_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=QULO_SMBO3_DF, genCovType='GD', sdmFlag=TRUE)
-# Combine the results of the NRMSE values calculated using allelic coverages and using
-# genetic distances, and then rename the columns accordingly
-QULO_NRMSE_Mat <- cbind(QULO_NRMSE_Mat_CV, QULO_NRMSE_Mat_GD)
-# Store the matrix as a CSV to disk
-write.table(QULO_NRMSE_Mat,
-            file=paste0(QULO_filePath, 'resamplingData/QULO_SMBO3_NRMSE.csv'), sep=',')
 
 # ---- PLOTTING ----
 # SMBO2 ----
@@ -388,7 +363,26 @@ mtext(text=paste0('MSSE: ', QULO_Gen_MSSE), side=1, line=-1, at=QULO_Gen_MSSE+15
 mtext(text=paste0(' MSSE: ', QULO_Eco_MSSE), line=-1.5, side=1, at=QULO_Eco_MSSE-15, cex=0.8, col='purple')
 mtext(text='Ecological: 130 km', side=3, at=80, cex=0.9)
 
-# SMBO3 ----
+# %%%% SMBO3 ----
+# Specify filepath for QULO geographic and genetic data, including resampling array
+QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO3_G2G2E_5r_resampArr.Rdata')
+# Read in array
+QULO_SMBO3_array <- readRDS(arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values
+QULO_SMBO3_DF <- resample.array2dataframe(QULO_SMBO3_array)
+# Build tables of NRSMSE values, calculated based on data.frame
+QULO_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=QULO_SMBO3_DF, genCovType='CV', sdmFlag=TRUE)
+QULO_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=QULO_SMBO3_DF, genCovType='GD', sdmFlag=TRUE)
+# Combine the results of the NRMSE values calculated using allelic coverages and using
+# genetic distances, and then rename the columns accordingly
+QULO_NRMSE_Mat <- cbind(QULO_NRMSE_Mat_CV, QULO_NRMSE_Mat_GD)
+# Store the matrix as a CSV to disk
+write.table(QULO_NRMSE_Mat,
+            file=paste0(QULO_filePath, 'resamplingData/QULO_SMBO3_NRMSE.csv'), sep=',')
+
 # ALLELIC AND GENETIC DISTANCE COVERAGE
 # Vector of colors for plotting
 ExCols <- c('red', 'darkred', 'darkorchid4', 'darkorchid1')
@@ -399,7 +393,7 @@ QULO_SMBO3_meanValues <- as.matrix(meanArrayValues(QULO_SMBO3_array))
 # and GeoBuff 250 km (optimal for allelic coverage)
 QULO_SMBO3_Gen2GeoValues <- QULO_SMBO3_meanValues[,c(1:3,42)]
 # Plot allelic coverage, genetic distance coverage, and geographic coverage at optimal buffer size
-matplot(QULO_SMBO3_Gen2GeoValues, ylim=c(0,100), col=ExCols_Fade2,
+matplot(QULO_SMBO3_Gen2GeoValues, ylim=c(0,100), col=ExCols_Fade,
         pch=16, ylab='Coverage (%)', xlab='Number of individuals',
         main='Q. lobata: Allelic and Genetic Distance Coverage')
 mtext(text='436 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
@@ -437,14 +431,14 @@ EcoBuffCols[[which.min(QULO_NRMSE_Mat[,3])]] <-
 # GeoBuff
 matplot(QULO_SMBO3_GeoBuffMeans, ylim=c(0,100), col=GeoBuffCols, pch=16,
         ylab='Coverage (%)', xlab='Number of individuals',
-        main='Q. lobata: Geographic Coverages (Total buffer)')
+        main='Q. lobata: Geographic (Total buffer) Coverages')
 # Add points for allelic coverage values, genetic distance values, subtitle, optimal buffer size, and legend
 points(QULO_SMBO3_meanValues[,1], col=alpha('cyan4', 0.55), pch=20)
 points(QULO_SMBO3_meanValues[,2], col=alpha('blue', 0.55), pch=20)
 mtext(text='436 Individuals; 41 buffer sizes (0.5km -- 500km); 5 replicates', side=3, line=0.3, cex=1.3)
-mtext(text='*Optimal geo. buffer: 0.5 km', side=1, line=-10.0, at=77, cex=1.0)
-legend(x=59, y=35, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4','blue'),
-       legend=c('Low NRMSE (better match)', 'High NRMSE (worse match)','Allelic coverage', 'Genetic distance coverage'),
+mtext(text='*Optimal geo. buffer: 250 km', side=1, line=-10.0, at=77, cex=1.0)
+legend(x=280, y=25, inset = 0.05, xpd=TRUE, cex=0.9, fill=c('darkred','darkgray','cyan4','blue'),
+       legend=c('Geo. Coverage (low NRMSE)', 'Geo. Coverage (high NRMSE)','Allelic coverage', 'Genetic distance coverage'),
        y.intersp = 0.75)
 # GeoSDM
 matplot(QULO_SMBO3_GeoSDMMeans, ylim=c(0,100), col=GeoBuffCols, pch=16,
