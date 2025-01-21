@@ -38,15 +38,16 @@ s7 <- points[points$`Sample Name` %in% d1$Subset7, ]
 
 # generate function to produce the map 
 ## buffer distance in meter 
-bufferDistList <- c(5000,10000,50000)
+bufferDistList <- c(5000,10000,50000, 250000,500000)
 # testing parameters 
-points <- s1
+selectPoints <- s1
+allPoints <- points
 raster <- r1
 title <- "group1"
-mapBuffers <- function(points, raster, title, bufferDistList){
+mapBuffers <- function(selectPoints,title, allPoints, raster,  bufferDistList){
   # Create buffers
   buffers <- lapply(bufferDistList, function(dist) {
-    terra::buffer(points, width = dist)
+    terra::buffer(selectPoints, width = dist)
   })
   
   # set palette 
@@ -54,12 +55,12 @@ mapBuffers <- function(points, raster, title, bufferDistList){
   
   # define control group names 
   controlGroups <- paste0("buffer dist: ", bufferDistList)
-  
+  labels <- paste0("buffer dist: ", bufferDistList/1000)
   # generate map with the point features 
   map <- leaflet() |>
     addTiles() |>  # Add a basemap
     addRasterImage(
-      x = r1,
+      x = raster,
       colors = c("transparent", "#d8b365"),  # Set 0 to transparent, 1 to blue
       opacity = 0.8,
       group = "Distribution"
@@ -81,33 +82,49 @@ mapBuffers <- function(points, raster, title, bufferDistList){
   }
   # add control groups 
   map <- map |>
-    # Add the points
+    # add all the points     
     addCircleMarkers(
-      data = points,
+      data = allPoints,
+      radius = 3,
+      color = "red",
+      stroke = FALSE,
+      fillOpacity = 0.2,
+      group = "All Points",
+      popup = allPoints$`Sample Name`)|>
+    addLayersControl(
+      overlayGroups = c("Selected Points","All Points","Distribution", controlGroups),
+      options = layersControlOptions(collapsed = FALSE)
+    )|>
+    # Add the selected points
+    addCircleMarkers(
+      data = selectPoints,
       radius = 5,
       color = "Black",
       stroke = FALSE,
-      fillOpacity = ,
-      group = "Points",
-      popup = points$`Sample Name`)|>
-    addLayersControl(
-      overlayGroups = c("Points","Distribution", controlGroups),
-      options = layersControlOptions(collapsed = FALSE)
-    )|>
+      fillOpacity = 1,
+      group = "Selected Points",
+      popup = selectPoints$`Sample Name`)|>
     addLegend(
+      title = "Buffer Distance in KM",
       position = "bottomright",
       colors = buffer_colors,
-      labels = controlGroups
+      labels = labels
     )
   
   return(map)
 }
 
 # single feature 
-map <- mapBuffers(points = s1, title = "group1", raster = r1, bufferDistList = bufferDistList)
+map1 <- mapBuffers(selectPoints = s1,
+                  title = "group1",
+                  allPoints = points,
+                  raster = r1,
+                  bufferDistList = bufferDistList)
 
 # name of the map 
 titles <- paste0("Group ", 1:7)
 # mutliple features 
 maps <- purrr::map2(.x = c(s1,s2,s3,s4,s5,s6,s7), .y = titles, .f = mapBuffers,
-            raster = r1, bufferDistList = bufferDistList )
+            allPoints = points, 
+                    raster = r1, 
+            bufferDistList = bufferDistList )
