@@ -41,3 +41,4 @@ Datasets/COGL/*
 # analyses have not been published yet. The geographic data cannot be shared because coordinates are protected (as this
 # is a threatened, rare plant)
 Datasets/AMTH/*
+.Rproj.user
