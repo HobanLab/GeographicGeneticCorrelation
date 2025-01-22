@@ -128,3 +128,4 @@ maps <- purrr::map2(.x = c(s1,s2,s3,s4,s5,s6,s7), .y = titles, .f = mapBuffers,
             allPoints = points, 
                     raster = r1, 
             bufferDistList = bufferDistList )
+maps
