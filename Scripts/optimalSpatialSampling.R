@@ -16,6 +16,8 @@ pacman::p_load(terra, dplyr,readr)
 
 # function for testing erase method 
 defineTopArea <-function(c1, coverageOrder, areaCoverage, originalArea){
+  # 
+  c1$cropArea <- round(terra::expanse(c1, unit = "km"), digits = 2)
   # filter to the max area of coverage 
   ## selecting the buffer object that covers the greatest area of the distribution 
   b1 <- c1[c1$cropArea == max(c1$cropArea), ]
@@ -35,9 +37,9 @@ defineTopArea <-function(c1, coverageOrder, areaCoverage, originalArea){
   ## remove all the area covered by the selected buffer from the full buffer object 
   c2 <- terra::erase(x = c1, y = selection)
   # Get the new area of coverage for each buffer 
-  c2$cropArea <- terra::expanse(c2, unit = "km")
+  c2$cropArea <- round(terra::expanse(c2, unit = "km"), digits = 2)
   # calculate new total Area 
-  newArea <- terra::expanse(x = terra::aggregate(c2), unit="km")
+  newArea <- round(terra::expanse(x = terra::aggregate(c2), unit="km"), digits = 2)
   # get the percent of original area present
   areaCoverage <- c(areaCoverage, (newArea/originalArea)*100)
   
@@ -66,16 +68,18 @@ for(dist in c(5000, 10000, 50000,250000,500000)){
   bufferRadius <- dist  # in meters
   buffers <- buffer(s1, width = bufferRadius)
   # get the original area of the buffered objects 
-  buffers$fullArea <- expanse(buffers, unit = "km")
+  ## adding a rounding step
+  buffers$fullArea <- round(expanse(buffers, unit = "km"), digits = 2)
   # crop buffers to model area
   croppedBuffers <- crop(buffers, r2) 
   # new area 
-  croppedBuffers$cropArea <- expanse(croppedBuffers, unit = "km") 
+  croppedBuffers$cropArea <- round(expanse(croppedBuffers, unit = "km"), digits = 2) 
   
   # assign some variable names for the function
   c1 <- croppedBuffers
   # dissolve the vect feature to get the total area coverd by all buffers 
-  originalArea <- aggregate(c1) |> terra::expanse(unit = "km")
+  originalArea <- aggregate(c1) |> terra::expanse(unit = "km") |>
+    round(,digits = 2)
   # empty vectors for stroing information 
   coverageOrder <- c()
   areaCoverage <- c()
@@ -107,6 +111,8 @@ for(dist in c(5000, 10000, 50000,250000,500000)){
         title <- paste0("Seed: ",seed, " removed:", i)
         terra::plot(out1$spatialObject, main = title)
       }
+      # this stops the workflow when the remaining area of buffered objects is less then 5% of when it started 
+      ## implemented to address some un resolved errors which were breaking the workflow 
       if(min(out1$areaList) < 5){
         break  
       }
@@ -123,6 +129,24 @@ for(dist in c(5000, 10000, 50000,250000,500000)){
   }
   # Close the PDF device
   dev.off() 
+  totalRows <- max(lapply(X = outputDF, FUN = nrow) |> unlist())
+  # add additional rows if needed 
+  for(val in 1:length(outputDF)){
+    d1 <- outputDF[[val]]
+    dif <- totalRows - nrow(d1)
+    print(dif)
+    if(dif != 0){
+      print(val)
+      # Create a data frame of NAs with the correct number of rows and columns
+      padding_df <- data.frame(matrix(NA, nrow = dif, ncol = ncol(d1)))
+      colnames(padding_df) <- colnames(df) # Important: Set column names!
+
+      # reassign values
+      outputDF[[val]] <- bind_rows(d1, padding_df)
+    }
+  }
+  
+  
   allData <- bind_cols(outputDF)
   
   #Export 
