@@ -5,23 +5,25 @@
 ###
 
 pacman::p_load(leaflet, terra,googledrive,readr, RColorBrewer )
-setwd("~/trueNAS/work/GeographicGeneticCorrelation")
+# setwd("~/trueNAS/work/GeographicGeneticCorrelation")
+setwd("~/Documents/GeoGenCorr/Code/")
 # only need if your doing the google drive thing
 # drive_auth() 
 # read in MIGU data 
-path <- paste0(getwd(), "/Datasets/MIGU")
+path <- paste0(getwd(), "/Datasets/MIGU/")
 # files 
 files <- list.files(path = path, 
                     recursive = TRUE,
                     full.names = TRUE)
 # grab the CSV for the coord and the distribution 
-p1 <- read_csv(files[9])
-r1 <- terra::rast(files[7])
+p1 <- read_csv(files[10])
+r1 <- terra::rast(files[8])
 
 # generate dataset from the subset elements 
-file_id <- "https://docs.google.com/spreadsheets/d/1FWc2bEcOUPZ9s6bQ6NYCjuLgKZcBy6VhGpmLaZ6g9Jg/edit?gid=110657149#gid=110657149"
-temp <- drive_download(as_id(file_id), type = "csv", overwrite = TRUE) 
-d1 <- read.csv(temp$local_path)
+# file_id <- "https://docs.google.com/spreadsheets/d/1FWc2bEcOUPZ9s6bQ6NYCjuLgKZcBy6VhGpmLaZ6g9Jg/edit?gid=110657149#gid=110657149"
+# temp <- drive_download(as_id(file_id), type = "csv", overwrite = TRUE) 
+# d1 <- read.csv(temp$local_path)
+d1 <- read.csv(paste0(path,'MIGU_CoreSets_GeoSDMRates.csv'), header=TRUE)
 
 # generate the spatial object 
 points <- vect(p1, geom = c("Longitude","Latitude"), crs = "EPSG:4326") 
