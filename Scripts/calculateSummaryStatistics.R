@@ -6,7 +6,7 @@ GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
 # Specify the directory to save outputs to
-
+outputDir <- paste0(GeoGenCorr_wd,'Datasets/Outputs/')
 
 # %%%% FUNCTIONS %%% ----
 # Declare a function that, given a resampling array filepath, will return a vector of MSSE
@@ -112,17 +112,17 @@ QUAC_arrayDir <-
 YUBR_arrayDir <- 
   paste0(GeoGenCorr_wd, 'Datasets/YUBR/resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
 COGL_arrayDir <-
-  paste0(GeoGenCorr_wd, 'Datasets/COGL/resampArr.Rdata')
+  paste0(GeoGenCorr_wd, 'Datasets/COGL/resamplingData/COGL_SMBO2_GE_5r_resampArr.Rdata')
 QULO_arrayDir <- 
   paste0(GeoGenCorr_wd, 'Datasets/QULO/resamplingData/SMBO2/QULO_SMBO2_G2E_5r_resampArr.Rdata')
 PICO_arrayDir <- 
   paste0(GeoGenCorr_wd, 'Datasets/PICO/resamplingData/SMBO2_G2E/PICO_SMBO2_G2E_5r_resampArr.Rdata')
 MIGU_arrayDir <- 
-  paste0(GeoGenCorr_wd, 'Datasets/MIGU/resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_mplingData/COGL_SMBO2_GE_5r_resampArr.Rdata')
+  paste0(GeoGenCorr_wd, 'Datasets/MIGU/resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata')
 AMTH_arrayDir <-
   paste0(GeoGenCorr_wd, 'Datasets/AMTH/resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata')
 HIWA_arrayDir <-
-  paste0(GeoGenCorr_wd, 'Datasets/HIWA/resamplingData/HIWA_SMBO2_GE_5r_resa5r_resampArr.Rdata')
+  paste0(GeoGenCorr_wd, 'Datasets/HIWA/resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata')
 ARTH_arrayDir <- 
   paste0(GeoGenCorr_wd, 'Datasets/ARTH/resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata')
 VILA_arrayDir <- 
@@ -132,13 +132,17 @@ SMBO2_values <- c(QUAC_arrayDir, YUBR_arrayDir, COGL_arrayDir, AMTH_arrayDir, HI
                   QULO_arrayDir, PICO_arrayDir, MIGU_arrayDir, ARTH_arrayDir, VILA_arrayDir)
 
 # Apply function calculating correlation values (NRMSE, Spearman, and Pearson) from resampling arrays to list of SMBO2 datasets
-NRMSEs <- lapply(SMBO2_values, calcCorrelations, corMetric = 'NRMSE')
-corSps <- lapply(SMBO2_values, calcCorrelations, corMetric = 'corSp')
-corPes <- lapply(SMBO2_values, calcCorrelations, corMetric = 'corPe')
+NRMSEs <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'NRMSE')
+corSps <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'corSp')
+corPes <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'corPe')
 names(NRMSEs) <- names(corSps) <- names(corPes) <- c('QUAC','YUBR','COGL','AMTH','HIWA','QULO','PICO','MIGU','ARTH','VILA')
 
-write.csv2(NRMSEs,)
+# Export resutling lists to CSV in Datasets directory
+lapply(NRMSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_NRMSEs.csv'), append= T, sep=',' ))
+lapply(corSps, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_corSps.csv'), append= T, sep=',' ))
+lapply(corPes, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_corPes.csv'), append= T, sep=',' ))
 
 # Apply function calculating MSSEs from resampling arrays to list of SMBO2 datasets
 MSSEs <- lapply(SMBO2_values, calcMSSEs)
 names(MSSEs) <- c('QUAC','YUBR','COGL','AMTH','HIWA','QULO','PICO','MIGU','ARTH','VILA')
+lapply(MSSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_MSSEs.csv'), append= T, sep=',' ))
