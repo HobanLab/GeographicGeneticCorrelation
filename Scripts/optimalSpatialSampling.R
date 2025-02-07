@@ -16,7 +16,8 @@ pacman::p_load(terra, dplyr,readr)
 
 # function for testing erase method 
 defineTopArea <-function(c1, coverageOrder, areaCoverage, originalArea){
-  # 
+  # 022025 change 
+  ## recalcualting the crop area after this fuction had removed data 
   c1$cropArea <- round(terra::expanse(c1, unit = "km"), digits = 2)
   # filter to the max area of coverage 
   ## selecting the buffer object that covers the greatest area of the distribution 
@@ -29,7 +30,6 @@ defineTopArea <-function(c1, coverageOrder, areaCoverage, originalArea){
   }else{
     selection <- b1
   }
-  
   # assign name to the feautre 
   ## this is how we track what is removed 
   coverageOrder <- c(coverageOrder, selection$`Sample Name`)
@@ -42,7 +42,6 @@ defineTopArea <-function(c1, coverageOrder, areaCoverage, originalArea){
   newArea <- round(terra::expanse(x = terra::aggregate(c2), unit="km"), digits = 2)
   # get the percent of original area present
   areaCoverage <- c(areaCoverage, (newArea/originalArea)*100)
-  
   # returns the erase spatial object, the name of the feature used and the areacover percentage
   return(list(spatialObject = c2,
               orderList = coverageOrder,
@@ -55,7 +54,7 @@ r1 <- terra::rast("Datasets/MIGU/Geographic/MIGU_255inds_rast_Carver.tif")
 # point data 
 p1 <- read_csv("Datasets/MIGU/Geographic/MIGU_coordinates.csv")
 s1 <- terra::vect(p1, geom = c("Longitude", "Latitude"), crs = r1)
-
+View(p1)
 ## transform the datasets 
 # convert raster to vector 
 r2 <- terra::as.polygons(r1)
@@ -73,7 +72,7 @@ for(dist in c(5000, 10000, 50000,250000,500000)){
   # crop buffers to model area
   croppedBuffers <- crop(buffers, r2) 
   # new area 
-  croppedBuffers$cropArea <- round(expanse(croppedBuffers, unit = "km"), digits = 2) 
+  # croppedBuffers$cropArea <- round(expanse(croppedBuffers, unit = "km"), digits = 2) 
   
   # assign some variable names for the function
   c1 <- croppedBuffers
@@ -107,6 +106,7 @@ for(dist in c(5000, 10000, 50000,250000,500000)){
                               areaCoverage = out1$areaList,
                               originalArea = originalArea)
       }
+      # generate the plot 
       if (i %% 10 == 0) {
         title <- paste0("Seed: ",seed, " removed:", i)
         terra::plot(out1$spatialObject, main = title)
@@ -145,7 +145,7 @@ for(dist in c(5000, 10000, 50000,250000,500000)){
       outputDF[[val]] <- bind_rows(d1, padding_df)
     }
   }
-  
+  ### wierd column names 
   
   allData <- bind_cols(outputDF)
   
@@ -156,7 +156,7 @@ for(dist in c(5000, 10000, 50000,250000,500000)){
 }
 
 
-
+r1 <- read_csv( paste0("Datasets/MIGU/geographicSampingOptimization/bufferEval_",as.character(5000),".csv"))
 
 
 
