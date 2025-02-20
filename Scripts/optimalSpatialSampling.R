@@ -365,21 +365,23 @@ names(s1) <- 'id'
 match <- FALSE
 #initialize the process
 buffDist <- 80000
+## migu core set values 
+coreSet <- 22
 while(match == FALSE){
   o1 <- produceGeoOptimizationSingle(
     raster = r1,
     points = s1,
     buffDist = buffDist,
     exportPath = "Datasets/MIGU/geographicSampingOptimization/targetedSite",
-    random = TRUE)
+    random = FALSE)
   print(nrow(o1))
   # stop on match 
-  if(nrow(o1) == 25){
+  if(nrow(o1) == coreSet){
     match == TRUE
     print(paste0("Buffer size: ", buffDist))
     break
   }
-  diff <- nrow(o1) - 25
+  diff <- nrow(o1) - coreSet
   
   if(diff > 0){
     buffDist <- buffDist + diff * 1000
