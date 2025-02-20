@@ -1,7 +1,7 @@
 # Script looking through SMBO2 results to find buffer sizes which lead to the closest
 # match between the 95% MSSEs
 
-pacman::p_load(adegenet, terra, parallel, RColorBrewer, scales, vcfR, usedist, DescTools)
+pacman::p_load(adegenet, terra, parallel, RColorBrewer, scales, vcfR, usedist, DescTools, ggplot2, reshape2)
 
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
@@ -164,7 +164,7 @@ lapply(MSSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_MSS
 # %%% PLOT SPEARMAN CORRELATION TABLE %%% ----
 # Declare a matrix for capturing average correlation coefficient values over all buffer sizes for each species
 corMat_Sps <- matrix(NA, ncol = 3, nrow = length(corSps))  
-rownames(corMat_Sps) <- names(corSps) ; colnames(corMat_Sps) <- colnames(corSps$QUAC)
+rownames(corMat_Sps) <- names(corSps) ; colnames(corMat_Sps) <- c('Geographic (Total buffer)', 'Geographic (SDM)', 'Ecological')
 # Loop through the data.frames of Spearman rho values, calculating average correlation coefficients across buffer sizes for each species
 for(i in 1:length(corSps)){
   # Need to conditionalize based on whether or not SDM geographic coverages are present
@@ -177,4 +177,24 @@ for(i in 1:length(corSps)){
   }
 }
 
-# NEED TO FIND A WAY TO PLOT THIS DATA, EITHER USING CORRPLOT OR SOMETHING ELSE...
+# PLOTTING IN GGPLOT
+# Transpose the matrix, and convert it into long format
+cor_matrix <- t(corMat_Sps)
+cor_melted <- melt(cor_matrix)
+# Preserve the original row order
+cor_melted$Var1 <- factor(cor_melted$Var1, levels = rev(rownames(cor_matrix))) 
+# Plot heatmap with text labels
+ggplot(cor_melted, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile(color = "white", width = 0.8, height = 0.8) +  # Reduce tile size
+  geom_text(aes(label = round(value, 2)), color = "black", size = 5) +  # Increase text size
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+                       midpoint = 0, limit = c(-1,1), space = "Lab",
+                       name="Correlation") +
+  scale_x_discrete(position = "top") +  # Move column names to the top
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0, hjust = 0, size = 14),  # Larger x-axis text
+        axis.text.y = element_text(size = 14),  # Larger y-axis text
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        aspect.ratio = nrow(cor_matrix) / ncol(cor_matrix)) +  # Control aspect ratio for smaller cells
+  labs(title = "Mean Spearman Rho Values")
