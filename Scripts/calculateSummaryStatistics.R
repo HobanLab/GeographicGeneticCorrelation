@@ -1,6 +1,8 @@
 # Script looking through SMBO2 results to find buffer sizes which lead to the closest
 # match between the 95% MSSEs
 
+pacman::p_load(adegenet, terra, parallel, RColorBrewer, scales, vcfR, usedist, DescTools)
+
 # Read in relevant functions
 GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
 setwd(GeoGenCorr_wd)
@@ -105,6 +107,16 @@ buildCorrelationMat <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'G
   return(corMat)
 }
 
+# Function which, given a vector of correlation values, will calculate the average correlation value. Because correlation
+# coefficients are not additive, this requires converting the coefficient values using Fisher's z transform, then averaging,
+# and then performing the inverse Fisher z transform.
+averageCorrValue <- function(corrValues){
+  # Perform Fisher's z transform on correlation coefficients. Then, average and perform the inverse transform
+  # Remove NA values before calculating the mean
+  averages <- FisherZInv(mean(FisherZ(corrValues), na.rm=TRUE))
+  return(averages)
+}
+
 # %%% READ IN DATASETS %%% ----
 # Specify relevant resampling arrays, for each dataset
 QUAC_arrayDir <- 
@@ -127,10 +139,12 @@ ARTH_arrayDir <-
   paste0(GeoGenCorr_wd, 'Datasets/ARTH/resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata')
 VILA_arrayDir <- 
   paste0(GeoGenCorr_wd, 'Datasets/VILA/resamplingData/VILA_SMBO2_5r_resampArr.Rdata')
+
 # Build a single vector of relevant array directories
 SMBO2_values <- c(QUAC_arrayDir, YUBR_arrayDir, COGL_arrayDir, AMTH_arrayDir, HIWA_arrayDir,
                   QULO_arrayDir, PICO_arrayDir, MIGU_arrayDir, ARTH_arrayDir, VILA_arrayDir)
 
+# %%% CALCULATE SUMMARY STATISTICS %%% ----
 # Apply function calculating correlation values (NRMSE, Spearman, and Pearson) from resampling arrays to list of SMBO2 datasets
 NRMSEs <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'NRMSE')
 corSps <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'corSp')
@@ -146,3 +160,21 @@ lapply(corPes, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_co
 MSSEs <- lapply(SMBO2_values, calcMSSEs)
 names(MSSEs) <- c('QUAC','YUBR','COGL','AMTH','HIWA','QULO','PICO','MIGU','ARTH','VILA')
 lapply(MSSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_MSSEs.csv'), append= T, sep=',' ))
+
+# %%% PLOT SPEARMAN CORRELATION TABLE %%% ----
+# Declare a matrix for capturing average correlation coefficient values over all buffer sizes for each species
+corMat_Sps <- matrix(NA, ncol = 3, nrow = length(corSps))  
+rownames(corMat_Sps) <- names(corSps) ; colnames(corMat_Sps) <- colnames(corSps$QUAC)
+# Loop through the data.frames of Spearman rho values, calculating average correlation coefficients across buffer sizes for each species
+for(i in 1:length(corSps)){
+  # Need to conditionalize based on whether or not SDM geographic coverages are present
+  if(ncol(corSps[[i]]) == 3){
+    corMat_Sps[i,] <- apply(corSps[[i]], 2, averageCorrValue)
+  } else{
+    # If SDM values are not present, then include an NA value in the middle
+    aveargeValues <- apply(corSps[[i]], 2, averageCorrValue)
+    corMat_Sps[i,] <- c(aveargeValues[[1]], NA, aveargeValues[[2]])
+  }
+}
+
+# NEED TO FIND A WAY TO PLOT THIS DATA, EITHER USING CORRPLOT OR SOMETHING ELSE...
