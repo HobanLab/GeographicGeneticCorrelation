@@ -70,9 +70,9 @@ corPes <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'corPe')
 names(NRMSEs) <- names(corSps) <- names(corPes) <- c('QUAC','YUBR','COGL','AMTH','HIWA','QULO','PICO','MIGU','ARTH','VILA')
 
 # Export resutling lists to CSV in Datasets directory
-lapply(NRMSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_NRMSEs.csv'), append= T, sep=',' ))
-lapply(corSps, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_corSps.csv'), append= T, sep=',' ))
-lapply(corPes, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_corPes.csv'), append= T, sep=',' ))
+# lapply(NRMSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_NRMSEs.csv'), append= T, sep=',' ))
+# lapply(corSps, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_corSps.csv'), append= T, sep=',' ))
+# lapply(corPes, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_corPes.csv'), append= T, sep=',' ))
 
 # Apply function calculating MSSEs from resampling arrays to list of SMBO2 datasets
 MSSEs <- lapply(SMBO2_values, calcMSSEs)
@@ -94,9 +94,12 @@ for(i in 1:length(corSps)){
     corMat_Sps[i,] <- c(aveargeValues[[1]], NA, aveargeValues[[2]])
   }
 }
-# Create a row which is an average across datasets, for each coverage type
-corMat_Sps <- rbind(corMat_Sps, apply(corMat_Sps,2,averageCorrValue))
-rownames(corMat_Sps)[[11]] <- 'Average'
+# Create a column which is an average across datasets, for each coverage type
+corMat_Sps <- rbind(corMat_Sps, apply(corMat_Sps, 2, averageCorrValue))
+rownames(corMat_Sps)[[11]] <- 'Average (Coverages)'
+# Create a row which is an average for each dataset
+corMat_Sps <- cbind(corMat_Sps, apply(corMat_Sps, 1, averageCorrValue))
+colnames(corMat_Sps)[[4]] <- 'Average (Datasets)'
 
 # PLOTTING IN GGPLOT
 # Transpose the matrix, and convert it into long format
