@@ -65,14 +65,18 @@ SMBO2_values <- c(QUAC_arrayDir, YUBR_arrayDir, COGL_arrayDir, AMTH_arrayDir, HI
 # %%% CALCULATE SUMMARY STATISTICS %%% ----
 # Apply function calculating correlation values (NRMSE, Spearman, and Pearson) from resampling arrays to list of SMBO2 datasets
 NRMSEs <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'NRMSE')
+# Generate a set of NRMSE values, but rounded to 2 decimal places
+NRMSEs_Round <- lapply(NRMSEs, round, 2)
 corSps <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'corSp')
 corPes <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'corPe')
-names(NRMSEs) <- names(corSps) <- names(corPes) <- c('QUAC','YUBR','COGL','AMTH','HIWA','QULO','PICO','MIGU','ARTH','VILA')
+names(NRMSEs) <- names(NRMSEs_Round) <- names(corSps) <- names(corPes) <- 
+  c('QUAC','YUBR','COGL','AMTH','HIWA','QULO','PICO','MIGU','ARTH','VILA')
 
 # Export resutling lists to CSV in Datasets directory
-# lapply(NRMSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_NRMSEs.csv'), append= T, sep=',' ))
-# lapply(corSps, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_corSps.csv'), append= T, sep=',' ))
-# lapply(corPes, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_corPes.csv'), append= T, sep=',' ))
+lapply(NRMSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_NRMSEs.csv'), append= T, sep=',' ))
+lapply(NRMSEs_Round, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_NRMSEs_Round.csv'), append= T, sep=',' ))
+lapply(corSps, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_corSps.csv'), append= T, sep=',' ))
+lapply(corPes, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_corPes.csv'), append= T, sep=',' ))
 
 # Apply function calculating MSSEs from resampling arrays to list of SMBO2 datasets
 MSSEs <- lapply(SMBO2_values, calcMSSEs)
@@ -96,10 +100,10 @@ for(i in 1:length(corSps)){
 }
 # Create a column which is an average across datasets, for each coverage type
 corMat_Sps <- rbind(corMat_Sps, apply(corMat_Sps, 2, averageCorrValue))
-rownames(corMat_Sps)[[11]] <- 'Average (Coverages)'
+rownames(corMat_Sps)[[11]] <- 'Coverage (Mean)'
 # Create a row which is an average for each dataset
 corMat_Sps <- cbind(corMat_Sps, apply(corMat_Sps, 1, averageCorrValue))
-colnames(corMat_Sps)[[4]] <- 'Average (Datasets)'
+colnames(corMat_Sps)[[4]] <- 'Datasets (Mean)'
 
 # PLOTTING IN GGPLOT
 # Transpose the matrix, and convert it into long format
@@ -120,5 +124,6 @@ ggplot(cor_melted, aes(x = Var2, y = Var1, fill = value)) +
         axis.text.y = element_text(size = 14),  # Larger y-axis text
         axis.title.x = element_blank(), 
         axis.title.y = element_blank(),
-        aspect.ratio = nrow(cor_matrix) / ncol(cor_matrix)) +  # Control aspect ratio for smaller cells
+        aspect.ratio = nrow(cor_matrix) / ncol(cor_matrix),
+        plot.title = element_text(vjust = -10, hjust=0.5)) +  # Control aspect ratio for smaller cells
   labs(title = "Mean Spearman Rho Values")
