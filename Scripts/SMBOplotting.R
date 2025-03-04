@@ -175,8 +175,8 @@ MIGU_NRMSEs <-  buildCorrelationMat(MIGU_arrayDir, corMetric = 'NRMSE', sdmFlag 
 # Create separate saturation vectors, based on each set of NRMSEs; filter based on columns
 # present in average value matrix
 satVect_GeoBuff <- MIGU_NRMSEs[,1]
-# Remove first 13 SDM columns--outliers making graph illegible
-satVect_GeoSDM <- MIGU_NRMSEs[,2][-(1:13)] 
+# Remove first 13 SDM columns--outliers making graph illegible (and 0.5 km value isn't relevant for this dataset)
+satVect_GeoSDM <- MIGU_NRMSEs[,2][-(1:14)] 
 satVect_Eco <- MIGU_NRMSEs[,3]
 
 # Specify saturations for each coverage type
