@@ -136,7 +136,7 @@ corMat_SMBO$P[which(is.na(corMat_SMBO$P))] <- 0
 # asterisks
 corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P, 
          sig.level = 0.01, insig = "label_sig", diag = FALSE)
-mtext('Spearman correlation: Point stats and Geo/Eco coverages', side=3, line=1.2, adj=0.05, cex=1.2)
+mtext('Spearman correlations: Points-based statistics and Geo/Eco coverages', side=3, line=1.2, adj=0.6, cex=1.2)
 
 # SDM COVERAGES
 # Build a correlation matrix based off of values
@@ -147,7 +147,7 @@ corMat_SMBO_SDM$P[which(is.na(corMat_SMBO_SDM$P))] <- 0
 # asterisks
 corrplot(corMat_SMBO_SDM$r, type="upper", order="original", p.mat = corMat_SMBO_SDM$P, 
          sig.level = 0.01, insig = "label_sig", diag = FALSE)
-mtext('Spearman correlation: Point stats and Geo/SDM/Eco coverages', side=3, line=1.2, adj=0.05, cex=1.2)
+mtext('Spearman correlations: Points-based statistics and Geo/SDM/Eco coverages', side=3, line=1.2, adj=0.6, cex=1.2)
 
 # PLOTTING OPTIMAL BUFFER SIZES VERSUS POINTS BASED METRICS
 plot(SMBO_Mat[,'ANN'], SMBO_Mat[,'Opt_Geo-Buff'], pch=16, col='black',
