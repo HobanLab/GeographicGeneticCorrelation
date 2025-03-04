@@ -1,5 +1,14 @@
-# Script looking through SMBO2 results to find buffer sizes which lead to the closest
-# match between the 95% MSSEs
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%% GEN-GEO-ECO CORRELATION: CALCULATE SUMMARY STATISTICS %%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# This script analyzes the SMBO2 results (resampling arrays) to build matrices of correlation metrics, measuring
+# the relationship between the genetic coverage values and the geographic and ecological coverage values. It does
+# this by calculating NRMSE values (rounded to 2 different values of decimal points), Spearman's rho, and Pearson's r
+# (the last of these we don't really utilize). 
+
+# Some custom functions, used for calculating MSSE values across datasets and for average Spearman rho values, are
+# declared up front. The end of the script contains commands for plotting a matrix of Spearman rho correlation values.
 pacman::p_load(adegenet, terra, parallel, RColorBrewer, scales, vcfR, usedist, DescTools, ggplot2, reshape2)
 
 # Read in relevant functions
@@ -63,10 +72,9 @@ SMBO2_values <- c(QUAC_arrayDir, YUBR_arrayDir, COGL_arrayDir, AMTH_arrayDir, HI
                   QULO_arrayDir, PICO_arrayDir, MIGU_arrayDir, ARTH_arrayDir, VILA_arrayDir)
 
 # %%% CALCULATE SUMMARY STATISTICS %%% ----
-# Apply function calculating correlation values (NRMSE, Spearman, and Pearson) from resampling arrays to list of SMBO2 datasets
-NRMSEs <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'NRMSE')
-# Generate a set of NRMSE values, but rounded to 2 decimal places
-NRMSEs_Round <- lapply(NRMSEs, round, 2)
+# Apply function calculating correlation values (NRMSE unrounded/rounded, Spearman, and Pearson) to list of SMBO2 datasets
+NRMSEs <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'NRMSE', NRMSEdigits=5)
+NRMSEs_Round <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'NRMSE')
 corSps <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'corSp')
 corPes <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'corPe')
 names(NRMSEs) <- names(NRMSEs_Round) <- names(corSps) <- names(corPes) <- 
