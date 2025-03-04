@@ -677,7 +677,7 @@ resample.array2dataframe <- function(resamplingArray, allValues=FALSE){
 # 'type' argument. A lower value indicates similarity between values. In the context of this project, 
 # 'obs_var' is the explanatory variable (what we're using as a 'proxy' for genetic coverage), 
 # and 'pred_var' is what we're trying to predict (genetic coverage).
-nrmse.func <-  function(obs_var, pred_var, norm_type='mean'){
+nrmse.func <-  function(obs_var, pred_var, norm_type='mean', digits=NA){
   # Check that lengths of observed and predicted variables match, and error if not
   if(length(obs_var) != length(pred_var)) stop('Lengths of observed and predicted variables do not match!')
   # Calculate root mean square error 
@@ -688,6 +688,10 @@ nrmse.func <-  function(obs_var, pred_var, norm_type='mean'){
   if (!norm_type %in% c('mean', 'sd', 'maxmin', 'iq')){
     message('Wrong type argument for how to normalize! Non-normalized root mean square error value returned.')
     rmse <- round(rmse, 3)
+    # If digits argument is specified, round result to specified number of digits, and return
+    if( is.numeric(digits) == TRUE){
+      rmse <- round(rmse, digits)
+    }
     return(rmse)
   } else {
     # Normalize RMSE, based on type argument
@@ -695,8 +699,10 @@ nrmse.func <-  function(obs_var, pred_var, norm_type='mean'){
     if (norm_type == 'mean') nrmse <- rmse/mean(obs_var)
     if (norm_type == 'maxmin') nrmse <- rmse/(max(obs_var) - min(obs_var))
     if (norm_type == 'iq') nrmse <- rmse/(quantile(obs_var, 0.75) - quantile(obs_var, 0.25))
-    # Round result and return
-    nrmse <- round(nrmse, 5)
+    # If digits argument is specified, round result to specified number of digits, and return
+    if( is.numeric(digits) == TRUE){
+      nrmse <- round(nrmse, digits)
+    }
     return(nrmse)
   }
 }
@@ -706,7 +712,7 @@ nrmse.func <-  function(obs_var, pred_var, norm_type='mean'){
 # Given these arguments, a matrix is generated which has a NRMSE value for each set of geographic/ecological
 # coverage values compared to the genetic coverage metric. This command expects the resampling data.frame
 # to have certain row names and column names, and makes those checks
-buildNRMSEmatrix <- function(resampDF, genCovType=c('CV', 'GD'), sdmFlag=FALSE){
+buildNRMSEmatrix <- function(resampDF, genCovType=c('CV', 'GD'), sdmFlag=FALSE, NRMSEdigits=2){
   # Match argument for type of response variable (genetic coverage approach) to use
   genCovType <- match.arg(genCovType)
   # If CV is chosen, set the predictive variable argument to the 'Total' column in the data.frame
@@ -749,7 +755,7 @@ buildNRMSEmatrix <- function(resampDF, genCovType=c('CV', 'GD'), sdmFlag=FALSE){
   # predictive variables (allelic coverage and genetic distance proportions)
   for(i in startCol:ncol(resampDF)){
     # Calculate NRMSE for the current column in the dataframe
-    NRMSEvalue <- nrmse.func(resampDF[,i], pred = predVar)
+    NRMSEvalue <- nrmse.func(resampDF[,i], pred_var = predVar, digits=NRMSEdigits)
     # Get the name of the current dataframe column
     dataName <- unlist(strsplit(names(resampDF)[[i]],'_'))
     # Match the data name to the relevant rows/columns of the receiving matrix
@@ -784,7 +790,7 @@ getOptBuffers <- function(nrmseMat){
 
 # Wrapper function which, given a filepath to a resampling array, will return the optimal 
 # buffer sizes according to the data in that array
-extractOptBuffs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'), sdmFlag=FALSE){
+extractOptBuffs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'), sdmFlag=FALSE, NRMSEdigits=2){
   # Match genetic coverage type argument
   genCovType <- match.arg(genCovType)
   # Read in the array, then convert it into a data.frame
@@ -793,14 +799,14 @@ extractOptBuffs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'),
   # From the data.frame, calculate a matrix of NRMSE values for each coverage type. Pass arguments
   # along for the genetic coverage type (allelic/haplotypic coverage vs. genetic distance; whether
   # or not SDM is included)
-  nrmseMat <- buildNRMSEmatrix(resampDF=df, genCovType=genCovType, sdmFlag=sdmFlag)
+  nrmseMat <- buildNRMSEmatrix(resampDF=df, genCovType=genCovType, sdmFlag=sdmFlag, NRMSEdigits=NRMSEdigits)
   # From the NRMSE matrix, extract the optimal buffer sizes, and return
   optBuffs <- getOptBuffers(nrmseMat)
   return(optBuffs)
 }
 
 # Function for building a matrix of average coverage values for optimal buffer sizes
-extractOptCovs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'), sdmFlag=FALSE){
+extractOptCovs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'), sdmFlag=FALSE, NRMSEdigits=2){
   # Match genetic coverage type argument
   genCovType <- match.arg(genCovType) 
   # Read in the array, then convert it into a data.frame
@@ -809,7 +815,7 @@ extractOptCovs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'), 
   # From the data.frame, calculate a matrix of NRMSE values for each coverage type. Pass arguments
   # along for the genetic coverage type (allelic/haplotypic coverage vs. genetic distance; whether
   # or not SDM is included)
-  nrmseMat <- buildNRMSEmatrix(resampDF=df, genCovType=genCovType, sdmFlag=sdmFlag)
+  nrmseMat <- buildNRMSEmatrix(resampDF=df, genCovType=genCovType, sdmFlag=sdmFlag, NRMSEdigits=NRMSEdigits)
   # From the NRMSE matrix, extract the optimal buffer sizes
   optBuffs <- getOptBuffers(nrmseMat)
   # From array, generate average value matrix (across resampling replicates)
@@ -831,7 +837,7 @@ extractOptCovs <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'), 
 # coverage values compared to the genetic coverage metric. This command expects the resampling data.frame
 # to have certain row names and column names, and makes those checks
 buildCorrelationMat <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'GD'), 
-                                corMetric=c('NRMSE', 'corSp', 'corPe'), sdmFlag=FALSE){
+                                corMetric=c('NRMSE', 'corSp', 'corPe'), sdmFlag=FALSE, NRMSEdigits=2){
   # Match arguments for type of correlation metric to calculate and response variable (genetic coverage approach) to use
   corMetric <- match.arg(corMetric) ; genCovType <- match.arg(genCovType)
   # Read in the specified resampling array
@@ -880,7 +886,7 @@ buildCorrelationMat <- function(arrayDir='~/resamp.Rdata', genCovType=c('CV', 'G
     # Syntax below allows the appropriate correlation metric to be calculated, according to function argument
     if (corMetric=='NRMSE') {
       # Calculate NRMSE value
-      corValue <- nrmse.func(resampDF[,i], pred = predVar)
+      corValue <- nrmse.func(resampDF[,i], pred = predVar, digits=NRMSEdigits)
     } else if (corMetric=='corSp') {
       # Calculate Spearman correlation value
       corValue <- cor.test(resampDF[,i], predVar, method='spearman')$estimate
