@@ -66,11 +66,6 @@ defineTopArea <-function(c1, coverageOrder, areaCoverage, originalArea, random =
 
 
 # function to render the results  -----------------------------------------
-
-
-
-
-
 produceGeoOptimization <- function(raster, points, buffDist, exportPath, random = FALSE){
   # create path if it doesn't exist 
   if(!dir.exists(exportPath)){
@@ -217,13 +212,15 @@ p1 <- read_csv("Datasets/QULO/Geographic/QULO_coordinates.csv")
 s1 <- terra::vect(p1, geom = c("decimalLongitude", "decimalLatitude"), crs = r1)
 # standardize names of the point obect 
 names(s1) <- 'id'
-# call process
-produceGeoOptimization(raster = r1,
-                       points = s1, 
-                       buffDist = 50000, 
-                       exportPath = "Datasets/QULO/geographicSampingOptimization",
-                       random = TRUE)
- 
+# # call process
+for(i in c(5000,10000,25000,50000,100000,250000,500000)){
+  produceGeoOptimization(raster = r1,
+                         points = s1,
+                         buffDist = i,
+                         exportPath = "Datasets/QULO/geographicSampingOptimization",
+                         random = TRUE)
+}
+
 # so lets assume that the minulus dataset need 25 records to hit the 90% genetic coverage 
 # what buffer distance will get use closest to that? 
 # test a buffer distance if nrow of results is < goal, increase buffer
