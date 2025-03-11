@@ -42,3 +42,7 @@ Datasets/COGL/*
 # is a threatened, rare plant)
 Datasets/AMTH/*
 .Rproj.user
+
+# MIGU geo optimizations
+Datasets/MIGU/geographicSampingOptimization/*.csv
+Datasets/MIGU/geographicSampingOptimization/*.pdf
