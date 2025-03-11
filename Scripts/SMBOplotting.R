@@ -15,7 +15,7 @@ adjust_saturation <- function(saturation_vector) {
 }
 
 # Function to process data frames with separate colors and saturations
-process_df <- function(df, panel_name, color_palette, saturation_scaled, genSat=0.25) {
+process_df <- function(df, panel_name, color_palette, saturation_scaled, genCol='red', genSat=0.25) {
   df_long <- melt(df, variable.name = "Series", value.name = "Value")
   df_long$Index <- rep(1:nrow(df), times = ncol(df))
   df_long$Series <- as.character(df_long$Series)
@@ -23,7 +23,7 @@ process_df <- function(df, panel_name, color_palette, saturation_scaled, genSat=
   gradient_colors <- colorRampPalette(color_palette)(100)
   color_mapping <- gradient_colors[as.numeric(cut(saturation_scaled, breaks = 100))]
   
-  color_values <- c("red", color_mapping)
+  color_values <- c(genCol, color_mapping)
   df_long$Color <- color_values[match(df_long$Series, colnames(df))]
   
   alpha_values <- c(genSat, saturation_scaled)
@@ -42,7 +42,7 @@ legend_colors <- c("red", "darkblue", "brown", "purple", "gray")
 legend_labels <- c("genetic", "Geographic (Total buffer)", "Geographic (SDM)", "Ecological", "Low match")
 
 # %%%% QULO %%%% ----
-# Read in QULO SMBO2 resampling array amd convert to data.frame
+# Read in QULO SMBO2 resampling array and convert to data.frame
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
 QULO_arrayDir <- paste0(QULO_filePath, 'resamplingData/SMBO2/QULO_SMBO2_G2E_5r_resampArr.Rdata')
 QULO_array <- readRDS(QULO_arrayDir)
@@ -100,7 +100,7 @@ ggplot(QULO_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   )
 
 # %%%% PICO %%%% ----
-# Read in PICO SMBO2 resampling array amd convert to data.frame
+# Read in PICO SMBO2 resampling array and convert to data.frame
 PICO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/PICO/')
 PICO_arrayDir <- paste0(PICO_filePath, 'resamplingData/SMBO2_G2E/PICO_SMBO2_G2E_5r_resampArr.Rdata')
 PICO_array <- readRDS(PICO_arrayDir)
@@ -158,7 +158,7 @@ ggplot(PICO_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   )
 
 # %%%% MIGU %%%% ----
-# Read in MIGU SMBO2 resampling array amd convert to data.frame
+# Read in MIGU SMBO2 resampling array and convert to data.frame
 MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
 MIGU_arrayDir <- paste0(MIGU_filePath, 'resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata')
 MIGU_array <- readRDS(MIGU_arrayDir)
@@ -216,7 +216,7 @@ ggplot(MIGU_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   )
 
 # %%%% ARTH %%%% ----
-# Read in ARTH SMBO2 resampling array amd convert to data.frame
+# Read in ARTH SMBO2 resampling array and convert to data.frame
 ARTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/ARTH/')
 ARTH_arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata')
 ARTH_array <- readRDS(ARTH_arrayDir)
@@ -267,7 +267,7 @@ ggplot(ARTH_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   )
 
 # %%%% VILA %%%% ----
-# Read in VILA SMBO2 resampling array amd convert to data.frame
+# Read in VILA SMBO2 resampling array and convert to data.frame
 VILA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/VILA/')
 VILA_arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_SMBO2_5r_resampArr.Rdata')
 VILA_array <- readRDS(VILA_arrayDir)
@@ -318,7 +318,7 @@ ggplot(VILA_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   )
 
 # %%%% QUAC %%%% ----
-# Read in QUAC SMBO2 resampling array amd convert to data.frame
+# Read in QUAC SMBO2 resampling array and convert to data.frame
 QUAC_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QUAC/')
 QUAC_arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata')
 QUAC_array <- readRDS(QUAC_arrayDir)
@@ -376,7 +376,7 @@ ggplot(QUAC_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   )
 
 # %%%% YUBR %%%% ----
-# Read in YUBR SMBO2 resampling array amd convert to data.frame
+# Read in YUBR SMBO2 resampling array and convert to data.frame
 YUBR_filePath <- paste0(GeoGenCorr_wd, 'Datasets/YUBR/')
 YUBR_arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
 YUBR_array <- readRDS(YUBR_arrayDir)
@@ -434,7 +434,7 @@ ggplot(YUBR_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   )
 
 # %%%% COGL %%%% ----
-# Read in COGL SMBO2 resampling array amd convert to data.frame
+# Read in COGL SMBO2 resampling array and convert to data.frame
 COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
 COGL_arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO2_GE_5r_resampArr.Rdata')
 COGL_array <- readRDS(COGL_arrayDir)
@@ -485,7 +485,7 @@ ggplot(COGL_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   )
 
 # %%%% AMTH %%%% ----
-# Read in AMTH SMBO2 resampling array amd convert to data.frame
+# Read in AMTH SMBO2 resampling array and convert to data.frame
 AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
 AMTH_arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata')
 AMTH_array <- readRDS(AMTH_arrayDir)
@@ -536,7 +536,7 @@ ggplot(AMTH_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   )
 
 # %%%% HIWA %%%% ----
-# Read in HIWA SMBO2 resampling array amd convert to data.frame
+# Read in HIWA SMBO2 resampling array and convert to data.frame
 HIWA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/HIWA/')
 HIWA_arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata')
 HIWA_array <- readRDS(HIWA_arrayDir)
