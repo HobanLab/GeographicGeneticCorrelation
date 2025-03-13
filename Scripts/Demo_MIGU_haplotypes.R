@@ -125,7 +125,8 @@ stopCluster(cl)
 # %%% ANALYZE DATA %%% ----
 # Specify filepath for MIGU geographic and genetic data, including resampling data
 MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
-arrayDir <- paste0(MIGU_filePath, 'resamplingData/haplotypicData/SMBO2_G2E')
+# arrayDir <- paste0(MIGU_filePath, 'resamplingData/haplotypicData/SMBO2_G2E')
+arrayDir <- paste0(MIGU_filePath, 'resamplingData/haplotypicData/50km_')
 # Read in the resampling array .Rdata objects, saved to disk. Then, calculate the average
 # value matrix (across resampling replicates) for each resampling array, and add that
 # matrix as an item to a list.
@@ -347,104 +348,3 @@ for(i in 1:length(MIGU_SMBO2_arrays)){
     mtext(text='Eco Buff', side=2, line=2.3, cex=1.1, srt=90)
   }
 }
-
-# %%% ALL PLOTS, 1 WINDOW, GGPLOT ----
-# Specify filepath for SMBO2 resampling arrays
-MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/resamplingData/haplotypicData/SMBO2_G2E/')
-# Specify geographic buffer size in meters (used above)
-geo_buffSize <- 1000*(c(2,3,4,5,seq(10,100,5),seq(110,250,10),500))
-# Declare a list of the resampling array objects stored in the data directory
-MIGU_SMBO2_arrayList <- grep('.Rdata', list.files(MIGU_filePath, full.names = TRUE), value = TRUE, )
-# From list of filepaths, read in resampling arrays
-MIGU_SMBO2_arrays <- lapply(MIGU_SMBO2_arrayList, readRDS)
-
-# BUILDING AVERAGE VALUE DATAFRAMES FOR PLOTTING
-# From list of resampling arrays, convert into dataframes (calculating averages across replicates)
-MIGU_SMBO2_DFs <- lapply(MIGU_SMBO2_arrays, resample.array2dataframe)
-# Remove the first column in each dataframe (sampleNumbers), since we don't use these in plotting
-MIGU_SMBO2_DFs <- lapply(MIGU_SMBO2_DFs, function(df) df[,-1])
-#  Combine the first columns (Total genetic coverages) into a new dataframe, and rename
-MIGU_Hap_avMat <- do.call(cbind, lapply(MIGU_SMBO2_DFs, function(df) df[, 1]))
-colnames(MIGU_Hap_avMat) <- paste0('Hap', 1:5)
-# Compute the average for all columns (besides column 1) across dataframes. Reduce is a functional programming call,
-# which applies an operator (in this case, the +) across all vaues
-MIGU_Hap_averageValues <- Reduce(`+`, lapply(MIGU_SMBO2_DFs, function(df) df[, -1])) / length(MIGU_SMBO2_DFs)
-# Combine the averaged ecogeographic coverage values and the (Total) genetic coverage values for each haplotype
-MIGU_Hap_avMat <- cbind(MIGU_Hap_avMat, MIGU_Hap_averageValues)
-# Divide into several average value matrices, depending on coverage type
-MIGU_Hap_avMat_GeoBuff <- MIGU_Hap_avMat[,c(1:5,grep('Geo_Buff', colnames(MIGU_Hap_avMat)))]
-MIGU_Hap_avMat_GeoSDM <- MIGU_Hap_avMat[,c(1:5,grep('Geo_SDM', colnames(MIGU_Hap_avMat)))]
-# Remove first 13 SDM columns--outliers making graph illegible
-# MIGU_Hap_avMat_GeoSDM <- MIGU_Hap_avMat_GeoSDM[,-(2:14)]
-MIGU_Hap_avMat_Eco <- MIGU_Hap_avMat[,c(1:5,grep('Eco_Buff', colnames(MIGU_Hap_avMat)))]
-# Calculate NRMSE values
-MIGU_Hap5_NRMSEs <-  buildCorrelationMat(MIGU_SMBO2_arrayList[[5]], corMetric = 'NRMSE', sdmFlag = TRUE, NRMSEdigits = 5)
-# Create separate saturation vectors, based on each set of NRMSEs; filter based on columns
-# present in average value matrix
-satVect_GeoBuff <- MIGU_Hap5_NRMSEs[,1]
-# Remove first 13 SDM columns--outliers making graph illegible (and 0.5 km value isn't relevant for this dataset)
-# satVect_GeoSDM <- MIGU_Hap5_NRMSEs[,2][-(1:14)]
-satVect_GeoSDM <- MIGU_Hap5_NRMSEs[,2]
-satVect_Eco <- MIGU_Hap5_NRMSEs[,3]
-
-# ---------------------------------------------------------------------------------------------------
-
-# Normalize saturation
-normalize_saturation <- function(sat_vector) {
-  rescale(abs(sat_vector), to = c(0.1, 1))  # Higher values = more saturation
-}
-
-sat_scaled1 <- normalize_saturation(satVect_GeoBuff)
-sat_scaled2 <- normalize_saturation(satVect_GeoSDM)
-sat_scaled3 <- normalize_saturation(satVect_Eco)
-
-# Fixed colors for the first 5 columns
-fixed_colors <- c('gold2', 'orange', 'salmon', 'darkorange2', 'tomato3')
-
-# Function to process each dataframe correctly
-process_df <- function(df, panel_name, color_gradient, sat_vector) {
-  df_long <- melt(df, variable.name = "Series", value.name = "Value")
-  df_long$Index <- rep(1:nrow(df), times = ncol(df))
-  
-  # Color assignment: first 5 columns fixed, others based on gradient
-  gradient_colors <- colorRampPalette(c("gray", color_gradient))(100)
-  color_mapping <- gradient_colors[as.numeric(cut(sat_vector, breaks = 100))]
-  
-  color_values <- c(fixed_colors, color_mapping)
-  df_long$Color <- rep(color_values, each = nrow(df))
-  
-  # Alpha (transparency)
-  alpha_values <- c(rep(0.25, 5), sat_vector)
-  df_long$Alpha <- rep(alpha_values, each = nrow(df))
-  
-  # Ensure first 5 columns are plotted on top
-  df_long$PlotOrder <- ifelse(df_long$Series %in% colnames(df)[1:5], 2, 1)
-  
-  # Group everything into a single facet per dataframe
-  df_long$Panel <- panel_name
-  df_long <- df_long[order(df_long$PlotOrder), ]
-  
-  return(df_long)
-}
-
-# Process each dataframe
-df1_long <- process_df(MIGU_Hap_avMat_GeoBuff, "Panel 1", "darkblue", sat_scaled1)
-df2_long <- process_df(MIGU_Hap_avMat_GeoSDM, "Panel 2", "brown", sat_scaled2)
-df3_long <- process_df(MIGU_Hap_avMat_Eco, "Panel 3", "purple", sat_scaled3)
-
-# Combine into a single dataset
-df_combined <- rbind(df1_long, df2_long, df3_long)
-
-# **PLOT FIX:** Ensure that only one plot per panel is created
-ggplot(df_combined, aes(x = Index, y = Value, color = Color, alpha = Alpha)) +
-  geom_point(shape = 16, size = 2) +  
-  scale_color_identity() +
-  scale_alpha_identity() +
-  labs(
-    title = "Data Visualization with Three Panels",
-    subtitle = "Darker and more saturated colors indicate values closer to zero",
-    x = "Observation Index",
-    y = "Value"
-  ) +
-  facet_wrap(~Panel, ncol = 1, scales = "free_y") +  # Ensure only 3 vertical panels
-  theme_minimal()
