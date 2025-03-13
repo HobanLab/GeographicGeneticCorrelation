@@ -46,30 +46,30 @@ averageCorrValue <- function(corrValues){
 
 # %%% READ IN DATASETS %%% ----
 # Specify relevant resampling arrays, for each dataset
-QUAC_arrayDir <- 
-  paste0(GeoGenCorr_wd, 'Datasets/QUAC/resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata')
-YUBR_arrayDir <- 
-  paste0(GeoGenCorr_wd, 'Datasets/YUBR/resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
 COGL_arrayDir <-
   paste0(GeoGenCorr_wd, 'Datasets/COGL/resamplingData/COGL_SMBO2_GE_5r_resampArr.Rdata')
+HIWA_arrayDir <-
+  paste0(GeoGenCorr_wd, 'Datasets/HIWA/resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata')
+YUBR_arrayDir <- 
+  paste0(GeoGenCorr_wd, 'Datasets/YUBR/resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
+QUAC_arrayDir <- 
+  paste0(GeoGenCorr_wd, 'Datasets/QUAC/resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata')
+AMTH_arrayDir <-
+  paste0(GeoGenCorr_wd, 'Datasets/AMTH/resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata')
+VILA_arrayDir <- 
+  paste0(GeoGenCorr_wd, 'Datasets/VILA/resamplingData/VILA_SMBO2_5r_resampArr.Rdata')
 QULO_arrayDir <- 
   paste0(GeoGenCorr_wd, 'Datasets/QULO/resamplingData/SMBO2/QULO_SMBO2_G2E_5r_resampArr.Rdata')
 PICO_arrayDir <- 
   paste0(GeoGenCorr_wd, 'Datasets/PICO/resamplingData/SMBO2_G2E/PICO_SMBO2_G2E_5r_resampArr.Rdata')
 MIGU_arrayDir <- 
   paste0(GeoGenCorr_wd, 'Datasets/MIGU/resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata')
-AMTH_arrayDir <-
-  paste0(GeoGenCorr_wd, 'Datasets/AMTH/resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata')
-HIWA_arrayDir <-
-  paste0(GeoGenCorr_wd, 'Datasets/HIWA/resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata')
 ARTH_arrayDir <- 
   paste0(GeoGenCorr_wd, 'Datasets/ARTH/resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata')
-VILA_arrayDir <- 
-  paste0(GeoGenCorr_wd, 'Datasets/VILA/resamplingData/VILA_SMBO2_5r_resampArr.Rdata')
 
 # Build a single vector of relevant array directories
-SMBO2_values <- c(QUAC_arrayDir, YUBR_arrayDir, COGL_arrayDir, AMTH_arrayDir, HIWA_arrayDir,
-                  QULO_arrayDir, PICO_arrayDir, MIGU_arrayDir, ARTH_arrayDir, VILA_arrayDir)
+SMBO2_values <- c(COGL_arrayDir, HIWA_arrayDir, YUBR_arrayDir, QUAC_arrayDir, AMTH_arrayDir, 
+                  VILA_arrayDir, QULO_arrayDir, PICO_arrayDir, MIGU_arrayDir, ARTH_arrayDir)
 
 # %%% CALCULATE SUMMARY STATISTICS %%% ----
 # Apply function calculating correlation values (NRMSE unrounded/rounded, Spearman, and Pearson) to list of SMBO2 datasets
@@ -78,7 +78,7 @@ NRMSEs_Round <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'NRMSE')
 corSps <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'corSp')
 corPes <- lapply(SMBO2_values, buildCorrelationMat, corMetric = 'corPe')
 names(NRMSEs) <- names(NRMSEs_Round) <- names(corSps) <- names(corPes) <- 
-  c('QUAC','YUBR','COGL','AMTH','HIWA','QULO','PICO','MIGU','ARTH','VILA')
+  c('COGL','HIWA','YUBR','QUAC','AMTH','VILA','QULO','PICO','MIGU','ARTH')
 
 # Export resutling lists to CSV in Datasets directory
 lapply(NRMSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_NRMSEs.csv'), append= T, sep=',' ))
@@ -88,7 +88,7 @@ lapply(corPes, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_co
 
 # Apply function calculating MSSEs from resampling arrays to list of SMBO2 datasets
 MSSEs <- lapply(SMBO2_values, calcMSSEs)
-names(MSSEs) <- c('QUAC','YUBR','COGL','AMTH','HIWA','QULO','PICO','MIGU','ARTH','VILA')
+names(MSSEs) <- c('COGL','HIWA','YUBR','QUAC','AMTH','VILA','QULO','PICO','MIGU','ARTH')
 lapply(MSSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_MSSEs.csv'), append= T, sep=',' ))
 
 # %%% PLOT SPEARMAN CORRELATION TABLE %%% ----
