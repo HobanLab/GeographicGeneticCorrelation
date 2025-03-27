@@ -23,7 +23,7 @@ library(ape)
 library(terra)
 library(parallel)
 
-# ---- BUILDING THE RESAMPLING ARRAY ----
+# ---- WORKER FUNCTIONS USED TO CALCULATE COVERAGES ----
 # WORKER FUNCTION: Create buffers around points, using specified projection. This function is used for 
 # calculations of both geographic and ecological buffers; it does not include any area calculations. 
 # The default point and buffer projections are Web Mercator 84 (WGS84), also used in many gap analysis workflows. 
@@ -289,6 +289,7 @@ gen.calcGenDistCov <- function(distMat, sampVect){
   return(distCov)
 }
 
+# ---- BUILDING THE RESAMPLING ARRAY ----
 # CORE FUNCTION: Wrapper of gen.getAlleleCategories, geo.compareBuff, and eco.compareBuff worker functions. 
 # Given a genetic matrix (rows are samples, columns are alleles) and a dataframe of coordinates 
 # (3 columns: sample names, latitudes, and longitudes), it calculates the genetic,
