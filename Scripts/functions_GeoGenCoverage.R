@@ -448,7 +448,6 @@ geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, 
   } else {
     genDistMat <- NA
   } 
-  # Otherwise, set genDistMat as NA
   # If calculating geographic coverage, check for arguments
   if(geoFlag==TRUE){
     # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
