@@ -39,16 +39,18 @@ bufferCrop <- function(p1, dist, crop){
     terra::crop(crop)
 }
 
-
+# crop all points buffer to state 
 km5 <- bufferCrop(p1 = p1, dist = 5000, crop = states)
 km25 <-  bufferCrop(p1 = p1, dist = 25000, crop = states)
 km50 <-  bufferCrop(p1 = p1, dist = 50000, crop = states)
 km200 <-  bufferCrop(p1 = p1, dist = 200000, crop = states)
-# 
+
+# crop to selected points to state cropped buffer 
 s5 <- bufferCrop(p1 = selected, dist = 5000, crop = km5)
 s25 <- bufferCrop(p1 = selected, dist = 25000, crop = km25)
 s50 <- bufferCrop(p1 = selected, dist = 50000, crop = km50)
 s200 <- bufferCrop(p1 = selected, dist = 200000, crop = km200)
+
 
 
 # initialize map area map 
@@ -83,3 +85,39 @@ mba <- mb |>
 
 mba |>   addCircles(data = p1)
   
+
+
+# SDM method  -------------------------------------------------------------
+## crop buffers to the sdm 
+poly1 <- as.polygons(r1, aggregate=TRUE, values=TRUE, na.rm=TRUE)
+poly2 <- poly1[poly1$Threshold == 1, ]
+
+# crop all points buffer to sdm  
+r5 <- bufferCrop(p1 = p1, dist = 5000, crop = poly2)
+r25 <-  bufferCrop(p1 = p1, dist = 25000, crop = poly2)
+r50 <-  bufferCrop(p1 = p1, dist = 50000, crop = poly2)
+r200 <-  bufferCrop(p1 = p1, dist = 200000, crop = poly2)
+
+# crop to selected points to state cropped buffer 
+sr5 <- bufferCrop(p1 = selected, dist = 5000, crop = r5)
+sr25 <- bufferCrop(p1 = selected, dist = 25000, crop = r25)
+sr50 <- bufferCrop(p1 = selected, dist = 50000, crop = r50)
+sr200 <- bufferCrop(p1 = selected, dist = 200000, crop = r200)
+
+
+mb <- m |> 
+  # addBuffer(object = km200, color = "Green")|>
+  addBuffer(object = km50, color = "Green")
+# addBuffer(object = km25, color = "Green")|>
+# addBuffer(object = km5, color = "Green") |>
+
+
+# add the selected areas buffers 
+mba <- mb |>
+  addBuffer(object = s50, color = "purple")|>
+  addBuffer(object = s25, color = "purple")|>
+  addBuffer(object = s5, color = "purple")
+
+mba |>   addCircles(data = p1)
+
+
