@@ -226,14 +226,24 @@ eco.totalEcoregionCount <- function(totalWildPoints, buffSize, ptProj, buffProj,
   return(eco_totalCount)
 }
 
-# WORKER FUNCTION: Function for reporting representation rates, using a vector of allele frequencies 
-# and a sample matrix. Assumes that freqVector represents the absolute allele frequencies 
-# for the population of interest (the entire wild population). 
+# WORKER FUNCTION: Function for reporting representation rates, given (1) a genetic matrix,
+# which includes ALL samples, and (2) a vector of sample names, which represents the samples
+# of interest to calculate genetic coverage for. The function first builds a vector of allele
+# frequencies from the entire genetic matrix, before performing the following steps:
 # 1. The length of matches between garden and wild alleles is calculated (numerator). 
 # 2. The complete number of wild alleles of that category (denominator) is calculated. 
 # 3. From these 2 values, a percentage is calculated. 
-# This function returns the numerators, denominators, and the proportion (representation rates) in a matrix.
-gen.getAlleleCategories <- function(freqVector, sampleMat){
+# This function returns the numerators, denominators, and the proportion (representation rates) 
+# in a matrix.
+gen.getAlleleCategories <- function(genMat, samp){
+  # Calculate a vector of allele frequencies, based on the total sample matrix
+  freqVector <- colSums(genMat, na.rm = TRUE)/(nrow(genMat)*2)*100
+  # Remove any missing alleles (those with frequencies of 0) from the frequency vector
+  freqVector <- freqVector[which(freqVector != 0)]
+  # Remove any missing alleles (those with colSums of 0) from the sample matrix
+  sampleMat <- samp[,which(colSums(samp, na.rm = TRUE) != 0)]
+  
+  # CALCULATE GENETIC COVERAGES
   # Determine how many Total alleles in the sample matrix are found in the frequency vector 
   exSitu_allAlleles <- length(which(names(freqVector) %in% colnames(sampleMat)))
   total_allAlleles <- length(freqVector)
@@ -307,18 +317,15 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
                               buffProj='+proj=eqearth +datum=WGS84', boundary, 
                               ecoFlag=FALSE, ecoBuff, ecoTotalCount, ecoRegions, 
                               ecoLayer=c('US','NA','GL'), parFlag=FALSE, numSamples){
-  # GENETIC PROCESSING
-  # Calculate a vector of allele frequencies, based on the total sample matrix
-  freqVector <- colSums(genMat, na.rm = TRUE)/(nrow(genMat)*2)*100
-  # Remove any missing alleles (those with frequencies of 0) from the frequency vector
-  freqVector <- freqVector[which(freqVector != 0)]
+  # DRAW RANDOM SAMPLES
   # From matrix of individuals, select a random set (rows). This is the set of individuals that will
-  # be used for all downstream coverage calculations within this function (genetic, geographic, and ecological)
+  # be used for all downstream coverage calculations within this function. We pull these from 
+  # the genetic matrix (but could also use coordPts); 'samp' is a just vector of sample names
   samp <- genMat[sample(nrow(genMat), size=numSamples, replace = FALSE),]
-  # Remove any missing alleles (those with colSums of 0) from the sample matrix
-  samp <- samp[,which(colSums(samp, na.rm = TRUE) != 0)]
+  
+  # GENETIC PROCESSING
   # Genetic coverage: calculate sample's allelic representation
-  genRates <- gen.getAlleleCategories(freqVector, samp)
+  genRates <- gen.getAlleleCategories(genMat, samp)
   # Check if genetic distance matrix was passed down by upper level functions;
   # if so, calculate coverages using a distance metric (in addition to allelic coverage)
   if(class(genDistMat)=='logical'){
