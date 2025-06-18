@@ -62,6 +62,8 @@ addBuffer <- function(map, object, color){
   map2 <- map |>
     addPolygons(data = object,
                 color = color,
+                fillOpacity = 0.8
+                # stroke = NA
                 )
 }
 addPoint <- function(map, object, color){
@@ -72,18 +74,25 @@ addPoint <- function(map, object, color){
 
 mb <- m |> 
   # addBuffer(object = km200, color = "Green")|>
-  addBuffer(object = km50, color = "Green")
+  addBuffer(object = km50, color = "#31a354")
   # addBuffer(object = km25, color = "Green")|>
   # addBuffer(object = km5, color = "Green") |>
 
 
 # add the selected areas buffers 
 mba <- mb |>
-  addBuffer(object = s50, color = "purple")|>
-  addBuffer(object = s25, color = "purple")|>
-  addBuffer(object = s5, color = "purple")
+  addBuffer(object = s50, color =  "#54278f")|>
+  addBuffer(object = s25, color = "#bcbddc")|>
+  addBuffer(object = s5, color = "#dadaeb")
 
-mba |>   addCircles(data = p1)
+mba |>   
+  addCircles(data = p1, 
+             color =  "#c7e9b4",
+             fillColor = "black",
+             opacity = 0.5,
+             stroke = 0.5,
+             weight = 3)|>
+  addCircles(data = selected, color =  "#fe9929") 
   
 
 
@@ -106,18 +115,45 @@ sr200 <- bufferCrop(p1 = selected, dist = 200000, crop = r200)
 
 
 mb <- m |> 
+  addPolygons(data = r50,
+              color = "#31a354",
+              stroke = NA,
+              opacity = 1,
+              fillOpacity = 1
+  )
   # addBuffer(object = km200, color = "Green")|>
-  addBuffer(object = km50, color = "Green")
+  # addBuffer(object = r50, color = "Green")
 # addBuffer(object = km25, color = "Green")|>
 # addBuffer(object = km5, color = "Green") |>
 
 
 # add the selected areas buffers 
-mba <- mb |>
-  addBuffer(object = s50, color = "purple")|>
-  addBuffer(object = s25, color = "purple")|>
-  addBuffer(object = s5, color = "purple")
+mba<- mb |>
+  addBuffer(object = sr50, color = "#54278f")|>
+  addBuffer(object = sr25, color = "#bcbddc")|>
+  addBuffer(object = sr5, color = "#dadaeb")
 
-mba |>   addCircles(data = p1)
+mba |>   
+  addCircles(data = p1, 
+             # color = "#d0d1e6",
+             stroke = NA,
+             radius = 1,
+             fillColor = "#d0d1e6") |>
+  addCircles(data = selected, 
+             color = "#045a8d",
+             radius = 1)
+
+### todo 
+# both buffer and the sdm map 
+# all points 
+## sample are bold 
+## others are light 
+## match color scheme 
+
+
+
+
+
+
 
 
