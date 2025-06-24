@@ -100,17 +100,6 @@ MIGU_demoArray_Par <-
                        boundary=world_poly_clip_W, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
                        ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', reps = num_reps, 
                        arrayFilepath = arrayDir, cluster = cl)
-
-# Specify file path, for saving resampling array
-arrayDir2 <- paste0(MIGU_filePath, 'resamplingData/SMBO3/MIGU_SMBO3_0.5_5r_resampArr.Rdata')
-
-# Run resampling (in parallel)
-MIGU_demoArray_Par2 <- 
-  geo.gen.Resample.Par(genObj = MIGU_genind, genDistFlag=TRUE, geoFlag = TRUE, 
-                       coordPts = MIGU_coordinates, geoBuff = c(500,1000), SDMrast = NA, 
-                       boundary=world_poly_clip_W, ecoFlag = TRUE, ecoBuff = c(500,1000), 
-                       ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', reps = num_reps, 
-                       arrayFilepath = arrayDir2, cluster = cl)
 # Close cores
 stopCluster(cl)
 
