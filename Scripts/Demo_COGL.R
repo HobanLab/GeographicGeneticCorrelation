@@ -111,7 +111,7 @@ stopCluster(cl)
 # %%% ANALYZE DATA %%% ----
 # Specify filepath for COGL geographic and genetic data, including resampling data
 COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
-arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_50km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO2_GE_5r_resampArr.Rdata')
 # Read in the resampling array .Rdata object, saved to disk
 COGL_array <- readRDS(arrayDir)
 
@@ -130,9 +130,6 @@ COGL_nrmse_geo <- nrmse_func(obs=COGL_DF$Geo, pred=COGL_DF$Total) ; COGL_nrmse_g
 averageValueMat <- meanArrayValues(COGL_array, allValues = TRUE)
 # Subset matrix of all average values to just Total allelic and geographic coverage
 averageValueMat_TG <- averageValueMat[,c(1,6)]
-# Calculate the absolute difference between genetic and geographic, and add this as a column to the data.frame
-averageValueMat_TG <- cbind(averageValueMat_TG, abs(averageValueMat_TG$Total-averageValueMat_TG$Geo))
-names(averageValueMat_TG) <- c(names(averageValueMat_TG)[1:2], "Difference")
 
 # Specify plot colors
 plotColors <- c('red','red4','darkorange3','coral','purple', 'darkblue', 'purple')
