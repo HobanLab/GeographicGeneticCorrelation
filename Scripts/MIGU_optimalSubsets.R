@@ -1,11 +1,12 @@
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%% MIMULUS GUTTATUS : GEOGRAPHIC COVERAGE OF OPTIMAL GENETIC SUBSETS %%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%% MIMULUS GUTTATUS : COVERAGE OF OPTIMIZED SUBSETS %%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # This script utilizes the Mimulus guttatus dataset from Vallejo-Martin et al. 2021 and calculates
-# the geographic coverage of core subsets of individuals that maximize genetic coverage (as
-# determined by Chris Richards and Pat Reeves, using the M+ algorithm). It also maps the individuals found in 
-# these core subsets.
+# the coverages of "optimized" subsets of individuals. It first calculates the geographic coverage
+# of genetic "core sets" (as determined by Chris Richards and Pat Reeves, using the M+ algorithm),
+# and also maps the indviduals found in these core subsets. Next, it calculates the genetic coverage
+# of geographically optimized subsets, as identified by Dan Carver.
 
 pacman::p_load(adegenet, terra, parallel, RColorBrewer, viridis, scales, vcfR, usedist)
 
@@ -16,8 +17,9 @@ source('Scripts/functions_GeoGenCoverage.R')
 # Specify filepath for MIGU geographic and genetic data
 MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
 
+# %%% GEOGRAPHIC COVERAGE OF GENETICALLY OPTIMIZED SUBSETS %%% ----
 # %%% READ IN RELEVANT DATA ----
-# %%% GEOGRAPHIC/ECOLOGICAL DATA
+# %%% GEOGRAPHIC/ECOLOGICAL DATA LAYERS
 # Read in coordinate files for MIGU. This CSV was subset to include only the 255 individuals
 # present in the native range of western North America.
 MIGU_coordinates <- 
@@ -49,7 +51,7 @@ MIGU_genind_global <- vcfR2genind(MIGU_vcf, sep = "/", return.alleles = TRUE)
 # REMOVE INTRODUCED POPULATIONS: Subset global genind object to only contain individuals from native range. 
 # The 'drop' argument removes alleles no longer present in the dataset.
 MIGU_genind <- MIGU_genind_global[MIGU_coordinates[,1], drop=TRUE]
-# Read in lists MIGU core sets
+# Read in lists of MIGU genetic core sets. These are CSVs adapted from results provided by Chris and Pat
 MIGU_90genCoreSets <- read.csv(file=paste0(GeoGenCorr_wd,'../Datasets/Mimulus_guttatus/Genetic/MIGU_genCoreSets_0.9-subsets.csv'))
 
 # %%% CALCULATE GEOGRAPHIC (TOTAL BUFFER) COVERAGES ----
@@ -153,3 +155,83 @@ write.table(geoSDMRateMat, file=paste0(MIGU_filePath,'MIGU_CoreSets_GeoSDMRates.
 # BCF_text <- paste0(rep('^', length(MIGU_intNames)), MIGU_intNames)
 # # Collapse text into a single, long string
 # BCF_text <- paste(BCF_text, collapse=" ")
+
+# %%% GENETIC COVERAGE OF GEOGRAPHICALLY OPTIMIZED SUBSETS %%% ----
+# %%% READ IN RELEVANT DATA ----
+# %%% GEOGRAPHIC/ECOLOGICAL DATA LAYERS
+# Read in coordinate files for MIGU. This CSV was subset to include only the 255 individuals
+# present in the native range of western North America.
+MIGU_coordinates <- 
+  read.csv(file=paste0(MIGU_filePath, 'Geographic/MIGU_coordinates.csv'), header = TRUE)
+colnames(MIGU_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
+# Read in world countries layer (created as part of the gap analysis workflow)
+# This layer is used to clip buffers, to make sure they're not in the water
+world_poly_clip <- 
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
+# Perform geographic filter on the admin layer. 
+world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = MIGU_coordinates)
+# Declare buffer and point projections
+ptProj='+proj=longlat +datum=WGS84'
+buffProj='+proj=eqearth +datum=WGS84'
+# Read in raster data, for SDM
+MIGU_sdm <- terra::rast(paste0(MIGU_filePath,'Geographic/MIGU_255inds_rast_Carver.tif'))
+# Read in the EPA Level III ecoregion shapefile, which is used for calculating ecological coverage 
+# (in North America)
+ecoregion_poly <- 
+  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level3/NA_CEC_Eco_Level3.shp')))
+
+# %%% GENETIC DATA 
+# Read in the VCF file provided in Vallejo-Martin et al. 2021 using vcfR::read.vcfR
+MIGU_vcf <- 
+  read.vcfR(file=paste0(MIGU_filePath, 'Genetic/mgut_all_20180305_gut_filter_75.i50.recode.pruned.plink_20180326.vcf'))
+# Convert the vcf to a genind; the return.alleles TRUE value is suggested in the function's help file
+# This genind file is made up of 474 individuals and 1,498 loci
+MIGU_genind_global <- vcfR2genind(MIGU_vcf, sep = "/", return.alleles = TRUE)
+# REMOVE INTRODUCED POPULATIONS: Subset global genind object to only contain individuals from native range. 
+# The 'drop' argument removes alleles no longer present in the dataset.
+MIGU_genind <- MIGU_genind_global[MIGU_coordinates[,1], drop=TRUE]
+
+# Read in lists of MIGU geographic core sets. These are CSVs adapted from results provided by Dan Carver,
+# with a unique group of core sets for each buffer size (5km, 10km, 25km, 50km, 250km, 500km)
+MIGU_5km_geoCoreSets <- 
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_005km.csv')
+MIGU_10km_geoCoreSets <- 
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_010km.csv')
+MIGU_25km_geoCoreSets <- 
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_025km.csv')
+MIGU_50km_geoCoreSets <- 
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_050km.csv')
+MIGU_250km_geoCoreSets <- 
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_250km.csv')
+MIGU_500km_geoCoreSets <- 
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_500km.csv')
+# Make a list of both geograhpic core sets, to loop through later
+MIGU_geoCoreSets  <- list(MIGU_5km_geoCoreSets, MIGU_10km_geoCoreSets, MIGU_25km_geoCoreSets, 
+                          MIGU_50km_geoCoreSets, MIGU_250km_geoCoreSets, MIGU_500km_geoCoreSets)
+
+# %%% CALCULATE GENETIC COVERAGES ----
+# Build a matrix to store genetic coverage rates (columns different core sets, rows different buffer sizes)
+genRateMat <- matrix(NA, nrow=length(MIGU_geoCoreSets), ncol=length(MIGU_geoCoreSets[[1]]))
+colnames(genRateMat) <- colnames(MIGU_5km_geoCoreSets)
+rownames(genRateMat) <- c('5km','10km','25km','50km','250km','500km')
+# Loop through the geographic core sets, calculating the genetic coverages 
+# for each buffer size
+for(i in 1:length(MIGU_geoCoreSets)){
+  # Specify which buffer size to analyze
+  coreSet <- MIGU_geoCoreSets[[i]]
+  # Loop through the subsets, of the specified core set
+  for(j in 1:length(coreSet)){
+    # Extract the same names in the relevant subset, and build the corresponding
+    # genind object with the sample names (dropping absent loci)
+    coreSubset <- coreSet[,j]
+    MIGU_genSubset <- MIGU_genind[coreSubset,,drop=TRUE]
+    # With the given genind object, calculate the geographic coverages, compared
+    # to the complete genind object
+    genRateMat[i,j] <- 
+      gen.getAlleleCategories(genMat=MIGU_genind@tab, samp=MIGU_genSubset@tab)[1,3]
+  }
+}
+
+# Save matrix of genetic coverages to disk
+write.table(genRateMat, file=paste0(MIGU_filePath,'MIGU_CoreSets_GenRates.csv'), 
+            row.names=TRUE, sep=',')
