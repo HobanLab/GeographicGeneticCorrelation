@@ -320,7 +320,7 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
   # DRAW RANDOM SAMPLES
   # From matrix of individuals, select a random set (rows). This is the set of individuals that will
   # be used for all downstream coverage calculations within this function. We pull these from 
-  # the genetic matrix (but could also use coordPts); 'samp' is a just vector of sample names
+  # the genetic matrix (but could also use coordPts); 'samp' is a subset genetic matrix
   samp <- genMat[sample(nrow(genMat), size=numSamples, replace = FALSE),]
   
   # GENETIC PROCESSING
