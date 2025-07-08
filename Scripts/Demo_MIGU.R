@@ -18,7 +18,7 @@ source('Scripts/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
-num_reps <- 5
+num_reps <- 10
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters 
 geo_buffSize <- 1000*(c(2,3,4,5,seq(10,100,5),seq(110,250,10),500,1000,1500,2000))
@@ -94,11 +94,11 @@ clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuff
 arrayDir <- paste0(MIGU_filePath, 'resamplingData/SMBO3/MIGU_SMBO3_G2G2E_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
-MIGU_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj = MIGU_genind, genDistFlag = TRUE, geoFlag = TRUE, 
-                       coordPts = MIGU_coordinates, geoBuff = geo_buffSize, SDMrast = MIGU_sdm_W, 
-                       boundary=world_poly_clip_W, ecoFlag = TRUE, ecoBuff = eco_buffSize, 
-                       ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', reps = num_reps, 
+MIGU_demoArray_Par <-
+  geo.gen.Resample.Par(genObj = MIGU_genind, genDistFlag = TRUE, geoFlag = TRUE,
+                       coordPts = MIGU_coordinates, geoBuff = geo_buffSize, SDMrast = MIGU_sdm_W,
+                       boundary=world_poly_clip_W, ecoFlag = TRUE, ecoBuff = eco_buffSize,
+                       ecoRegions = ecoregion_poly_W, ecoLayer = 'NA', reps = num_reps,
                        arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
