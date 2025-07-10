@@ -4,7 +4,7 @@
 # %%% PICO: RUN PLINK2 %%%
 # %%%%%%%%%%%%%%%%%%%%%%%%
 
-# This script is used for the Vitis labrusca dataset (929 samples, 32,499 SNPs) obtained from Dr. Zoe Migicovsky and the USDA. It coverts the .ped and .map file
+# This script is used for the Vitis labrusca dataset (175 samples, 44,701 SNPs) obtained from Dr. Zoe Migicovsky and the USDA. It coverts the .ped and .map file
 # to a VCF file (using the --recode-structure argument), which is then converted to a genind file in R.
 
 # Arguments:
