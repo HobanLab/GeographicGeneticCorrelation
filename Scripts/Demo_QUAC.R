@@ -57,7 +57,7 @@ ecoregion_poly <-
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel
-parFlag <- FALSE
+parFlag <- TRUE
 
 # If running in parallel, set up cores and export required libraries
 if(parFlag==TRUE){
@@ -88,10 +88,16 @@ if(parFlag==TRUE){
                                 'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
                                 'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
-  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO3_G2G2E_5r_resampArr.Rdata')
+  # arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO3_G2G2E_5r_resampArr.Rdata')
+  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_TEST_5r_resampArr.Rdata')
   # Run resampling in parallel
-  QUAC_demoArray_IND_Par <- 
-    geo.gen.Resample.Par(genObj=QUAC_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts=QUAC_coordinates, 
+  # QUAC_demoArray_IND_Par <- 
+  #   geo.gen.Resample.Par(genObj=QUAC_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts=QUAC_coordinates, 
+  #                        SDMrast=QUAC_sdm_W, geoBuff=geo_buffSize, boundary=world_poly_clip_W, 
+  #                        ecoFlag=TRUE, ecoBuff=eco_buffSize, ecoRegions=ecoregion_poly_W, ecoLayer='US',
+  #                        reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
+  QUAC_demoArray_TEST <- 
+    geo.gen.Resample.Par(genObj=QUAC_genind, genDistFlag=FALSE, geoFlag=TRUE, coordPts=QUAC_coordinates, 
                          SDMrast=QUAC_sdm_W, geoBuff=geo_buffSize, boundary=world_poly_clip_W, 
                          ecoFlag=TRUE, ecoBuff=eco_buffSize, ecoRegions=ecoregion_poly_W, ecoLayer='US',
                          reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
