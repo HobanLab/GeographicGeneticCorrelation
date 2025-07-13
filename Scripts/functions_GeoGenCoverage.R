@@ -149,7 +149,7 @@ eco.intersectBuff <- function(df, buffSize, ptProj, buffProj, ecoRegion, boundar
   # Make sure ecoregions are in same projection as buffers
   ecoProj <- terra::project(ecoRegion, buffProj)
   # Intersect buffers with ecoregions, and return
-  ecoBuffJoin <- intersect(buffers, ecoProj)
+  ecoBuffJoin <- terra::intersect(buffers, ecoProj)
   return(ecoBuffJoin)
 }
 
