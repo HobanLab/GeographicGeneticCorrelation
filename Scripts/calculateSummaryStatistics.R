@@ -134,4 +134,4 @@ ggplot(cor_melted, aes(x = Var2, y = Var1, fill = value)) +
         axis.title.y = element_blank(),
         aspect.ratio = nrow(cor_matrix) / ncol(cor_matrix),
         plot.title = element_text(vjust = -10, hjust=0.5)) +  # Control aspect ratio for smaller cells
-  labs(title = "Mean Spearman Rho Values")
+  labs(title = "Mean Spearman Correlations")
