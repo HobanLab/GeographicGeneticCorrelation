@@ -5,8 +5,12 @@
 # This script utilizes the Mimulus guttatus dataset from Vallejo-Martin et al. 2021 and calculates
 # the coverages of "optimized" subsets of individuals. It first calculates the geographic coverage
 # of genetic "core sets" (as determined by Chris Richards and Pat Reeves, using the M+ algorithm),
-# and also maps the indviduals found in these core subsets. Next, it calculates the genetic coverage
-# of geographically optimized subsets, as identified by Dan Carver.
+# and also maps the indviduals found in these core subsets. 
+
+# Next, it calculates the genetic coverage of geographically optimized subsets, as identified by 
+# Dan Carver. There are two iterations of these geographically-optimized calculations: one that 
+# adopts a "truly randomized" approach, where multiple individuals from the sample population 
+# may be sampled, and one "semi-randomized" approach, where each population is only sampled once.
 
 pacman::p_load(adegenet, terra, parallel, RColorBrewer, viridis, scales, vcfR, usedist)
 
@@ -184,6 +188,10 @@ ecoregion_poly <-
 # Read in the VCF file provided in Vallejo-Martin et al. 2021 using vcfR::read.vcfR
 MIGU_vcf <- 
   read.vcfR(file=paste0(MIGU_filePath, 'Genetic/mgut_all_20180305_gut_filter_75.i50.recode.pruned.plink_20180326.vcf'))
+
+MIGU_vcf <- 
+  read.vcfR('/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/mgut_all_20180305_gut_filter_75.i50.recode.pruned.plink_20180326.vcf')
+
 # Convert the vcf to a genind; the return.alleles TRUE value is suggested in the function's help file
 # This genind file is made up of 474 individuals and 1,498 loci
 MIGU_genind_global <- vcfR2genind(MIGU_vcf, sep = "/", return.alleles = TRUE)
@@ -357,3 +365,47 @@ for(i in 1:nrow(MIGU_geoOptSubsets)){
   WilcoxResultsMat[i,2] <- result$p.value
 }
 print(WilcoxResultsMat)
+
+# %%% RESAMPLING FOR SEMI-RANDOMIZED GENETIC COVERAGES (10 REPLICATES) %%% ----
+# This approach begins by first randomly selecting a single individual from each population, and subsetting
+# the dataset down to these randomly selected individuals. Then, using these subsets of individuals, resampling
+# is run (using the standard functions written). Because we want to randomly select individuals from each population
+# independently ten times, a single resampling replicate has to be generated each time.
+
+# Read in relevant functions
+GeoGenCorr_wd <- '/home/akoontz/Documents/GeoGenCorr/Code/'
+setwd(GeoGenCorr_wd)
+source('Scripts/functions_GeoGenCoverage.R')
+# Specify filepath for MIGU geographic and genetic data
+MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
+# Read in coordinates data file 
+MIGU_coordinates <- 
+  read.csv(file=paste0(MIGU_filePath, 'Geographic/MIGU_coordinates.csv'), header = TRUE)
+# Rename the columns of the geographic coordinates data.frame (because geo.compareBuff function expects certain strings)
+colnames(MIGU_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
+# Sort coordinates by sample name
+MIGU_coordinates <- MIGU_coordinates[order(MIGU_coordinates$Sample.Name),] ; MIGU_coordinates
+
+# Read in table from Supplementary Data 1, which lists each population separately
+MIGUpops <- read.csv('/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/SuppData1.csv')
+# Subset to only Alaskan and North American populations
+MIGUpops <- MIGUpops[which(MIGUpops$Region == 'ak' | MIGUpops$Region == 'nam'),]
+# There are 4 populations which are present ni this SuppData1 file, but not within the VCF of samples:
+# CAB, CMD, LIN, and 15_NAU. So, strike these population names from the MIGUpops matrix
+MIGUpops <- MIGUpops[-which(MIGUpops$Population == 'LIN' | MIGUpops$Population == 'CAB' | 
+                              MIGUpops$Population == 'CMD' | MIGUpops$Population == '15_NAU'),]
+  
+# Predeclare an empty vector, which will be used to store the name of samples we want to retain
+sampsFromEachPop <- vector(length = )
+# Loop through the names of unique populations
+for(i in 1:length(MIGUpops$Population)){
+  # Extract all the individuals belonging to a certain population
+  popInds <- MIGU_coordinates[grep(MIGUpops$Population[[i]], MIGU_coordinates$Sample.Name),]
+  # Randomly sample one of the individuals from that population
+  singleSample <- popInds[sample(nrow(popInds), size=1),]$Sample.Name
+  # Add this single sample to a vecor of sample names
+  sampsFromEachPop <- c(sampsFromEachPop, singleSample)
+}
+
+
+
