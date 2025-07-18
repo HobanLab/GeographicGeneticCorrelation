@@ -84,7 +84,6 @@ for(i in 1:length(MIGU_geoCoreSets)){
       gen.getAlleleCategories(genMat=MIGU_genind@tab, samp=MIGU_genSubset@tab)[1,3]
   }
 }
-
 # Save matrix of genetic coverages to disk
 write.table(MIGU_geoOptSubsets, file=paste0(MIGU_filePath,'MIGU_CoreSets_GenRates.csv'),
             row.names=TRUE, sep=',')
@@ -157,7 +156,7 @@ if(resamplingFlag==TRUE){
   MIGU_GeoOpt_RandArr <- readRDS(GeoOpt_Rand_arrayDir)
 }
 
-# %%% PROCESS THE RESAMPLING ARRAY ----
+# %%% PROCESS THE RESAMPLING ARRAY
 # Extract only the rows necessary: 7, 11, 49, 59, 63, and 67 individuals
 MIGU_geoRandSubsets <- MIGU_GeoOpt_RandArr[c(6,10,48,58,62,66),1,]
 colnames(MIGU_geoRandSubsets) <- paste0("Subset",1:10)
@@ -166,7 +165,7 @@ rownames(MIGU_geoRandSubsets) <- c('7n_500km','11n_250km','49n_50km', '59n_25km'
 write.table(MIGU_geoRandSubsets, file=paste0(MIGU_filePath,'MIGU_RandomSets_GenRates.csv'),
             row.names=TRUE, sep=',')
 
-# %%% COMPARE OPTIMIZED AND RANDOMIZED COVERAGES ----
+# %%% COMPARE OPTIMIZED AND RANDOMIZED COVERAGES
 # Generate a matrix for storing results of Wilcox comparisons
 WilcoxResultsMat <- matrix(nrow=nrow(MIGU_geoOptSubsets), ncol=2)
 rownames(WilcoxResultsMat) <- rownames(MIGU_geoOptSubsets)
@@ -198,6 +197,60 @@ setwd(GeoGenCorr_wd)
 source('Scripts/functions_GeoGenCoverage.R')
 # Specify filepath for MIGU geographic and genetic data
 MIGU_filePath <- paste0(GeoGenCorr_wd, 'Datasets/MIGU/')
+# %%% CUSTOM FUNCTIONS ----
+# Genetic resampling
+calculateCoverage_FIXED <- function(genMat, sampleSet, numSamples){
+  # Sample individuals from subset
+  samp <- sampleSet[sample(nrow(sampleSet), size=numSamples, replace = FALSE),]
+  # Genetic coverage: calculate sample's allelic representation
+  genRates <- gen.getAlleleCategories(genMat, samp)
+  # Subset to third column, and return
+  genRates <- genRates[,3]
+  return(genRates)
+}
+
+# Iterating over sample sizes
+exSituResample_FIXED <- function(genMat, sampleSet=sampleSet, genDistMat=NA, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, 
+                           ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
+                           boundary, ecoFlag=FALSE, ecoBuff=50000, ecoTotalCount, ecoRegions, ecoLayer='US', parFlag){
+  # Apply the calculateCoverage function to all rows of the wild matrix
+  # (except row 1, because we need at least 2 individuals to sample)
+  # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
+  cov_matrix <-
+    t(sapply(2:nrow(sampleSet),
+             function(x) calculateCoverage_FIXED(genMat=genMat, sampleSet=sampleSet, numSamples=x), simplify = TRUE))
+  # Subset 
+  # Return the matrix of coverage values
+  return(cov_matrix)
+}
+
+# Iterating over resampling replicates
+geo.gen.Resample_FIXED <- 
+  function(genObj, sampleSet=sampleSet, genDistFlag=FALSE, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA,
+           ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84',
+           boundary, ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
+           ecoLayer=c('US', 'NA', 'GL'), reps=5){
+  # Extract the genetic matrix from the genind object
+  genMat <- genObj@tab
+  # Run resampling for all replicates, using sapply and lambda function
+  resamplingArray <-
+    sapply(1:reps, function(x) exSituResample_FIXED(genMat=genMat, sampleSet=sampleSet, genDistMat=genDistMat, 
+                                                    geoFlag=geoFlag, coordPts=coordPts, geoBuff=geoBuff,
+                                                    SDMrast=SDMrast, ptProj=ptProj,
+                                                    buffProj=buffProj,boundary=boundary,
+                                                    ecoFlag=ecoFlag, ecoBuff=ecoBuff,
+                                                    ecoTotalCount=ecoTotalCount, ecoRegions=ecoRegions,
+                                                    ecoLayer=ecoLayer, parFlag=FALSE), simplify = 'array')
+  # Return array
+  return(resamplingArray)
+}
+
+# Read in coordinates dataframe
+  MIGU_coordinates <- 
+    read.csv(file=paste0(MIGU_filePath, 'Geographic/MIGU_coordinates.csv'), header = TRUE)
+  # Rename geographic dataframe columns, and sort
+  colnames(MIGU_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
+  MIGU_coordinates <- MIGU_coordinates[order(MIGU_coordinates$Sample.Name),]
 # Declare variable for whether or not resampling needs to be run
 resamplingFlag <- FALSE
 # If resampling has already occurred, read in the array; otherwise, run resampling workflow (not in parallel)
@@ -205,15 +258,9 @@ if(resamplingFlag==TRUE){
   # Specify resampling replicates; this will determine the number of loop iterations
   num_reps <- 10
   # Predeclare an empty array, to receive the results of each resampling run in each loop iteration
-  MIGU_GeoOpt_semiRandArr <- array(NA, dim=c(99,7,10))
+  MIGU_GeoOpt_semiRandArr <- array(NA, dim=c(99,5,10))
   
-    # ---- READ IN DATA ----
-  # Read in coordinates dataframe
-  MIGU_coordinates <- 
-    read.csv(file=paste0(MIGU_filePath, 'Geographic/MIGU_coordinates.csv'), header = TRUE)
-  # Rename geographic dataframe columns, and sort
-  colnames(MIGU_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
-  MIGU_coordinates <- MIGU_coordinates[order(MIGU_coordinates$Sample.Name),]
+  # ---- READ IN DATA 
   # Read in the VCF file provided in Vallejo-Martin et al. 2021 using vcfR::read.vcfR
   MIGU_vcf <- 
     read.vcfR(file=paste0(MIGU_filePath, 'Genetic/mgut_all_20180305_gut_filter_75.i50.recode.pruned.plink_20180326.vcf'))
@@ -223,19 +270,19 @@ if(resamplingFlag==TRUE){
   # REMOVE INTRODUCED POPULATIONS: Subset global genind object to only contain individuals from native range. 
   # The 'drop' argument removes alleles no longer present in the dataset.
   MIGU_genind <- MIGU_genind_global[MIGU_coordinates[,1], drop=TRUE]
+  # Read in table from Supplementary Data 1, which lists each population separately
+  MIGUpops <- read.csv('/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/SuppData1.csv')
+  # Subset to only Alaskan and North American populations
+  MIGUpops <- MIGUpops[which(MIGUpops$Region == 'ak' | MIGUpops$Region == 'nam'),]
+  # There are 4 populations which are present ni this SuppData1 file, but not within the VCF of samples:
+  # CAB, CMD, LIN, and 15_NAU. So, strike these population names from the MIGUpops vector
+  MIGUpops <- MIGUpops[-which(MIGUpops$Population == 'LIN' | MIGUpops$Population == 'CAB' | 
+                                MIGUpops$Population == 'CMD' | MIGUpops$Population == '15_NAU'),]
+  # Generate a vector listing each population once
+  MIGUpops <- sort(MIGUpops$Population)
   
+  # ---- SUBSETTING TO SINGLE INDIVIDUAL PER POPULATION
   for(i in 1:num_reps){
-    # ---- SUBSETTING TO SINGLE INDIVIDUAL PER POPULATION
-    # Read in table from Supplementary Data 1, which lists each population separately
-    MIGUpops <- read.csv('/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/SuppData1.csv')
-    # Subset to only Alaskan and North American populations
-    MIGUpops <- MIGUpops[which(MIGUpops$Region == 'ak' | MIGUpops$Region == 'nam'),]
-    # There are 4 populations which are present ni this SuppData1 file, but not within the VCF of samples:
-    # CAB, CMD, LIN, and 15_NAU. So, strike these population names from the MIGUpops vector
-    MIGUpops <- MIGUpops[-which(MIGUpops$Population == 'LIN' | MIGUpops$Population == 'CAB' | 
-                                  MIGUpops$Population == 'CMD' | MIGUpops$Population == '15_NAU'),]
-    # Generate a vector listing each population once
-    MIGUpops <- sort(MIGUpops$Population)
     # Predeclare an empty vector, which will be used to store the name of samples we want to retain
     sampsFromEachPop <- vector(length = length(MIGUpops))
     # Loop through the names of unique populations
@@ -247,12 +294,14 @@ if(resamplingFlag==TRUE){
     }
     # Now, subset the geographic coordinate dataframe and the genind object by this sample set
     MIGU_coordinatesSub <- MIGU_coordinates[MIGU_coordinates$Sample.Name %in% sampsFromEachPop,]
-    MIGU_genindSub <- MIGU_genind[MIGU_coordinatesSub[,1], drop=TRUE]
+    MIGU_genindSub <- MIGU_genind[MIGU_coordinatesSub[,1], drop=TRUE]@tab
     
     # Run semi-random resampling, to obtain genetic values for geographic comparison
-    MIGU_GeoOpt_semiRandArr[,,i] <- 
-      geo.gen.Resample(genObj = MIGU_genindSub, geoFlag = FALSE, reps = 1)
+    MIGU_GeoOpt_semiRandArr[,,i] <-
+      geo.gen.Resample_FIXED(genObj = MIGU_genind, samp=MIGU_genindSub, geoFlag = FALSE, reps = 1)
   }
+  # Name columns
+  colnames(MIGU_GeoOpt_semiRandArr) <- c('Total','V. common','Common', 'Low freq.','Rare')
   # Specify file path, for saving resampling array
   MIGU_GeoOpt_semiRand_arrayDir <- paste0(MIGU_filePath, 'resamplingData/MIGU_GeoOpt_SemiRandGen_10r_resampArr.Rdata')
   # Save resampling array to disk, dropping last two columns (which aren't used)
@@ -264,7 +313,7 @@ if(resamplingFlag==TRUE){
   MIGU_GeoOpt_semiRandArr <- readRDS(MIGU_GeoOpt_semiRand_arrayDir)
 }
 
-# %%% PROCESS THE RESAMPLING ARRAY ----
+# %%% PROCESS THE RESAMPLING ARRAY
 # Extract only the rows necessary: 7, 11, 49, 59, 63, and 67 individuals
 MIGU_geoSemiRandSubsets <- MIGU_GeoOpt_semiRandArr[c(6,10,48,58,62,66),1,]
 colnames(MIGU_geoSemiRandSubsets) <- paste0("Subset",1:10)
@@ -273,7 +322,7 @@ rownames(MIGU_geoSemiRandSubsets) <- c('7n_500km','11n_250km','49n_50km', '59n_2
 write.table(MIGU_geoSemiRandSubsets, file=paste0(MIGU_filePath,'MIGU_SemiRandomSets_GenRates.csv'),
             row.names=TRUE, sep=',')
 
-# %%% COMPARE OPTIMIZED AND RANDOMIZED COVERAGES ----
+# %%% COMPARE OPTIMIZED AND RANDOMIZED COVERAGES
 # Generate a matrix for storing results of Wilcox comparisons
 WilcoxResultsMat <- matrix(nrow=nrow(MIGU_geoOptSubsets), ncol=2)
 rownames(WilcoxResultsMat) <- rownames(MIGU_geoOptSubsets)
@@ -292,6 +341,25 @@ for(i in 1:nrow(MIGU_geoOptSubsets)){
   WilcoxResultsMat[i,2] <- result$p.value
 }
 print(WilcoxResultsMat)
+
+# %%% PLOTTING %%% ----
+# %%% SEMI-RANDOMIZED VS OPTIMIZED VALUES
+# Generate average genetic coverage values, across replicates, for randomized and optimized sampling
+MIGU_geoOptSubsets_Avs <- apply(MIGU_geoOptSubsets, 1, mean)
+MIGU_geoSemiRandSubsets_Avs <- apply(MIGU_geoSemiRandSubsets, 1, mean)
+MIGU_geoRandSubsets_Avs <- apply(MIGU_geoRandSubsets, 1, mean)
+MIGU_geoOptResults_SemiRand <- 
+  cbind(c(7,11,49,59,63,67),MIGU_geoOptSubsets_Avs, MIGU_geoSemiRandSubsets_Avs, MIGU_geoRandSubsets_Avs)
+colnames(MIGU_geoOptResults_SemiRand) <- c('SampleNumber','Optimized', 'Semi-Randomized', 'Randomized')
+# Build a plot from the matrix
+matplot(MIGU_geoOptResults_SemiRand[,1],MIGU_geoOptResults_SemiRand[,2:4], pch=16, 
+        xlab='Number of samples', ylab='Genetic coverage (%)', col=c('red','black', 'blue'),
+        main='MIGU: Mean genetic coverages across sampling approaches')
+legend(x=40, y=80, inset = 0.05,
+       legend = c('Optimized Sampling', 'Semi-Randomized Sampling', "Randomized Sampling"),
+       col=c('red', 'black', 'blue'), pch = c(20,20, 20), cex=1.2, pt.cex = 2, bty='n',
+       y.intersp = 0.8)
+mtext(text='10 replicates', side=3, line=0.3, cex=1.3)
 
 # %%% Test: Examining how many unique populations are represented in the MIGU_coordinates dataframe ----
 unqPops <- gsub("[0-9]+$", "", MIGU_coordinates$Sample.Name)
