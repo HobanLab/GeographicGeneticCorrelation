@@ -306,7 +306,7 @@ ggplot(VILA_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   guides(color = guide_legend(title = "Legend", override.aes = list(size = 4))) +
   labs(
     title = "V. labrusca: Genetic, Geographic, and Ecological Coverages",
-    subtitle = "220 individuals; 41 buffer sizes (0.5 km -- 500 km); 5 replicates",
+    subtitle = "157 individuals; 41 buffer sizes (0.5 km -- 500 km); 5 replicates",
     x = "Number of Samples",
     y = "Coverage (%)"
   ) +
@@ -574,7 +574,7 @@ ggplot(HIWA_combined, aes(x = Index, y = Value, group = Series, color = Color, a
   expand_limits(y = c(0, 105)) +
   guides(color = guide_legend(title = "Legend", override.aes = list(size = 4))) +
   labs(
-    title = "H. waimeae: Genetic, Geographic, and Ecological Coverages",
+    title = "H. waimeae subsp. hannerae: Genetic, Geographic, and Ecological Coverages",
     subtitle = "197 individuals; 41 buffer sizes (0.5 km -- 500 km); 5 replicates",
     x = "Number of Samples",
     y = "Coverage (%)"
