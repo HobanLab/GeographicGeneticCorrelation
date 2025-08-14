@@ -111,16 +111,11 @@ names(optBuffs$AMTH) <- names(optBuffs$ARTH) <- names(optBuffs$COGL)<- names(opt
 # Convert the list of optimal buffer size values to a matrix
 optBuffsMat <- matrix(unlist(optBuffs), ncol = length(optBuffs), byrow = FALSE)
 colnames(optBuffsMat) <- names(optBuffs)
-rownames(optBuffsMat) <- c('Optimal Size: Geo. Buff', 'Optimal Size: Geo. SDM', 'Optimal Size: Eco.')
+rownames(optBuffsMat) <- c('Opt. Geo. Buff', 'Opt. Geo. SDM', 'Opt. Eco.')
 # Combine the point summary matrix to the optimal buffer size matrix. Transpose such that 
 # rows are datasets and columns are summary metrics, and order by optimal GeoBuff size
 SMBO_Mat <- t(rbind(pointSummariesMat, optBuffsMat))
-SMBO_Mat <- SMBO_Mat[order(SMBO_Mat[,'Optimal Size: Geo. Buff']),]
-# # Create a separate matrix identical to the first, but only for species with SDMs
-# SMBO_SDM_Mat <- SMBO_Mat[-which(is.na(SMBO_Mat[,'Opt_SDM-Buff'])),]
-# SMBO_SDM_Mat <- SMBO_SDM_Mat[,-c(8,10)]
-# # Remove the row corresponding to SDM optimal buffer sizes from the original matrix
-# SMBO_Mat <- SMBO_Mat[,-9]
+SMBO_Mat <- SMBO_Mat[order(SMBO_Mat[,'Opt. Geo. Buff']),]
 
 # BUILDING AND PLOTTING CORRELATION MATRICES ----
 # Setting the correlation type to Spearman, since we don't know whether the relationship
@@ -132,11 +127,32 @@ corType <- 'spearman'
 corMat_SMBO <- rcorr(SMBO_Mat, type=corType)
 # Replace NAs in diagonal of p-value matrix with 0s, to match dimensions
 corMat_SMBO$P[which(is.na(corMat_SMBO$P))] <- 0
+# CORRECTION FOR MULTIPLE TESTING
+# Get the unique (non-NA, off-diagonal) p-values
+pValues <- corMat_SMBO$P[upper.tri(corMat_SMBO$P)]
+# Adjust p-values (using BH, Benjamini–Hochberg: tests are not independent, we want to
+# reduce false positives but retain power...)
+adj_pValues <- p.adjust(pValues, method = "BH")
+# Put adjusted p-values back into a symmetric matrix
+adj_pMat <- matrix(NA, nrow = ncol(corMat_SMBO$P), ncol = ncol(corMat_SMBO$P))
+rownames(adj_pMat) <- colnames(adj_pMat) <- colnames(corMat_SMBO$P)
+adj_pMat[upper.tri(adj_pMat)] <- adj_pValues
+adj_pMat[lower.tri(adj_pMat)] <- t(adj_pMat)[lower.tri(adj_pMat)]
+diag(adj_pMat) <- 0  # Set diagonal to 0, for plotting purposes
+corMat_SMBO$P <- adj_pMat # Reassign corrected p values in correlation matrix
 # Plot correlation matrix using corrplot. Label significant correlations using
 # asterisks
 corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P, 
          sig.level = 0.01, insig = "label_sig", diag = FALSE)
-mtext('Spearman correlations: Points-based statistics and Geo/Eco coverages', side=3, line=1.2, adj=0.6, cex=1.2)
+
+# Write image to disc
+imageOutDir <- 
+  '/home/akoontz/Documents/GeoGenCorr/Documentation/Images/20250813_MANUSCRIPT_DRAFT4/corMat_adjPvalues.png'
+png(filename=imageOutDir, width=900, height=760)
+corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P, 
+         sig.level = 0.01, insig = "label_sig", diag = FALSE, cl.cex = 1.4, tl.cex=1.2)
+title('Correlations: Spatial statistics', line = 3.3)
+dev.off() # Turn off plotting device
 
 # # SDM COVERAGES
 # # Build a correlation matrix based off of values
