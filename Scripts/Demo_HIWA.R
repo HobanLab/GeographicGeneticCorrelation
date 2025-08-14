@@ -109,30 +109,24 @@ arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_50km_GE_5r_resampArr.Rdat
 # Read in the resampling array .Rdata object, saved to disk
 HIWA_demoArray_Par <- readRDS(arrayDir)
 
-# %%%% SMBO3 ----
+# %%%% SMBO2 ----
 # Specify filepath for HIWA geographic and genetic data, including resampling array
-HIWA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/HIWA/')
-arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO3_G2GE_5r_resampArr.Rdata')
-# Read in array and build a data.frame of values
-HIWA_SMBO3_array <- readRDS(arrayDir)
-
-# ---- CALCULATIONS ----
-# Build a data.frame from array values
-HIWA_SMBO3_DF <- resample.array2dataframe(HIWA_SMBO3_array)
-# Build tables of NRSMSE values, calculated based on data.frame
-HIWA_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=HIWA_SMBO3_DF, genCovType='CV', sdmFlag=FALSE)
-HIWA_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=HIWA_SMBO3_DF, genCovType='GD', sdmFlag=FALSE)
-# Combine the results of the NRMSE values calculated using allelic coverages and using
-# genetic distances, and then rename the columns accordingly
-HIWA_NRMSE_Mat <- cbind(HIWA_NRMSE_Mat_CV, HIWA_NRMSE_Mat_GD)
-# Store the matrix as a CSV to disk
-write.table(HIWA_NRMSE_Mat,
-            file=paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO3_NRMSE.csv'), sep=',')
-
-# SMBO2: OPTIMAL BUFFER SIZES ----
 # Read in HIWA SMBO2 resampling array amd convert to data.frame
 HIWA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/HIWA/')
 HIWA_arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata')
+# Read in array and build a data.frame of values
+HIWA_SMBO2_array <- readRDS(HIWA_arrayDir)
+
+# ---- CALCULATIONS ----
+# Build a data.frame from array values
+HIWA_SMBO2_DF <- resample.array2dataframe(HIWA_SMBO2_array)
+# Build tables of NRSMSE values, calculated based on data.frame
+HIWA_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=HIWA_SMBO2_DF, genCovType='CV', sdmFlag=FALSE)
+# Store the matrix as a CSV to disk
+write.table(HIWA_NRMSE_Mat,
+            file=paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO2_NRMSE.csv'), sep=',')
+
+# OPTIMAL BUFFER SIZES
 # From HIWA resampling array, return a matrix of average coverage values for optimal buffer sizes
 HIWA_optCovMat <- extractOptCovs(HIWA_arrayDir)
 # Calculate MSSEs: minimum number of samples for 95% of each coverage type
