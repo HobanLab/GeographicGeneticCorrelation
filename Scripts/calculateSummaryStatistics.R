@@ -91,7 +91,7 @@ MSSEs <- lapply(SMBO2_values, calcMSSEs)
 names(MSSEs) <- c('COGL','HIWA','YUBR','QUAC','AMTH','VILA','QULO','PICO','MIGU','ARTH')
 lapply(MSSEs, function(x) write.table(data.frame(x), paste0(outputDir,'SMBO2_MSSEs.csv'), append= T, sep=',' ))
 
-# %%% PLOT SPEARMAN CORRELATION TABLE %%% ----
+# %%% PLOT SPEARMAN CORRELATION TABLE, ALL BUFFER SIZES %%% ----
 # Declare a matrix for capturing average correlation coefficient values over all buffer sizes for each species
 corMat_Sps <- matrix(NA, ncol = 3, nrow = length(corSps))  
 rownames(corMat_Sps) <- names(corSps) ; colnames(corMat_Sps) <- c('Geographic (Total buffer)', 'Geographic (SDM)', 'Ecological')
@@ -135,3 +135,53 @@ ggplot(cor_melted, aes(x = Var2, y = Var1, fill = value)) +
         aspect.ratio = nrow(cor_matrix) / ncol(cor_matrix),
         plot.title = element_text(vjust = -10, hjust=0.5)) +  # Control aspect ratio for smaller cells
   labs(title = "Mean Spearman Correlations")
+
+# %%% PLOT SPEARMAN CORRELATION TABLE, 50 KM %%% ----
+# Declare a matrix for capturing average correlation coefficient values over all buffer sizes for each species
+corMat_50km_Sps <- matrix(NA, ncol = 3, nrow = length(corSps))  
+rownames(corMat_50km_Sps) <- names(corSps) ; colnames(corMat_50km_Sps) <- c('Geographic (Total buffer)', 'Geographic (SDM)', 'Ecological')
+# Extract the correlation values for the 50 km buffer size (15th row in each 
+# corSps list object).
+corSps_50km <- lapply(corSps, function(x) x[15,])
+# Populate the matrix with the correct values (clunky, but it works)
+for(i in 1:length(corSps_50km)){
+  if(length(corSps_50km[[i]])==2){
+    corMat_50km_Sps[i,] <- c(corSps_50km[[i]][1],NA,corSps_50km[[i]][2])
+  } else{
+    corMat_50km_Sps[i,] <- corSps_50km[[i]]
+  }
+}
+# Notice in the resulting matrix the higher prevalence of NAs (all HIWA values; SDM
+# coverage for YUBR). This is the result of 100% coverage at all sample sizes
+# at the 50 km buffer size, which leads to 0 variance (and hence, a Spearman correlation
+# of NA.
+
+# Create a column which is an average across datasets, for each coverage type
+corMat_50km_Sps <- rbind(corMat_50km_Sps, apply(corMat_50km_Sps, 2, averageCorrValue))
+rownames(corMat_50km_Sps)[[11]] <- 'Coverage (Mean)'
+# Create a row which is an average for each dataset
+corMat_50km_Sps <- cbind(corMat_50km_Sps, apply(corMat_50km_Sps, 1, averageCorrValue))
+colnames(corMat_50km_Sps)[[4]] <- 'Datasets (Mean)'
+
+# PLOTTING IN GGPLOT
+# Transpose the matrix, and convert it into long format
+cor_matrix <- t(corMat_50km_Sps)
+cor_melted <- melt(cor_matrix)
+# Preserve the original row order
+cor_melted$Var1 <- factor(cor_melted$Var1, levels = rev(rownames(cor_matrix))) 
+# Plot heatmap with text labels
+ggplot(cor_melted, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile(color = "white", width = 0.8, height = 0.8) +  # Reduce tile size
+  geom_text(aes(label = round(value, 2)), color = "black", size = 5) +  # Increase text size
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+                       midpoint = 0, limit = c(-1,1), space = "Lab",
+                       name="Correlation") +
+  scale_x_discrete(position = "top") +  # Move column names to the top
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0, hjust = 0, size = 14),  # Larger x-axis text
+        axis.text.y = element_text(size = 14),  # Larger y-axis text
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        aspect.ratio = nrow(cor_matrix) / ncol(cor_matrix),
+        plot.title = element_text(vjust = -10, hjust=0.5)) +  # Control aspect ratio for smaller cells
+  labs(title = "Mean Spearman Correlations, 50 km")
