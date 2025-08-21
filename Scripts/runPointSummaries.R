@@ -149,9 +149,10 @@ corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P,
 imageOutDir <- 
   '/home/akoontz/Documents/GeoGenCorr/Documentation/Images/20250813_MANUSCRIPT_DRAFT4/corMat_adjPvalues.png'
 png(filename=imageOutDir, width=900, height=760)
+par(oma=c(0,0,3,0), mar=c(5,4,7,2)+0.1)
 corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P, 
          sig.level = 0.01, insig = "label_sig", diag = FALSE, cl.cex = 1.4, tl.cex=1.2)
-title('Correlations: Spatial statistics', line = 3.3)
+title('Correlations: Spatial statistics', line = 5.6, cex.main=1.3)
 dev.off() # Turn off plotting device
 
 # # SDM COVERAGES
