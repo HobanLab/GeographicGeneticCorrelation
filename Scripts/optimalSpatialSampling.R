@@ -2,8 +2,8 @@
 # generalized method for determining the least number of locations require to get maximum coverage of a sdm 
 ###
 # environment 
-pacman::p_load(terra, dplyr,readr)
-
+pacman::p_load(terra, dplyr,readr, tmap)
+tmap_mode("view")
 
 # Second attempt  ---------------------------------------------------------
 ## here I just want to brute for the process 
@@ -15,7 +15,7 @@ pacman::p_load(terra, dplyr,readr)
 
 
 # function for testing erase method 
-defineTopArea <-function(c1, coverageOrder, areaCoverage, originalArea, random = FALSE){
+defineTopArea <-function(c1, coverageOrder, areaCoverage, originalArea, randomSelection, random = FALSE, init = TRUE){
   # 022025 change 
   ## recalcualting the crop area after this fuction had removed data 
   c1$cropArea <- round(terra::expanse(c1, unit = "km"), digits = 2)
@@ -29,7 +29,16 @@ defineTopArea <-function(c1, coverageOrder, areaCoverage, originalArea, random =
   if(random == TRUE){
     # select one of the top 10 feautres
     s1 <- c1[order(c1$cropArea, decreasing = TRUE),]
-    b1 <- s1[sample(1:10, 1), ]
+    # draw sample 
+    if(init == TRUE){
+      b1 <- s1[randomSelection,] 
+    }else{
+      if(nrow(s1) >= 10){
+        b1 <- s1[sample(1:10, 1),] 
+      }else{
+        b1 <- s1[sample(1:nrow(s1), 1),1]
+      }
+    }
   }else{
     b1 <- c1[c1$cropArea == max(c1$cropArea), ]
   }
@@ -110,46 +119,95 @@ produceGeoOptimization <- function(raster, points, buffDist, exportPath, random 
     }
     
     outputDF <- list()
-    for(seed in 1:10){
-      set.seed(seed)
-      terra::plot(c1, main =paste0("seed:", seed, " removed: 0"))
-      # loop thought the features -- this works.... 
-      for(i in 1:nrow(c1)){
-        print(i)
-        if(i ==1){
-          out1 <- defineTopArea(c1 = c1,
-                                coverageOrder = coverageOrder,
-                                areaCoverage = areaCoverage,
-                                originalArea = originalArea,
-                                random = random)
-        }else{
-          out1 <- defineTopArea(c1 = out1$spatialObject, 
-                                coverageOrder = out1$orderList,
-                                areaCoverage = out1$areaList,
-                                originalArea = originalArea,
-                                random = random)
+    # test 1 max area draw and 5 random selection
+    for(seed in 1:6){
+      if(seed == 1){
+        terra::plot(c1, main =paste0("seed:", seed, " removed: 0"))
+        for(element in 1:nrow(c1)){
+          print(element)
+          if(element ==1){
+            out1 <- defineTopArea(c1 = c1,
+                                  coverageOrder = coverageOrder,
+                                  areaCoverage = areaCoverage,
+                                  originalArea = originalArea,
+                                  random = FALSE,
+                                  randomSelection = NA,
+                                  init = FALSE)
+          }else{
+            out1 <- defineTopArea(c1 = out1$spatialObject, 
+                                  coverageOrder = out1$orderList,
+                                  areaCoverage = out1$areaList,
+                                  originalArea = originalArea,
+                                  random = FALSE,
+                                  randomSelection = NA,
+                                  init=FALSE)
+          }
+          # generate the plot 
+          if (element %% 10 == 0) {
+            title <- paste0("Seed: ",seed, " removed:", element)
+            try(terra::plot(out1$spatialObject, main = title))
+          }
+          # this stops the workflow when the remaining area of buffered objects is less then 5% of when it started 
+          ## implemented to address some un resolved errors which were breaking the workflow 
+          if(min(out1$areaList) < 5){
+            break  
+          }
         }
-        # generate the plot 
-        if (i %% 10 == 0) {
-          title <- paste0("Seed: ",seed, " removed:", i)
-          try(terra::plot(out1$spatialObject, main = title))
+        # combine the end results into a dataframe 
+        print(paste0(element, " bind df"))
+        df <- data.frame(
+          siteID = out1$orderList,
+          areaCoverage = round(out1$areaList, digits = 4)
+        )
+        names(df) <- c(paste0("siteID_MAX",seed), paste0("areaCoverage_MAX",seed))
+        
+        outputDF[[seed]] <- df
+      }else{
+        # random element 
+        set.seed(seed)
+        terra::plot(c1, main =paste0("seed:", seed, " removed: 0"))
+        randomSelection <- sample(x = 1:10, 5)
+        # loop thought the features -- this works.... 
+        for(element in 1:nrow(c1)){
+          print(element)
+          if(element ==1){
+            out1 <- defineTopArea(c1 = c1,
+                                  coverageOrder = coverageOrder,
+                                  areaCoverage = areaCoverage,
+                                  originalArea = originalArea,
+                                  random = random,
+                                  randomSelection = randomSelection[seed],
+                                  init = TRUE)
+          }else{
+            out1 <- defineTopArea(c1 = out1$spatialObject, 
+                                  coverageOrder = out1$orderList,
+                                  areaCoverage = out1$areaList,
+                                  originalArea = originalArea,
+                                  random = TRUE,
+                                  randomSelection = randomSelection[seed],
+                                  init=FALSE)
+          }
+          # generate the plot 
+          if (element %% 10 == 0) {
+            title <- paste0("Seed: ",seed, " removed:", element)
+            try(terra::plot(out1$spatialObject, main = title))
+          }
+          # this stops the workflow when the remaining area of buffered objects is less then 5% of when it started 
+          ## implemented to address some un resolved errors which were breaking the workflow 
+          if(min(out1$areaList) < 5){
+            break  
+          }
         }
-        # this stops the workflow when the remaining area of buffered objects is less then 5% of when it started 
-        ## implemented to address some un resolved errors which were breaking the workflow 
-        if(min(out1$areaList) < 5){
-          break  
-        }
+        # combine the end results into a dataframe 
+        print(paste0(element, " bind df"))
+        df <- data.frame(
+          siteID = out1$orderList,
+          areaCoverage = round(out1$areaList, digits = 4)[1:length(out1$orderList)]
+        )
+        names(df) <- c(paste0("siteID_Random",seed), paste0("areaCoverage_Random",seed))
+        
+        outputDF[[seed]] <- df
       }
-      
-      # combine the end results into a dataframe 
-      print(paste0(i, " bind df"))
-      df <- data.frame(
-        siteID = out1$orderList,
-        areaCoverage = round(out1$areaList, digits = 4)
-      )
-      names(df) <- c(paste0("siteID_",seed), paste0("areaCoverage_",seed))
-      
-      outputDF[[seed]] <- df
     }
     # Close the PDF device
     dev.off() 
@@ -170,8 +228,20 @@ produceGeoOptimization <- function(raster, points, buffDist, exportPath, random 
       }
     }
     ### wierd column names 
+    allData <- bind_cols(outputDF) |> 
+      select(where(~!is.na(.[1])))
+    names(allData) <- c(
+      "siteID_MAX1"              ,"areaCoverage_MAX1",       
+      "siteID_Random2"           ,"areaCoverage_Radom2",     
+      "siteID_Random3"           ,"areaCoverage_Radom3",     
+      "siteID_Random4"           ,"areaCoverage_Radom4",     
+      "siteID_Random5"           ,"areaCoverage_Radom5",     
+       "siteID_Random6"          ,"areaCoverage_Radom6"
+    )
+
+      
     
-    allData <- bind_cols(outputDF)
+    
     
     #Export 
     if(random == TRUE){
@@ -196,10 +266,10 @@ s1 <- terra::vect(p1, geom = c("Longitude", "Latitude"), crs = r1)
 ## should probably do this inside the function
 names(s1) <- 'id'
 # # call process
-for(i in c(5000,10000,25000,50000,100000,250000,500000)){
+for(buffDist in c(5000,10000,25000,50000,100000,250000,500000)){
   produceGeoOptimization(raster = r1,
                          points = s1,
-                         buffDist = i,
+                         buffDist = buffDist,
                          exportPath = "Datasets/MIGU/geographicSampingOptimization",
                          random = TRUE)
 }
