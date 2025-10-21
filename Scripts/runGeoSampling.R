@@ -11,7 +11,7 @@ prepData()
 future::plan(strategy = "multicore", workers = 8)
 taxon <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR")
 # testing 
-taxon <- c("PICO")
+# taxon <- c("MIGU")
 
 # Create a data frame of all parameter combinations
 params <- tidyr::expand_grid(species = taxon, buffDist = buffDists)
@@ -20,7 +20,8 @@ params <- tidyr::expand_grid(species = taxon, buffDist = buffDists)
 furrr::future_map2(
   .x = params$buffDist,
   .y = params$species,
-  .f = runGeoSelection
+  .f = runGeoSelection,
+  area = 0
 )
 
 # troubleshooting -- more specific control
@@ -29,7 +30,11 @@ furrr::future_map2(
 #   runGeoSelection(buffDist = params$buffDist[i], species = params$species[i])
 # }
 
-
+# DELETE ALL the THINGS or just a specific species 
+## change doit to TRUE and set species 
+## species == NA will include all species, species == "MIGU" with grep only files from the taxon 
+## tried to make it safe as gone is forever in this case
+removeFiles(doit = FALSE,species = NA)
 
 
 

@@ -93,7 +93,7 @@ initBuffer <- function(buffDist, points, sdm){
 
 # Random Sample  ----------------------------------------------------------
 
-randomSelect <- function( buffDist,buffer,paths){
+randomSelect <- function( buffDist,buffer,paths, area){
   print("stating random area selection ")
   # get original area to test percent change 
   originalArea <- aggregate(buffer) |> terra::expanse(unit = "km") |>
@@ -143,7 +143,7 @@ randomSelect <- function( buffDist,buffer,paths){
           title <- paste0("Removed:", i)
           try(terra::plot(buffer, main = title))
         }
-        if(areaLeft < 5){
+        if(areaLeft <= area){
           break
           print(i)
         }
@@ -167,7 +167,7 @@ randomSelect <- function( buffDist,buffer,paths){
 
 
 # max area sample ---------------------------------------------------------
-maxSelect <- function(buffDist, buffer, paths){
+maxSelect <- function(buffDist, buffer, paths, area){
   print("stating Max area selection ")
   # get original area to test percent change 
   originalArea <- aggregate(buffer) |> terra::expanse(unit = "km") |>
@@ -222,7 +222,7 @@ maxSelect <- function(buffDist, buffer, paths){
           title <- paste0("Removed:", i)
           try(terra::plot(buffer, main = title))
         }
-        if(areaLeft < 5){
+        if(areaLeft <= area){
           break
           print(i)
         }
@@ -245,11 +245,32 @@ maxSelect <- function(buffDist, buffer, paths){
 }
 
 # run geo optimized sampling method  --------------------------------------
-runGeoSelection <- function(buffDist, species){
+runGeoSelection <- function(buffDist, species, area){
   paths <- constructPaths(species)
   points <- terra::vect(paste0(paths$geo, "/pointGO.gpkg"))
   sdm <- terra::vect(paste0(paths$geo, "/sdmGO.gpkg"))
   buffer <- initBuffer(points = points, sdm = sdm, buffDist = buffDist)
-  ran1 <- randomSelect(buffer = buffer, buffDist = buffDist, paths = paths)
-  max1 <- maxSelect(buffer = buffer, buffDist = buffDist, paths = paths)
+  ran1 <- randomSelect(buffer = buffer, buffDist = buffDist, paths = paths,area)
+  max1 <- maxSelect(buffer = buffer, buffDist = buffDist, paths = paths, area)
+}
+
+
+# remove files for clean reruns 
+removeFiles <- function(doit = FALSE, species = NA){
+  # max files 
+  max <- list.files(recursive = TRUE,pattern = "maxSelection", full.names = TRUE)
+  # random files 
+  random <- list.files(recursive = TRUE,pattern = "randomSelection", full.names = TRUE)
+  
+  files <- c(max, random)
+  if(!is.na(species)){
+    files <- files[grepl(pattern = species, x = files)]
+  }
+  # test condition 
+  if(doit == TRUE){
+    print("Deleting all results")
+    result <- file.remove(files)
+  }else{
+    print("set doit to true to remove files")
+  }
 }
