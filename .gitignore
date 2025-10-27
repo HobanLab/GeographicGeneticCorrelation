@@ -45,4 +45,13 @@ Datasets/AMTH/*
 
 # geo optimizations
 ## all pdfs 
-.*pdf
+*.pdf
+# weird files... 
+Datasets/QULO/geographicSampingOptimization/.nfs00000000000620dc00000001
+Datasets/QULO/geographicSampingOptimization/.nfs000000000006295e00000002
+
+
+# temp files 
+temp/*.gpkg
+
+

@@ -106,6 +106,8 @@ randomSelect <- function( buffDist,buffer,paths, area){
   # set specific exports 
   pdfPath <- paste0(exportPathPartial,".pdf")
   csvPath <- paste0(exportPathPartial,".csv")
+
+  
   
   if(FALSE %in% file.exists(c(pdfPath, csvPath))){
     # pdf of results 
@@ -180,37 +182,47 @@ maxSelect <- function(buffDist, buffer, paths, area){
   # set specific exports 
   pdfPath <- paste0(exportPathPartial,".pdf")
   csvPath <- paste0(exportPathPartial,".csv")
+  # pull all potential ids 
+  ids <- buffer$id
   
   if(FALSE %in% file.exists(c(pdfPath, csvPath))){
     # pdf of results 
     pdf(pdfPath) 
     # loop over rows of 
-    buffer <- buffer 
-    for(i in 1:nrow(buffer)){
+    buffer2 <- buffer 
+    for(i in 1:nrow(buffer2) ){#nrow(buffer2)
+      print(nrow(buffer2))
       # calculate the current area of each buffer 
-      buffer$area <- round(terra::expanse(buffer, unit = "km"), digits = 2)
+      val1 <- round(terra::expanse(buffer2, unit = "km"), digits = 3)
+      print(length(val1))
+      buffer2$area <- val1
       # select the max area 
-      max <- buffer[buffer$area == max(buffer$area), ]
+      max <- buffer2[buffer2$area == max(buffer2$area), ] |>
+        terra::makeValid()
       if(nrow(max)>1){
         max <- sample(x = max, 1)
       }
       # assign selection 
       coverageOrder <- c(coverageOrder, max$id)
       # erase the area from buffer objects 
-      buffer <- terra::erase(x = buffer, y = max)
+      erasedBuff <- terra::erase(x = buffer2, y = max)
       # condition for capturing all areas 
-      if(nrow(buffer) == 0){
+      if(nrow(erasedBuff) == 0){
         areaCoverage <- c(areaCoverage, 0)
         # generate the plot 
         print(paste0("Sampled ", i, " with ", 0, " area left"))
         break
       }else{
         # Get the new area of coverage for each buffer 
-        buffer$area <- round(terra::expanse(buffer, unit = "km"), digits = 2)
+        val2 <- round(terra::expanse(erasedBuff, unit = "km"), digits = 3)
+        # if(length(buffer2) == length(val2)){
+        erasedBuff$area <- val2
+        # }
         # drop all features with 0 area 
-        buffer <- buffer[buffer$area >0, ]
+        buffer2 <- erasedBuff[erasedBuff$area >0, ]
+        
         # calculate the total area change 
-        newArea <- aggregate(buffer) |> terra::expanse(unit = "km") |>
+        newArea <- aggregate(buffer2) |> terra::expanse(unit = "km") |>
           round(,digits = 2)
         # calc the percent area left 
         areaLeft <- (newArea/originalArea) *100
@@ -220,7 +232,7 @@ maxSelect <- function(buffDist, buffer, paths, area){
         if (i %% 10 == 0) {
           print(paste0("Sampled ", i, " with ", areaLeft, " captured"))
           title <- paste0("Removed:", i)
-          try(terra::plot(buffer, main = title))
+          try(terra::plot(buffer2, main = title))
         }
         if(areaLeft <= area){
           break
@@ -233,9 +245,18 @@ maxSelect <- function(buffDist, buffer, paths, area){
       id = coverageOrder,
       area = areaCoverage
     )
+    # Add all the unsampled ids to the datafrom 
+    id2 <- ids[!ids %in% df$id]
+    # construct data frame 
+    df2 <- data.frame(
+      id = id2,
+      area = NA
+    )
+    # combine data 
+    df <- dplyr::bind_rows(df, df2)
+    
     # export results 
     write_csv(x = df, file = paste0(exportPathPartial,".csv"))
-    # Close the PDF device
     dev.off() 
     # print
     print(paste0("Max selection at ",buffDist, " required ",nrow(df), " selections"))
@@ -250,8 +271,8 @@ runGeoSelection <- function(buffDist, species, area){
   points <- terra::vect(paste0(paths$geo, "/pointGO.gpkg"))
   sdm <- terra::vect(paste0(paths$geo, "/sdmGO.gpkg"))
   buffer <- initBuffer(points = points, sdm = sdm, buffDist = buffDist)
-  ran1 <- randomSelect(buffer = buffer, buffDist = buffDist, paths = paths,area)
-  max1 <- maxSelect(buffer = buffer, buffDist = buffDist, paths = paths, area)
+  # ran1 <- randomSelect(buffer = buffer, buffDist = buffDist, paths = paths,area = area)
+  max1 <- maxSelect(buffer = buffer, buffDist = buffDist, paths = paths, area = area)
 }
 
 
