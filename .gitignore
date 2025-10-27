@@ -43,6 +43,6 @@ Datasets/COGL/*
 Datasets/AMTH/*
 .Rproj.user
 
-# MIGU geo optimizations
-Datasets/MIGU/geographicSampingOptimization/*.csv
-Datasets/MIGU/geographicSampingOptimization/*.pdf
+# geo optimizations
+## all pdfs 
+.*pdf
