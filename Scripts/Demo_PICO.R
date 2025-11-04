@@ -43,20 +43,32 @@ PICO_genind <- read.structure(file=paste0(PICO_filePath, 'Genetic/Pine_NaturalCo
 PICO_sampleNames <- indNames(PICO_genind)
 
 # ---- GEOGRAPHIC/ECOLOGICAL DATA FILES
-# The supplement of MacLachlan et al. 2021 includes a csv that contains climate data for all of the 
-# seedlings in the study, as well as coordinate information. This dataset needs to first be subset 
-# just to the 929 samples included in the genind object (above), and then ordered to match the order 
-# of samples in that genind object. These steps are taken below.
-PICO_coordinates <- 
-  read.csv(file=paste0(PICO_filePath, 'Geographic/PICO_coordinates.csv'), header = TRUE)
-# Start by subsetting the CSV to just the variables we need: sample names, latitude, and longitude
-PICO_coordinates <- 
-  PICO_coordinates[which(PICO_coordinates$Internal_ID %in% PICO_sampleNames),c('Internal_ID','Latitude','Longitude')]
-# Reorder the coordinate values to match the order of samples in the genind file
-PICO_coordinates <- PICO_coordinates[order(match(PICO_coordinates$Internal_ID, PICO_sampleNames)),]
-# Rename the columns of the geographic coordinates data.frame (because geo.compareBuff function 
-# expects certain strings)
-colnames(PICO_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
+# The original coordinates file for this Pinus dataset needs to be processed.
+# Check if the processed file (called PICO_coordinates.csv) already exists; if not, then 
+# run the necessary processing steps.
+if(file.exists(paste0(PICO_filePath, 'Geographic/PICO_coordinates.csv'))){
+  # Read in the CSV of processed coordinates. The first column contains row numbers
+  PICO_coordinates <- read.csv(
+    paste0(PICO_filePath, 'Geographic/PICO_coordinates.csv'), header=TRUE)
+} else {
+  # The supplement of MacLachlan et al. 2021 includes a csv that contains climate data for all of the 
+  # seedlings in the study, as well as coordinate information. This dataset needs to first be subset 
+  # just to the 929 samples included in the genind object (above), and then ordered to match the order 
+  # of samples in that genind object. These steps are taken below.
+  PICO_coordinates <- 
+    read.csv(file=paste0(PICO_filePath, 'Geographic/PICO_coordinates_Original.csv'), header = TRUE)
+  # Start by subsetting the CSV to just the variables we need: sample names, latitude, and longitude
+  PICO_coordinates <- 
+    PICO_coordinates[which(PICO_coordinates$Internal_ID %in% PICO_sampleNames),c('Internal_ID','Latitude','Longitude')]
+  # Reorder the coordinate values to match the order of samples in the genind file
+  PICO_coordinates <- PICO_coordinates[order(match(PICO_coordinates$Internal_ID, PICO_sampleNames)),]
+  # Rename the columns of the geographic coordinates data.frame (because geo.compareBuff function 
+  # expects certain strings)
+  colnames(PICO_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
+  # Write resulting coordinates data.frame as a CSV to disk, for future runs
+  write.csv(PICO_coordinates, file=paste0(PICO_filePath,'Geographic/PICO_coordinates.csv'), 
+            row.names = FALSE)
+}
 # Read in raster data, for SDM
 PICO_sdm <- terra::rast(paste0(PICO_filePath,'Geographic/PICO_929inds_rast_Carver.tif'))
 
