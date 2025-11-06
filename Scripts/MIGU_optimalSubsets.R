@@ -225,7 +225,7 @@ rownames(MIGU_geoSemiRandSubsets) <- c('7n_500km','11n_250km','49n_50km', '59n_2
 write.table(MIGU_geoSemiRandSubsets, file=paste0(MIGU_filePath,'MIGU_SemiRandomSets_GenRates.csv'),
             row.names=TRUE, sep=',')
 
-# %%% COMPARE OPTIMIZED AND RANDOMIZED COVERAGES
+# %%% COMPARE OPTIMIZED AND SEMI-RANDOMIZED COVERAGES
 # Generate a matrix for storing results of Wilcox comparisons
 WilcoxResultsMat <- matrix(nrow=nrow(MIGU_geoOptSubsets), ncol=2)
 rownames(WilcoxResultsMat) <- rownames(MIGU_geoOptSubsets)
