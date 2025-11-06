@@ -234,34 +234,45 @@ eco.totalEcoregionCount <- function(totalWildPoints, buffSize, ptProj, buffProj,
 # 2. The complete number of wild alleles of that category (denominator) is calculated. 
 # 3. From these 2 values, a percentage is calculated. 
 # This function returns the numerators, denominators, and the proportion (representation rates) 
-# in a matrix.
+# in a matrix. Individual samples are allowed.
 gen.getAlleleCategories <- function(genMat, samp){
   # Calculate a vector of allele frequencies, based on the total sample matrix
   freqVector <- colSums(genMat, na.rm = TRUE)/(nrow(genMat)*2)*100
   # Remove any missing alleles (those with frequencies of 0) from the frequency vector
   freqVector <- freqVector[which(freqVector != 0)]
-  # Remove any missing alleles (those with colSums of 0) from the sample matrix
-  sampleMat <- samp[,which(colSums(samp, na.rm = TRUE) != 0)]
+  # Conditional based single vs. multiple samples (if 1 sample, then dim(samp)==NULL)
+  # We use the name "sampleMat" in both cases, but in reality, one is a vector (1 row matrix)
+  if(is.null(dim(samp))==TRUE){
+    # Remove any missing alleles from the sample "matrix" (vector)
+    sampleMat <- samp[which(samp != 0)]
+    # Capture names of present alleles in sample "matrix" (vector)
+    sampMatNames <- names(sampleMat)
+  } else{
+    # Remove any missing alleles (those with colSums of 0) from the sample matrix
+    sampleMat <- samp[, which(colSums(samp, na.rm = TRUE) != 0)]
+    # Capture names of present alleles in sample matrix
+    sampMatNames <- colnames(sampleMat)
+  }
   
   # CALCULATE GENETIC COVERAGES
   # Determine how many Total alleles in the sample matrix are found in the frequency vector 
-  exSitu_allAlleles <- length(which(names(freqVector) %in% colnames(sampleMat)))
+  exSitu_allAlleles <- length(which(names(freqVector) %in% sampMatNames))
   total_allAlleles <- length(freqVector)
   allPercentage <- (exSitu_allAlleles/total_allAlleles)*100
   # Very common alleles (greater than 10%)
-  exSitu_vComAlleles <- length(which(names(which(freqVector > 10)) %in% colnames(sampleMat)))
+  exSitu_vComAlleles <- length(which(names(which(freqVector > 10)) %in% sampMatNames))
   total_vComAlleles <- length(which(freqVector > 10))
   vComPercentage <- (exSitu_vComAlleles/total_vComAlleles)*100
   # Common alleles (greater than 5%)
-  exSitu_comAlleles <- length(which(names(which(freqVector > 5)) %in% colnames(sampleMat)))
+  exSitu_comAlleles <- length(which(names(which(freqVector > 5)) %in% sampMatNames))
   total_comAlleles <- length(which(freqVector > 5))
   comPercentage <- (exSitu_comAlleles/total_comAlleles)*100
   # Low frequency alleles (between 1% and 10%)
-  exSitu_lowFrAlleles <- length(which(names(which(freqVector < 10 & freqVector > 1)) %in% colnames(sampleMat)))
+  exSitu_lowFrAlleles <- length(which(names(which(freqVector < 10 & freqVector > 1)) %in% sampMatNames))
   total_lowFrAlleles <- length(which(freqVector < 10 & freqVector > 1))
   lowFrPercentage <- (exSitu_lowFrAlleles/total_lowFrAlleles)*100
   # Rare alleles (less than 1%)
-  exSitu_rareAlleles <- length(which(names(which(freqVector < 1)) %in% colnames(sampleMat)))
+  exSitu_rareAlleles <- length(which(names(which(freqVector < 1)) %in% sampMatNames))
   total_rareAlleles <- length(which(freqVector < 1))
   rarePercentage <- (exSitu_rareAlleles/total_rareAlleles)*100
   # Concatenate values to vectors
@@ -275,7 +286,9 @@ gen.getAlleleCategories <- function(genMat, samp){
   return(exSituValues)
 }
 
-# Declare a function which, given a genind object, builds a matrix of Euclidean distances between every individual
+# WORKER FUNCTION: given a genind object, builds a matrix of Euclidean distances 
+# between every individual. Exploratory function testing alternative approaches 
+# for measuring genetic coverage
 gen.buildDistMat <- function(genObj){
   # Convert genind object to data.frame, ignoring any population designations
   df <- genind2df(genObj, usepop=FALSE)
@@ -284,9 +297,10 @@ gen.buildDistMat <- function(genObj){
   return(distMat)
 }
 
-# Given a genetic distance matrix and a vector of sample names, calculate the sum total of the genetic 
-# distances between all pairs of individuals (denominator) and the sum of the genetic distances 
-# strictly between sampled individuals (numerator), and returns a coverage metric
+# WORKER FUNCTION: given a genetic distance matrix and a vector of sample names, 
+# calculate the sum total of the genetic distances between all pairs of individuals 
+# (denominator) and the sum of the genetic distances strictly between sampled 
+# individuals (numerator), and returns a coverage metric
 gen.calcGenDistCov <- function(distMat, sampVect){
   # Calculate the total of all the genetic distances (denominator)
   distTotal <- sum(c(distMat))
@@ -408,7 +422,7 @@ exSituResample <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geoBuf
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
   cov_matrix <- 
-    t(sapply(2:nrow(genMat), 
+    t(sapply(1:nrow(genMat), 
              function(x) calculateCoverage(genMat=genMat, genDistMat=genDistMat, geoFlag=geoFlag, coordPts=coordPts, 
                                            geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, 
                                            buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag, 
@@ -427,7 +441,7 @@ exSituResample.Par <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, ge
   # (except row 1, because we need at least 2 individuals to sample)
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
   cov_matrix <-
-    t(parSapply(cluster, 2:nrow(genMat), 
+    t(parSapply(cluster, 1:nrow(genMat), 
                 function(x) calculateCoverage(genMat=genMat, genDistMat=genDistMat, geoFlag=geoFlag, 
                                               coordPts=coordPts, geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, 
                                               buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag, 
