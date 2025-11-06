@@ -88,7 +88,6 @@ if(parFlag==TRUE){
                                 'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
                                 'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
-  # arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_SMBO3_G2G2E_5r_resampArr.Rdata')
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_TEST_5r_resampArr.Rdata')
   # Run resampling in parallel
   QUAC_demoArray_TEST <- 
@@ -101,11 +100,11 @@ if(parFlag==TRUE){
 } else {
   # Run resampling not in parallel (for function testing purposes)
   QUAC_demoArray_IND <-
-    geo.gen.Resample(genObj=QUAC_genind,  genDistFlag=FALSE, geoFlag=TRUE, 
+    geo.gen.Resample(genObj=QUAC_genind,  genDistFlag=FALSE, geoFlag=FALSE, 
                      coordPts=QUAC_coordinates, SDMrast=NA, geoBuff=geo_buffSize, 
                      boundary=world_poly_clip, ecoFlag=FALSE, ecoBuff=eco_buffSize, 
-                     ecoRegions=ecoregion_poly, ecoLayer='US', reps=1)
-  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_G2G2_1r_resampArr.Rdata')
+                     ecoRegions=ecoregion_poly, ecoLayer='US', reps=num_reps)
+  arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_TEST_5r_resampArr.Rdata')
   saveRDS(QUAC_demoArray_IND, arrayDir)
 }
 
