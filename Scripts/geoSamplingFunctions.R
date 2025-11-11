@@ -246,10 +246,12 @@ maxSelect <- function(buffDist, buffer, paths, area){
       area = areaCoverage
     )
     # Add all the unsampled ids to the datafrom 
-    id2 <- ids[!ids %in% df$id]
+    id2 <- ids[!ids %in% df$id] 
+    # randomly distribute the data 
+    randomIDs <- sample(id2)
     # construct data frame 
     df2 <- data.frame(
-      id = id2,
+      id = randomIDs,
       area = NA
     )
     # combine data 
@@ -264,6 +266,7 @@ maxSelect <- function(buffDist, buffer, paths, area){
     print(paste0("Max selection at ",buffDist, " previously generated"))
   }
 }
+
 
 # run geo optimized sampling method  --------------------------------------
 runGeoSelection <- function(buffDist, species, area){
