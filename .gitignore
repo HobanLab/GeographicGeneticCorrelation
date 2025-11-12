@@ -54,4 +54,6 @@ Datasets/QULO/geographicSampingOptimization/.nfs000000000006295e00000002
 # temp files 
 temp/*.gpkg
 
+#.nfs files 
+*.nfs
 
