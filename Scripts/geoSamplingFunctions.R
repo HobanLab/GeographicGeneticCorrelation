@@ -169,7 +169,7 @@ randomSelect <- function( buffDist,buffer,paths, area){
 
 
 # max area sample ---------------------------------------------------------
-maxSelect <- function(buffDist, buffer, paths, area){
+maxSelect <- function(buffDist, buffer, points, paths, area){
   print("stating Max area selection ")
   # get original area to test percent change 
   originalArea <- aggregate(buffer) |> terra::expanse(unit = "km") |>
@@ -192,6 +192,8 @@ maxSelect <- function(buffDist, buffer, paths, area){
     buffer2 <- buffer 
     for(i in 1:nrow(buffer2) ){#nrow(buffer2)
       print(nrow(buffer2))
+      # fix geomentry 
+      buffer2 <- terra::makeValid(buffer2)
       # calculate the current area of each buffer 
       val1 <- round(terra::expanse(buffer2, unit = "km"), digits = 3)
       print(length(val1))
@@ -206,6 +208,7 @@ maxSelect <- function(buffDist, buffer, paths, area){
       coverageOrder <- c(coverageOrder, max$id)
       # erase the area from buffer objects 
       erasedBuff <- terra::erase(x = buffer2, y = max)
+      
       # condition for capturing all areas 
       if(nrow(erasedBuff) == 0){
         areaCoverage <- c(areaCoverage, 0)
@@ -246,7 +249,10 @@ maxSelect <- function(buffDist, buffer, paths, area){
       area = areaCoverage
     )
     # Add all the unsampled ids to the datafrom 
-    id2 <- ids[!ids %in% df$id] 
+    ## grabbing these ids from the original point object to include buffered features 
+    ## that were outside of the SDM boundaries 
+    pIds <- points$id
+    id2 <- pIds[!pIds %in% df$id] 
     # randomly distribute the data 
     randomIDs <- sample(id2)
     # construct data frame 
@@ -268,6 +274,178 @@ maxSelect <- function(buffDist, buffer, paths, area){
 }
 
 
+# adding a while loop version  --------------------------------------------
+maxSelectWhile <- function(buffDist, buffer, points, paths, area){
+  print("stating Max area selection ")
+  # get original area to test percent change 
+  originalArea <- aggregate(buffer) |> terra::expanse(unit = "km") |>
+    round(,digits = 2)
+  # empty vectors for storing information 
+  coverageOrder <- c()
+  areaCoverage <- c()
+  
+  # export path 
+  exportPathPartial <- paste0(paths$opt, "/maxSelection_", buffDist)
+  # set specific exports 
+  csvPath <- paste0(exportPathPartial,".csv")
+  
+  # skip is data exists
+  if( !file.exists(csvPath) ){
+    buffer2 <- buffer 
+    iteration <- 1 # counter for while loop 
+    while(nrow(buffer2) > 0) {
+      # Try to repair any broken geometries
+      buffer2 <- terra::makeValid(buffer2)
+      
+      # Still having issues with invalid geoms so adding this measure. Could effect the outcome 
+      # but it at least gives us an option 
+      valid_geoms <- terra:::is.valid(buffer2)
+      if (any(!valid_geoms)) {
+        print(paste("removing", sum(!valid_geoms), "that are not valid"))
+        buffer2 <- buffer2[valid_geoms, ]
+      }
+      
+      # exclude no area buffers
+      buffer2 <- buffer2[!terra::is.empty(buffer2), ]
+      
+      # End loop if nothing left
+      if (nrow(buffer2) == 0) {
+        print("No valid geometries left to process.")
+        break
+      }
+      print(paste("Iteration", iteration))
+      
+      # calculate the current area of each buffer 
+      val1 <- round(terra::expanse(buffer2, unit = "km"), digits = 3)
+      
+      # Safety check
+      if (length(val1) != nrow(buffer2)) {
+        stop(paste("Mismatch found: buffer has", nrow(buffer2), "rows, but expanse returned", length(val1), "values."))
+      }
+      buffer2$area <- val1
+      
+      # select the max area 
+      max_features <- buffer2[buffer2$area == max(buffer2$area), ] |>
+        terra::makeValid() # Good to validate the selection
+      
+      if(nrow(max_features) > 1){
+        max_feature <- sample(x = max_features, 1)
+      } else {
+        max_feature <- max_features
+      }
+      
+      # assign selection 
+      coverageOrder <- c(coverageOrder, max_feature$id)
+      
+      # erase the area from buffer objects 
+      erasedBuff <- terra::erase(x = buffer2, y = max_feature)
+      
+      # aggressive cleaning steps to attempt to get rid on non valid geoms 
+      erasedBuff <- terra::makeValid(erasedBuff)
+      valid_geoms_erase <- terra::is.valid(erasedBuff)
+      if (any(!valid_geoms_erase)) {
+        print(paste("Removing", sum(!valid_geoms_erase), "invalid geoms."))
+        erasedBuff <- erasedBuff[valid_geoms_erase, ]
+      }
+      erasedBuff <- erasedBuff[!terra::is.empty(erasedBuff), ]
+      
+      # condition for capturing all areas 
+      if(nrow(erasedBuff) == 0){
+        areaCoverage <- c(areaCoverage, 0)
+        print(paste0("Sampled ", iteration, " with ", 0, " area left"))
+        break
+      } else {
+        # Filter out any nonpolygon features
+        ## weird nastyness to work this one out... basically the crop was generating points and line 
+        ## features that were resulting in some errorsd
+        erasedBuff <- erasedBuff[terra::geomtype(erasedBuff) %in% c("polygons", "multipolygon"), ]
+        
+        # If the filter removed everything, end while loop 
+        if (nrow(erasedBuff) == 0) {
+          areaCoverage <- c(areaCoverage, 0)
+          print(paste0("Sampled ", iteration, " with ", 0, " area left (post-geomtype filter)."))
+          break
+        }
+        
+        # Get the new area of coverage for each buffer 
+        val2 <- round(terra::expanse(erasedBuff, unit = "km"), digits = 3)
+        
+        if(length(val2) != nrow(erasedBuff)){
+          stop(paste("Mismatch post-erase: buffer has", nrow(erasedBuff), "rows, but expanse returned", length(val2), "values."))
+        }
+        
+        erasedBuff$area <- val2
+        
+        # drop all features with 0 area 
+        buffer2 <- erasedBuff[erasedBuff$area > 0, ]
+        
+        # Check if filtering removed everything
+        if (nrow(buffer2) == 0) {
+          areaCoverage <- c(areaCoverage, 0)
+          print(paste0("Sampled ", iteration, " with ", 0, " area left (post-area filter)."))
+          break
+        }
+        
+        # calculate the total area change 
+        newArea <- aggregate(buffer2) |> terra::expanse(unit = "km") |>
+          round(,digits = 2)
+        
+        # calc the percent area left 
+        areaLeft <- (newArea/originalArea) * 100
+        
+        # assign area coverage 
+        areaCoverage <- c(areaCoverage, areaLeft)
+        
+        # Print progress 
+        if (iteration %% 10 == 0) {
+          print(paste0("Sampled ", iteration, " with ", areaLeft, " captured"))
+        }
+        
+        if(areaLeft <= area){
+          print(paste("Target area reached at iteration", iteration))
+          break
+        }
+      }
+      # add to counter
+      iteration <- iteration + 1
+    } # End of while loop 
+    
+    # results df 
+    df <- data.frame(
+      id = coverageOrder,
+      area = areaCoverage
+    )
+    
+    # Add all the unsampled ids to the dataframe using the point object 
+    pIds <- points$id
+    id2 <- pIds[!pIds %in% df$id] 
+    
+    # Check if there are any unsampled IDs before sampling
+    if (length(id2) > 0) {
+      # randomly distribute the data 
+      randomIDs <- sample(id2)
+      # construct data frame 
+      df2 <- data.frame(
+        id = randomIDs,
+        area = NA
+      )
+      # combine data 
+      df <- dplyr::bind_rows(df, df2)
+    } else {
+      print("All point IDs were sampled.")
+    }
+    
+    # export results 
+    write_csv(x = df, file = csvPath)
+    
+    # print
+    print(paste0("Max selection at ",buffDist, " required ", length(coverageOrder), " selections"))
+  } else {
+    print(paste0("Max selection at ",buffDist, " previously generated"))
+  }
+}
+  
+
 # run geo optimized sampling method  --------------------------------------
 runGeoSelection <- function(buffDist, species, area){
   paths <- constructPaths(species)
@@ -275,7 +453,8 @@ runGeoSelection <- function(buffDist, species, area){
   sdm <- terra::vect(paste0(paths$geo, "/sdmGO.gpkg"))
   buffer <- initBuffer(points = points, sdm = sdm, buffDist = buffDist)
   # ran1 <- randomSelect(buffer = buffer, buffDist = buffDist, paths = paths,area = area)
-  max1 <- maxSelect(buffer = buffer, buffDist = buffDist, paths = paths, area = area)
+  max1 <- maxSelectWhile(buffer = buffer, buffDist = buffDist, points = points,
+                    paths = paths, area = area)
 }
 
 
