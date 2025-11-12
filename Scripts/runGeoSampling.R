@@ -11,7 +11,7 @@ prepData()
 future::plan(strategy = "multicore", workers = 8)
 taxon <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR")
 # testing 
-# taxon <- c("QULO")
+taxon <- c("YUBR")
 
 # Create a data frame of all parameter combinations
 params <- tidyr::expand_grid(species = taxon, buffDist = buffDists)
