@@ -11,7 +11,7 @@ prepData()
 future::plan(strategy = "multicore", workers = 8)
 taxon <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR")
 # testing
-# taxon <- c("QULO")
+taxon <- c("PICO")
 
 # Create a data frame of all parameter combinations
 params <- tidyr::expand_grid(species = taxon, buffDist = buffDists)
@@ -24,7 +24,7 @@ furrr::future_walk2(
   area = 0
 )
 
-# # troubleshooting -- more specific control
+# # # troubleshooting -- more specific control
 # p1 <- params
 # # p1 <- params[params$species == "QULO",]
 # for (i in 1:nrow(p1)) {
@@ -36,6 +36,7 @@ furrr::future_walk2(
 ## change doit to TRUE and set species
 ## species == NA will include all species, species == "MIGU" with grep only files from the taxon
 ## tried to make it safe as gone is forever in this case
-# for (i in c("MIGU", "PICO", "QUAC", "YUBR")) {
-#   removeFiles(doit = TRUE, species = )
+# for (i in c("PICO")) {
+#   #  c("MIGU", "PICO", "QUAC", "YUBR")
+#   removeFiles(doit = TRUE, species = i)
 # }

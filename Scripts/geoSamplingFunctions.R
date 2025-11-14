@@ -28,15 +28,32 @@ standardizeDataSets <- function(
     print("exporting points")
     # read in rast for CRS
     r1 <- terra::rast(paste0(path, "/", rastName))
-    # read in csv and convert to vect
-    d1 <- read_csv(paste0(path, "/", pointName)) |>
-      dplyr::select(
-        id = idCol,
-        all_of(latLonCol)
+    # condition for the id column of pico with specific formatting
+    if (species == "PICO") {
+      d1 <- read_csv(
+        paste0(path, "/", pointName),
+        col_types = "cdd"
       ) |>
-      terra::vect(geom = latLonCol, crs = crs(r1))
-    # export
-    terra::writeVector(x = d1, filename = export2)
+        dplyr::select(
+          id = idCol,
+          all_of(latLonCol)
+        ) |>
+        terra::vect(geom = latLonCol, crs = crs(r1))
+      # export
+      terra::writeVector(x = d1, filename = export2)
+    } else {
+      # read in csv and convert to vect
+      d1 <- read_csv(
+        paste0(path, "/", pointName)
+      ) |>
+        dplyr::select(
+          id = idCol,
+          all_of(latLonCol)
+        ) |>
+        terra::vect(geom = latLonCol, crs = crs(r1))
+      # export
+      terra::writeVector(x = d1, filename = export2)
+    }
   }
   print(paste0(species, " data prepped"))
 }
@@ -63,7 +80,7 @@ prepData <- function() {
   idCol <- c("Sample Name", "Internal_ID", "sampleID", "sampleID", "Sample")
   latLonCol <- list(
     c("Longitude", "Latitude"),
-    c("Longitude", "Latitude"),
+    c("decimalLongitude", "decimalLatitude"),
     c("decimalLongitude", "decimalLatitude"),
     c("decimalLongitude", "decimalLatitude"),
     c("decimalLongitude", "decimalLatitude")
