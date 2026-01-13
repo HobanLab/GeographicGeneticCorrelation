@@ -47,17 +47,17 @@ MIGU_genind <- MIGU_genind_global[MIGU_coordinates[,1], drop=TRUE]
 # Read in lists of MIGU geographic core sets. These are CSVs adapted from results provided by Dan Carver,
 # with a unique group of core sets for each buffer size (5km, 10km, 25km, 50km, 250km, 500km)
 MIGU_5km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_005km.csv')
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/ARCHIVE/MIGU_geoCoreSets_005km.csv')
 MIGU_10km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_010km.csv')
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/ARCHIVE/MIGU_geoCoreSets_010km.csv')
 MIGU_25km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_025km.csv')
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/ARCHIVE/MIGU_geoCoreSets_025km.csv')
 MIGU_50km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_050km.csv')
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/ARCHIVE/MIGU_geoCoreSets_050km.csv')
 MIGU_250km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_250km.csv')
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/ARCHIVE/MIGU_geoCoreSets_250km.csv')
 MIGU_500km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/MIGU_geoCoreSets_500km.csv')
+  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/ARCHIVE/MIGU_geoCoreSets_500km.csv')
 # Make a list of both geograhpic core sets, to loop through later
 MIGU_geoCoreSets  <- list(MIGU_500km_geoCoreSets, MIGU_250km_geoCoreSets, MIGU_50km_geoCoreSets,
                           MIGU_25km_geoCoreSets, MIGU_10km_geoCoreSets, MIGU_5km_geoCoreSets)
@@ -65,7 +65,7 @@ MIGU_geoCoreSets  <- list(MIGU_500km_geoCoreSets, MIGU_250km_geoCoreSets, MIGU_5
 # %%% CALCULATE GENETIC COVERAGES ----
 # Build a matrix to store genetic coverage rates (columns different core sets, rows different buffer sizes)
 MIGU_geoOptSubsets <- matrix(NA, nrow=length(MIGU_geoCoreSets), ncol=length(MIGU_geoCoreSets[[1]]))
-colnames(MIGU_geoOptSubsets) <- paste0("Subset",1:10)
+colnames(MIGU_geoOptSubsets) <- paste0("Subset", 1:10)
 rownames(MIGU_geoOptSubsets) <- c('7n_500km','11n_250km','49n_50km', '59n_25km','63n_10km','67n_5km')
 # Loop through the geographic core sets, calculating the genetic coverages
 # for each buffer size
