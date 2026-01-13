@@ -98,12 +98,18 @@ if(parFlag==TRUE){
   # Close cores
   stopCluster(cl)
 } else {
-  # Run resampling not in parallel (for function testing purposes)
+  # Reduce the number of samples, to allow for more efficient testing
+  randomSamp <- sample(indNames(QUAC_genind), size=91)
+  # Subset geographic coordinate dataframe
+  QUAC_coordinates_small <- QUAC_coordinates[which(QUAC_coordinates$sampleID %in% randomSamp),]
+  # Subset genind object, based on smaller geo coordinates dataframe
+  QUAC_genind_small <- QUAC_genind[QUAC_coordinates_small[,1], drop=TRUE]
+  # Run resampling not in parallel, for function testing purposes
   QUAC_demoArray_IND <-
-    geo.gen.Resample(genObj=QUAC_genind,  genDistFlag=FALSE, geoFlag=FALSE, 
-                     coordPts=QUAC_coordinates, SDMrast=NA, geoBuff=geo_buffSize, 
-                     boundary=world_poly_clip, ecoFlag=FALSE, ecoBuff=eco_buffSize, 
-                     ecoRegions=ecoregion_poly, ecoLayer='US', reps=num_reps)
+    geo.gen.Resample(genObj=QUAC_genind_small,  genDistFlag=FALSE, geoFlag=TRUE, 
+                     coordPts=QUAC_coordinates_small, SDMrast=NA, geoBuff=5000, 
+                     boundary=world_poly_clip, ecoFlag=FALSE, ecoBuff=5000, 
+                     ecoRegions=ecoregion_poly, ecoLayer='US', reps=5)
   arrayDir <- paste0(QUAC_filePath, 'resamplingData/QUAC_TEST_5r_resampArr.Rdata')
   saveRDS(QUAC_demoArray_IND, arrayDir)
 }
