@@ -235,44 +235,44 @@ eco.totalEcoregionCount <- function(totalWildPoints, buffSize, ptProj, buffProj,
 # 3. From these 2 values, a percentage is calculated. 
 # This function returns the numerators, denominators, and the proportion (representation rates) 
 # in a matrix. Individual samples are allowed.
-gen.getAlleleCategories <- function(genMat, samp){
-  # Calculate a vector of allele frequencies, based on the total sample matrix
+gen.getAlleleCategories <- function(genMat, sampNames){
+  # Calculate allele frequency vector from complete genetic matrix, removing missing alleles
   freqVector <- colSums(genMat, na.rm = TRUE)/(nrow(genMat)*2)*100
-  # Remove any missing alleles (those with frequencies of 0) from the frequency vector
   freqVector <- freqVector[which(freqVector != 0)]
-  # Conditional based single vs. multiple samples (if 1 sample, then dim(samp)==NULL)
-  # We use the name "sampleMat" in both cases, but in reality, one is a vector (1 row matrix)
-  if(is.null(dim(samp))==TRUE){
+  # Based on sample names vector, extract the relevant rows from complete genetic matrix
+  sampMat <- genMat[which(rownames(genMat) %in% sampNames),]
+  # Remove absent alleles. Conditional is to accommodate sample sizes of 1
+  if(length(sampNames) == 1){
     # Remove any missing alleles from the sample "matrix" (vector)
-    sampleMat <- samp[which(samp != 0)]
+    sampMat <- sampMat[which(sampMat != 0)]
     # Capture names of present alleles in sample "matrix" (vector)
-    sampMatNames <- names(sampleMat)
-  } else{
+    sampAlleleNames <- names(sampMat)
+  } else {
     # Remove any missing alleles (those with colSums of 0) from the sample matrix
-    sampleMat <- samp[, which(colSums(samp, na.rm = TRUE) != 0)]
+    sampMat <- sampMat[, which(colSums(sampMat, na.rm = TRUE) != 0)]
     # Capture names of present alleles in sample matrix
-    sampMatNames <- colnames(sampleMat)
+    sampAlleleNames <- colnames(sampMat)
   }
   
   # CALCULATE GENETIC COVERAGES
   # Determine how many Total alleles in the sample matrix are found in the frequency vector 
-  exSitu_allAlleles <- length(which(names(freqVector) %in% sampMatNames))
+  exSitu_allAlleles <- length(which(names(freqVector) %in% sampAlleleNames))
   total_allAlleles <- length(freqVector)
   allPercentage <- (exSitu_allAlleles/total_allAlleles)*100
   # Very common alleles (greater than 10%)
-  exSitu_vComAlleles <- length(which(names(which(freqVector > 10)) %in% sampMatNames))
+  exSitu_vComAlleles <- length(which(names(which(freqVector > 10)) %in% sampAlleleNames))
   total_vComAlleles <- length(which(freqVector > 10))
   vComPercentage <- (exSitu_vComAlleles/total_vComAlleles)*100
   # Common alleles (greater than 5%)
-  exSitu_comAlleles <- length(which(names(which(freqVector > 5)) %in% sampMatNames))
+  exSitu_comAlleles <- length(which(names(which(freqVector > 5)) %in% sampAlleleNames))
   total_comAlleles <- length(which(freqVector > 5))
   comPercentage <- (exSitu_comAlleles/total_comAlleles)*100
   # Low frequency alleles (between 1% and 10%)
-  exSitu_lowFrAlleles <- length(which(names(which(freqVector < 10 & freqVector > 1)) %in% sampMatNames))
+  exSitu_lowFrAlleles <- length(which(names(which(freqVector < 10 & freqVector > 1)) %in% sampAlleleNames))
   total_lowFrAlleles <- length(which(freqVector < 10 & freqVector > 1))
   lowFrPercentage <- (exSitu_lowFrAlleles/total_lowFrAlleles)*100
   # Rare alleles (less than 1%)
-  exSitu_rareAlleles <- length(which(names(which(freqVector < 1)) %in% sampMatNames))
+  exSitu_rareAlleles <- length(which(names(which(freqVector < 1)) %in% sampAlleleNames))
   total_rareAlleles <- length(which(freqVector < 1))
   rarePercentage <- (exSitu_rareAlleles/total_rareAlleles)*100
   # Concatenate values to vectors
@@ -332,14 +332,14 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
                               ecoFlag=FALSE, ecoBuff, ecoTotalCount, ecoRegions, 
                               ecoLayer=c('US','NA','GL'), parFlag=FALSE, numSamples){
   # DRAW RANDOM SAMPLES
-  # From matrix of individuals, select a random set (rows). This is the set of individuals that will
-  # be used for all downstream coverage calculations within this function. We pull these from 
-  # the genetic matrix (but could also use coordPts); 'samp' is a subset genetic matrix
-  samp <- genMat[sample(nrow(genMat), size=numSamples, replace = FALSE),]
+  # From matrix of individuals (geMat), select a random set (rows). This is the set of individuals that will
+  # be used for all downstream coverage calculations within this function. The sampNames object
+  # is simply the vector of sample names.
+  sampNames <- sample(rownames(genMat), numSamples)
   
   # GENETIC PROCESSING
   # Genetic coverage: calculate sample's allelic representation
-  genRates <- gen.getAlleleCategories(genMat, samp)
+  genRates <- gen.getAlleleCategories(genMat, sampNames)
   # Check if genetic distance matrix was passed down by upper level functions;
   # if so, calculate coverages using a distance metric (in addition to allelic coverage)
   if(class(genDistMat)=='logical'){
@@ -348,7 +348,7 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
   } else {
     # Pass distance matrix and sample name vector to function calculating  
     # proportion of total pairwise genetic distances represented in sample
-    genDistCov <- gen.calcGenDistCov(distMat=genDistMat, sampVect=rownames(samp))
+    genDistCov <- gen.calcGenDistCov(distMat=genDistMat, sampVect=sampNames)
     # Append the resulting coverage value to the allelic coverages
     genRates <- c(genRates[,3], genDistCov)
     names(genRates)[6] <- 'GenDist'
@@ -362,11 +362,11 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
          column of the coordinate point data.frame do not match.')
     }
     # Geographic coverage: for each buffer size, calculate sample's geograhpic representation, by 
-    # passing all points (coordPts) and the random subset of points (rownames(samp)) to the 
+    # passing all points (coordPts) and the random subset of points (sampNames) to the 
     # geo.compareBuff worker function, which will calculate the proportion of area covered in the 
     # random sample. 
     geoRates <- 
-      lapply(geoBuff, function(x) geo.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp),
+      lapply(geoBuff, function(x) geo.compareBuff(totalWildPoints=coordPts, sampVect=sampNames,
                                                   buffSize=x, ptProj=ptProj, buffProj=buffProj, 
                                                   boundary=boundary, parFlag=parFlag))
     # If no rasterized SDM is provided, calculate geographic coverage using just the buffer approach (default)
@@ -376,7 +376,7 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
       # If rasterized SDM provided, calculate geo. coverage using SDM approach, and append coverages. 
       # Using mapply to iterate over multiple lists (buffer sizes and SDM rasters)
       geoRates_SDM <- 
-        mapply(function(b,r) geo.compareBuffSDM(totalWildPoints=coordPts, sampVect=rownames(samp),
+        mapply(function(b,r) geo.compareBuffSDM(totalWildPoints=coordPts, sampVect=sampNames,
                                                 buffSize=b, model=r, ptProj=ptProj, 
                                                 buffProj=buffProj, boundary=boundary, 
                                                 parFlag=parFlag), b=geoBuff, r=SDMrast)
@@ -394,11 +394,11 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
   # ECOLOGICAL PROCESSING
   if(ecoFlag==TRUE){
     # Ecological coverage: for each buffer size, calculate sample's ecological representation, by passing all 
-    # points (coordPts) and the random subset of points (rownames(samp)) to the eco.compareBuff worker function, 
+    # points (coordPts) and the random subset of points (sampNames) to the eco.compareBuff worker function, 
     # which will calculate the proportion of ecoregions covered in the random sample. The ecoTotalCount argument
     # provides the denominator (ecoregions covered by all points) used for coverage calculations.
     ecoRates <- 
-      mapply(function(b,t) eco.compareBuff(totalWildPoints=coordPts, sampVect=rownames(samp),
+      mapply(function(b,t) eco.compareBuff(totalWildPoints=coordPts, sampVect=sampNames,
                                            buffSize=b, ecoTotalCount=t, ptProj=ptProj, buffProj=buffProj, 
                                            ecoRegion=ecoRegions, layerType=ecoLayer, boundary=boundary, 
                                            parFlag=parFlag), b=ecoBuff, t=ecoTotalCount)
@@ -418,8 +418,7 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
 exSituResample <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, 
                            ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
                            boundary, ecoFlag=FALSE, ecoBuff=50000, ecoTotalCount, ecoRegions, ecoLayer='US', parFlag){
-  # Apply the calculateCoverage function to all rows of the wild matrix
-  # (except row 1, because we need at least 2 individuals to sample)
+  # Apply the calculateCoverage function to all rows of the wild matrix.
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
   cov_matrix <- 
     t(sapply(1:nrow(genMat), 
@@ -437,8 +436,7 @@ exSituResample.Par <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, ge
                                ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
                                boundary, ecoFlag=FALSE, ecoBuff=50000, ecoTotalCount, ecoRegions, ecoLayer='US', 
                                parFlag=TRUE, cluster){
-  # Apply the calculateCoverage function to all rows of the wild matrix using parSapply
-  # (except row 1, because we need at least 2 individuals to sample)
+  # Apply the calculateCoverage function to all rows of the wild matrix using parSapply.
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
   cov_matrix <-
     t(parSapply(cluster, 1:nrow(genMat), 
