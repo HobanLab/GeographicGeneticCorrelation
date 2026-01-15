@@ -9,7 +9,8 @@ prepData()
 
 # individual species processing  ------------------------------------------
 future::plan(strategy = "multicore", workers = 8)
-taxon <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR")
+# taxon <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR")
+taxon <- c("AMTH", "ARTH", "COGL", "HIWA", "VILA")
 # testing 
 # taxon <- c("MIGU")
 
