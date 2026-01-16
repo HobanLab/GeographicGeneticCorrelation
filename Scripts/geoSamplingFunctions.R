@@ -63,26 +63,26 @@ standardizeDataSets <- function(
 prepData <- function() {
   ## read in raster and point data and format
   ### assigning unique values as a vect to pass to the processing function
-  species <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR")
+  species <- c("AMTH", "ARTH", "COGL", "HIWA", "VILA")
   rastName <- c(
-    "MIGU_255inds_rast_Carver.tif",
-    "PICO_929inds_rast_Carver.tif",
-    "QUAC_91inds_rast.tif",
-    "QULO_436inds_rast_Carver.tif",
-    "YUBR_319inds_rast_Carver.tif"
+    "AMTH_thresh.tif",
+    "ARTH_thresh.tif",
+    "COGL_thresh.tif",
+    "HIWA_thresh.tif",
+    "VILA_thresh.tif"
   )
   pointName <- c(
-    "MIGU_coordinates.csv",
-    "PICO_coordinates.csv",
-    "QUAC_coordinates.csv",
-    "QULO_coordinates.csv",
-    "YUBR_coordinates.csv"
+    "AMTH_coordinates.csv",
+    "ARTH_coordinates.csv",
+    "COGL_coordinates.csv",
+    "HIWA_coordinates.csv",
+    "VILA_coordinates.csv"
   )
-  idCol <- c("Sample Name", "Internal_ID", "sampleID", "sampleID", "Sample")
+  idCol <- c("sampleNames", "Acc_ID", "Sample Name", "SampleName", "sampleID")
   latLonCol <- list(
+    c("decimalLongitude", "decimalLatitude"),
+    c("decimalLongitude", "decimalLatitude"),
     c("Longitude", "Latitude"),
-    c("decimalLongitude", "decimalLatitude"),
-    c("decimalLongitude", "decimalLatitude"),
     c("decimalLongitude", "decimalLatitude"),
     c("decimalLongitude", "decimalLatitude")
   )
@@ -97,28 +97,43 @@ prepData <- function() {
   }
 }
 
-# # Old prepData function, for original 5 datasets.
-# prepData <- function(){
-#   ## read in raster and point data and format 
-#   ### assigning unique values as a vect to pass to the processing function 
+# Old prepData function, based on original 5 datasets
+# prepData <- function() {
+#   ## read in raster and point data and format
+#   ### assigning unique values as a vect to pass to the processing function
 #   species <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR")
-#   rastName <- c( "MIGU_255inds_rast_Carver.tif","PICO_929inds_rast_Carver.tif","QUAC_91inds_rast.tif",
-#                  "QULO_436inds_rast_Carver.tif","YUBR_319inds_rast_Carver.tif")
-#   pointName <- c("MIGU_coordinates.csv","PICO_coordinates.csv","QUAC_coordinates.csv",
-#                  "QULO_coordinates.csv","YUBR_coordinates.csv")
-#   idCol <- c("Sample Name", "Internal_ID","sampleID", "sampleID","Sample")
-#   latLonCol <- list(c("Longitude", "Latitude"),c("Longitude", "Latitude"),
-#                     c("decimalLongitude", "decimalLatitude"), c("decimalLongitude", "decimalLatitude"),
-#                     c("decimalLongitude", "decimalLatitude"))
-#   for(i in seq_along(species)){
-#     standardizeDataSets(species = species[i],
-#                         rastName = rastName[i], 
-#                         pointName = pointName[i],
-#                         idCol = idCol[i],
-#                         latLonCol = latLonCol[[i]])
+#   rastName <- c(
+#     "MIGU_255inds_rast_Carver.tif",
+#     "PICO_929inds_rast_Carver.tif",
+#     "QUAC_91inds_rast.tif",
+#     "QULO_436inds_rast_Carver.tif",
+#     "YUBR_319inds_rast_Carver.tif"
+#   )
+#   pointName <- c(
+#     "MIGU_coordinates.csv",
+#     "PICO_coordinates.csv",
+#     "QUAC_coordinates.csv",
+#     "QULO_coordinates.csv",
+#     "YUBR_coordinates.csv"
+#   )
+#   idCol <- c("Sample Name", "Internal_ID", "sampleID", "sampleID", "Sample")
+#   latLonCol <- list(
+#     c("Longitude", "Latitude"),
+#     c("decimalLongitude", "decimalLatitude"),
+#     c("decimalLongitude", "decimalLatitude"),
+#     c("decimalLongitude", "decimalLatitude"),
+#     c("decimalLongitude", "decimalLatitude")
+#   )
+#   for (i in seq_along(species)) {
+#     standardizeDataSets(
+#       species = species[i],
+#       rastName = rastName[i],
+#       pointName = pointName[i],
+#       idCol = idCol[i],
+#       latLonCol = latLonCol[[i]]
+#     )
 #   }
 # }
-
 
 # construct path for species ----------------------------------------------
 constructPaths <- function(name) {
