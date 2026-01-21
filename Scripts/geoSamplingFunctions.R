@@ -16,6 +16,7 @@ standardizeDataSets <- function(
     print("exporting sdm")
     # read in
     r1 <- terra::rast(paste0(path, "/", rastName))
+    names(r1) <- "Threshold"
     # convert raster to vector
     r2 <- terra::as.polygons(r1)
     # select the predicted presence area
@@ -59,39 +60,70 @@ standardizeDataSets <- function(
 }
 
 # call the standardization function  --------------------------------------
-prepData <- function() {
+prepData <- function(species) {
   ## read in raster and point data and format
   ### assigning unique values as a vect to pass to the processing function
-  species <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR")
+  allSpecies <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR", "AMTH", "ARTH", "COGL", "HIWA", "VILA")
   rastName <- c(
     "MIGU_255inds_rast_Carver.tif",
     "PICO_929inds_rast_Carver.tif",
     "QUAC_91inds_rast.tif",
     "QULO_436inds_rast_Carver.tif",
-    "YUBR_319inds_rast_Carver.tif"
+    "YUBR_319inds_rast_Carver.tif",
+    "AMTH_thresh.tif",
+    "ARTH_thresh.tif",
+    "COGL_thresh.tif",
+    "HIWA_thresh.tif",
+    "VILA_thresh.tif"
   )
   pointName <- c(
     "MIGU_coordinates.csv",
     "PICO_coordinates.csv",
     "QUAC_coordinates.csv",
     "QULO_coordinates.csv",
-    "YUBR_coordinates.csv"
+    "YUBR_coordinates.csv",
+    "AMTH_coordinates.csv",
+    "ARTH_coordinates.csv",
+    "COGL_coordinates.csv",
+    "HIWA_coordinates.csv",
+    "VILA_coordinates.csv"
   )
-  idCol <- c("Sample Name", "Internal_ID", "sampleID", "sampleID", "Sample")
+  idCol <- c("Sample Name", "Internal_ID", "sampleID", "sampleID", "Sample","sampleNames", "Acc_ID", "Sample Name", "SampleName", "sampleID")
   latLonCol <- list(
     c("Longitude", "Latitude"),
     c("decimalLongitude", "decimalLatitude"),
     c("decimalLongitude", "decimalLatitude"),
     c("decimalLongitude", "decimalLatitude"),
+    c("decimalLongitude", "decimalLatitude"),
+    c("decimalLongitude", "decimalLatitude"),
+    c("decimalLongitude", "decimalLatitude"),
+    c("Longitude", "Latitude"),
+    c("decimalLongitude", "decimalLatitude"),
     c("decimalLongitude", "decimalLatitude")
   )
+  # construct a dataframe of values 
+  df <- dplyr::tibble(
+    taxon = allSpecies,
+    rasterPath = rastName,
+    pointPath = pointName,
+    idCol = idCol,
+    latLonCol = latLonCol
+  ) |> # filter to the input species  
+    dplyr::filter(
+      taxon %in% species
+    )
+  
+  
+  
   for (i in seq_along(species)) {
+    # select the row of the dataframe 
+    vals <- df[df$taxon == species[i], ]
     standardizeDataSets(
-      species = species[i],
-      rastName = rastName[i],
-      pointName = pointName[i],
-      idCol = idCol[i],
-      latLonCol = latLonCol[[i]]
+      species = vals$taxon,
+      rastName = vals$rasterPath,
+      pointName = vals$pointPath,
+      idCol = vals$idCol,
+      latLonCol = vals$latLonCol[[1]]
     )
   }
 }
@@ -117,8 +149,11 @@ constructPaths <- function(name) {
 
 # inital buffer  ----------------------------------------------------------
 initBuffer <- function(buffDist, points, sdm) {
+  # odd memory error during initial point buffer, setting to a project CRS for this step 
+  points_proj <- terra::project(points, "ESRI:54009")
   # buffer features
-  buffers <- terra::buffer(points, width = buffDist)
+  buffers <- terra::buffer(points_proj, width = buffDist) |>
+    terra::project("EPSG:4326")
   # get the initial area of each buffer element
   buffers$fullArea <- round(expanse(buffers, unit = "m"), digits = 6)
   # crop buffers to model area
