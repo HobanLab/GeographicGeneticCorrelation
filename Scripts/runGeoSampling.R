@@ -5,12 +5,13 @@ buffDists <- c(1000, 5000, 10000, 25000, 50000, 100000, 250000)
 source("Scripts/geoSamplingFunctions.R")
 
 # preprocessing data  -----------------------------------------------------
-taxon <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR", "ARTH", "VILA" )
+# allSpecies <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR", "AMTH", "ARTH", "COGL", "HIWA", "VILA")
+taxon <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR", "AMTH", "ARTH", "COGL", "HIWA", "VILA")
 # species with no coordinates at the moment  "AMTH", "COGL", "HIWA",
 prepData(species = taxon)
 
 # individual species processing  ------------------------------------------
-taxon <- c("ARTH")
+# taxon <- c("ARTH")
 
 # Create a data frame of all parameter combinations
 params <- tidyr::expand_grid(species = taxon, buffDist = buffDists)
