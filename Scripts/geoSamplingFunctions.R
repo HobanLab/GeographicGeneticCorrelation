@@ -169,7 +169,7 @@ randomSelect <- function(buffDist, buffer, paths, area) {
   # get original area to test percent change
   originalArea <- aggregate(buffer) |>
     terra::expanse(unit = "m") |>
-    round(, digits = 6)
+    round(digits = 6)
   # empty vectors for stroing information
   coverageOrder <- c()
   areaCoverage <- c()
@@ -251,7 +251,7 @@ maxSelect <- function(buffDist, buffer, points, paths, area) {
   # get original area to test percent change
   originalArea <- aggregate(buffer) |>
     terra::expanse(unit = "km") |>
-    round(, digits = 2)
+    round(digits = 2)
   # empty vectors for stroing information
   coverageOrder <- c()
   areaCoverage <- c()
@@ -306,7 +306,7 @@ maxSelect <- function(buffDist, buffer, points, paths, area) {
         # calculate the total area change
         newArea <- aggregate(buffer2) |>
           terra::expanse(unit = "km") |>
-          round(, digits = 6)
+          round( digits = 6)
         # calc the percent area left
         areaLeft <- (newArea / originalArea) * 100
         # assign area coverage
@@ -366,7 +366,7 @@ maxSelectWhile <- function(buffDist, buffer, points, paths, area) {
   # get original area to test percent change
   originalArea <- aggregate(buffer) |>
     terra::expanse(unit = "m") |>
-    round(, digits = 6)
+    round( digits = 6)
   # empty vectors for storing information
   coverageOrder <- c()
   areaCoverage <- c()
@@ -507,7 +507,7 @@ maxSelectWhile <- function(buffDist, buffer, points, paths, area) {
         # calculate the total area change
         newArea <- aggregate(buffer2) |>
           terra::expanse(unit = "m") |>
-          round(, digits = 6)
+          round(digits = 6)
 
         # calc the percent area left
         areaLeft <- (newArea / originalArea) * 100
@@ -617,3 +617,4 @@ removeFiles <- function(doit = FALSE, species = NA) {
     print("set doit to true to remove files")
   }
 }
+
