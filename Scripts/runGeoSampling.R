@@ -6,7 +6,7 @@ source("Scripts/geoSamplingFunctions.R")
 
 # preprocessing data  -----------------------------------------------------
 # allSpecies <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR", "AMTH", "ARTH", "COGL", "HIWA", "VILA")
-taxon <- c( "COGL","VILA")
+taxon <- c( "VILA")
 # species with no coordinates at the moment  "AMTH", "COGL", "HIWA",
 prepData(species = taxon)
 
