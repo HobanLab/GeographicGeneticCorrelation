@@ -59,9 +59,8 @@ standardizeDataSets <- function(
   print(paste0(species, " data prepped"))
 }
 
-# call the standardization function  --------------------------------------
-prepData <- function(species) {
-  ## read in raster and point data and format
+# lookup of input files and column names per dataset -----------------------
+datasetLookup <- function() {
   ### assigning unique values as a vect to pass to the processing function
   allSpecies <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR", "AMTH", "ARTH", "COGL", "HIWA", "VILA")
   rastName <- c(
@@ -76,18 +75,7 @@ prepData <- function(species) {
     "HIWA_thresh.tif",
     "VILA_thresh.tif"
   )
-  pointName <- c(
-    "MIGU_coordinates.csv",
-    "PICO_coordinates.csv",
-    "QUAC_coordinates.csv",
-    "QULO_coordinates.csv",
-    "YUBR_coordinates.csv",
-    "AMTH_coordinates.csv",
-    "ARTH_coordinates.csv",
-    "COGL_coordinates.csv",
-    "HIWA_coordinates.csv",
-    "VILA_coordinates.csv"
-  )
+  pointName <- paste0(allSpecies, "_coordinates.csv")
   idCol <- c("Sample Name", "Internal_ID", "sampleID", "sampleID", "Sample","sampleNames", "Acc_ID", "Sample Name", "SampleName", "sampleID")
   latLonCol <- list(
     c("Longitude", "Latitude"),
@@ -101,20 +89,24 @@ prepData <- function(species) {
     c("decimalLongitude", "decimalLatitude"),
     c("decimalLongitude", "decimalLatitude")
   )
-  # construct a dataframe of values 
-  df <- dplyr::tibble(
+  # construct a dataframe of values
+  dplyr::tibble(
     taxon = allSpecies,
     rasterPath = rastName,
     pointPath = pointName,
     idCol = idCol,
     latLonCol = latLonCol
-  ) |> # filter to the input species  
+  )
+}
+
+# call the standardization function  --------------------------------------
+prepData <- function(species) {
+  ## read in raster and point data and format
+  df <- datasetLookup() |> # filter to the input species
     dplyr::filter(
       taxon %in% species
     )
-  
-  
-  
+
   for (i in seq_along(species)) {
     # select the row of the dataframe 
     vals <- df[df$taxon == species[i], ]

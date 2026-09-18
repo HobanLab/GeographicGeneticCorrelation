@@ -1,0 +1,19 @@
+metric,optimum,rho,n,p_BH
+EOO,Opt. Eco.,0.79,10,0.039
+STD,Opt. Eco.,0.79,10,0.039
+AOO,Opt. Eco.,0.745,10,0.05
+ANN,Opt. Eco.,0.505,10,0.246
+VOR,Opt. Eco.,-0.267,10,0.682
+ELG,Opt. Eco.,-0.061,10,0.96
+AOO,Opt. Geo. Buff,0.935,10,0.001
+EOO,Opt. Geo. Buff,0.71,10,0.06
+STD,Opt. Geo. Buff,0.648,10,0.081
+ANN,Opt. Geo. Buff,0.318,10,0.58
+ELG,Opt. Geo. Buff,0.067,10,0.96
+VOR,Opt. Geo. Buff,-0.037,10,0.96
+EOO,Opt. Geo. SDM,0.862,9,0.034
+STD,Opt. Geo. SDM,0.812,9,0.041
+VOR,Opt. Geo. SDM,-0.728,9,0.067
+AOO,Opt. Geo. SDM,0.706,9,0.078
+ANN,Opt. Geo. SDM,0.686,9,0.081
+ELG,Opt. Geo. SDM,0.025,9,0.96
