@@ -23,7 +23,7 @@ eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- PARALLELIZATION
 # Set up relevant cores 
-num_cores <- detectCores() - 4 
+num_cores <- detectCores() - 12 
 cl <- makeCluster(num_cores)
 # Make sure libraries (adegenet, terra, etc.) are on cluster (but avoid printing output)
 invisible(clusterEvalQ(cl, library('adegenet')))
@@ -66,12 +66,15 @@ world_poly_clip <-
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
 # Perform geographic filter on the admin layer. 
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = VILA_coordinates)
+# Read in raster data, for SDM
+VILA_sdm <- terra::rast(paste0(VILA_filePath,'Geographic/VILA_thresh.tif'))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 
 # (solely in the U.S.)
 ecoregion_poly <-
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
+VILA_sdm_W <- wrap(VILA_sdm)
 world_poly_clip_W <- wrap(world_poly_clip)
 ecoregion_poly_W <- wrap(ecoregion_poly)
 
@@ -92,35 +95,33 @@ VILA_genind <- VILA_genind[VILA_coordinates[,1], drop=TRUE]
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
 clusterExport(cl, varlist = c('VILA_coordinates','VILA_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                              'world_poly_clip_W', 'ecoregion_poly_W'))
+                              'VILA_sdm_W','world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
-                              'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories', 
-                              'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
-                              'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
+allFunctions <- ls(envir = .GlobalEnv)
+allFunctions <- Filter(function(x) is.function(get(x, envir = .GlobalEnv)), allFunctions)
+clusterExport(cl, varlist = allFunctions, envir = .GlobalEnv)
 # Specify file path, for saving resampling array
-arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_SMBO2_5r_resampArr.Rdata')
+arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_SMBO4_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 VILA_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj=VILA_genind, geoFlag=TRUE, genDistFlag=FALSE, coordPts=VILA_coordinates, 
-                       geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag=TRUE, ecoBuff=eco_buffSize, 
+  geo.gen.Resample.Par(genObj=VILA_genind, geoFlag=TRUE, coordPts=VILA_coordinates, geoBuff = geo_buffSize, 
+                       SDMrast=VILA_sdm_W, boundary=world_poly_clip_W, ecoFlag=TRUE, ecoBuff=eco_buffSize, 
                        ecoRegions=ecoregion_poly_W, ecoLayer='US', reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
 # Close cores
 stopCluster(cl)
 
 # # Run resampling not in parallel (for function testing purposes)
-# VILA_coordinates_test <- VILA_coordinates[1:5,]
+# VILA_coordinates_test <- VILA_coordinates[1:150,]
 # VILA_genind_test <- VILA_genind[VILA_coordinates_test[,1], drop=TRUE]
 # VILA_demoArray_IND <-
 #   geo.gen.Resample(genObj = VILA_genind_test, geoFlag = TRUE, coordPts = VILA_coordinates_test,
-#                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = TRUE,
-#                    ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = "US", reps = 1)
+#                    geoBuff = 5000, boundary = world_poly_clip, ecoFlag = FALSE, SDMrast=VILA_sdm, reps = 1)
 
 # %%% ANALYZE DATA %%% ----
 # Specify filepath for VILA geographic and genetic data, including resampling array
 VILA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/VILA/')
-arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_1km_GE_5r_resampArr.Rdata')
+arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_SMBO4_5r_resampArr.Rdata')
 # Read in the resampling array .Rdata object, saved to disk
 VILA_demoArray_Par <- readRDS(arrayDir)
 
@@ -214,25 +215,21 @@ print(VILA_NRMSE_Mat)
 write.table(VILA_NRMSE_Mat,
             file=paste0(VILA_filePath, 'resamplingData/VILA_SMBO2_NRMSE.csv'), sep=',')
 
-# %%%% SMBO3 ----
+# %%%% SMBO4 ----
 # Specify filepath for VILA geographic and genetic data, including resampling array
 VILA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/VILA/')
-arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_SMBO3_5r_resampArr.Rdata')
+arrayDir <- paste0(VILA_filePath, 'resamplingData/VILA_SMBO4_5r_resampArr.Rdata')
 # Read in array
-VILA_SMBO3_array <- readRDS(arrayDir)
+VILA_SMBO4_array <- readRDS(arrayDir)
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
-VILA_SMBO3_DF <- resample.array2dataframe(VILA_SMBO3_array)
+VILA_SMBO4_DF <- resample.array2dataframe(VILA_SMBO4_array)
 # Build tables of NRSMSE values, calculated based on data.frame
-VILA_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=VILA_SMBO3_DF, genCovType='CV', sdmFlag=FALSE)
-VILA_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=VILA_SMBO3_DF, genCovType='GD', sdmFlag=FALSE)
-# Combine the results of the NRMSE values calculated using allelic coverages and using
-# genetic distances, and then rename the columns accordingly
-VILA_NRMSE_Mat <- cbind(VILA_NRMSE_Mat_CV, VILA_NRMSE_Mat_GD)
+VILA_NRMSE_Mat <- buildNRMSEmatrix(resampDF=VILA_SMBO4_DF, genCovType='CV', sdmFlag=FALSE)
 # Store the matrix as a CSV to disk
 write.table(VILA_NRMSE_Mat,
-            file=paste0(VILA_filePath, 'resamplingData/VILA_SMBO3_NRMSE.csv'), sep=',')
+            file=paste0(VILA_filePath, 'resamplingData/VILA_SMBO4_NRMSE.csv'), sep=',')
 
 # SMBO2: OPTIMAL BUFFER SIZES ----
 # Read in VILA SMBO2 resampling array amd convert to data.frame
