@@ -61,11 +61,14 @@ if(file.exists(paste0(HIWA_filePath, 'Geographic/HIWA_coordinates.csv'))){
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = FALSE)
 # Perform geographic filter on the admin layer. 
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = HIWA_coordinates)
+# Read in raster data, for SDM
+HIWA_sdm <- terra::rast(paste0(HIWA_filePath,'Geographic/HIWA_thresh.tif'))
 # Read in the TNC global ecoregion shapefile, which is used for calculating ecological coverage 
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_globalTNC/Terrestrial_Ecoregions.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means they must be processed before being
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
+HIWA_sdm_W <- wrap(HIWA_sdm)
 world_poly_clip_W <- wrap(world_poly_clip)
 ecoregion_poly_W <- wrap(ecoregion_poly)
 
@@ -80,27 +83,28 @@ HIWA_genind <- HIWA_all_genind[HIWA_coordinates[,1], drop=TRUE]
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
 clusterExport(cl, varlist = c('HIWA_coordinates','HIWA_genind', 'num_reps','geo_buffSize', 
-                              'eco_buffSize', 'world_poly_clip_W', 'ecoregion_poly_W'))
+                              'eco_buffSize', 'HIWA_sdm_W', 'world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
                               'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories', 
                               'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
                               'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO3_G2GE_5r_resampArr.Rdata')
+arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO4_G2GE_5r_resampArr.Rdata')
 # Run resampling (in parallel)
 HIWA_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj=HIWA_genind,  genDistFlag=TRUE, geoFlag=TRUE, coordPts=HIWA_coordinates, 
-                       geoBuff=geo_buffSize, SDMrast=NA, boundary=world_poly_clip_W, 
+  geo.gen.Resample.Par(genObj=HIWA_genind,  geoFlag=TRUE, coordPts=HIWA_coordinates, 
+                       geoBuff=geo_buffSize, SDMrast=HIWA_sdm_W, boundary=world_poly_clip_W, 
                        ecoFlag=TRUE, ecoBuff=eco_buffSize, ecoRegions=ecoregion_poly_W, 
                        ecoLayer='GL', reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
 # Close cores
 stopCluster(cl)
 
-# Run resampling not in parallel (for function testing purposes)
+# # Run resampling not in parallel (for function testing purposes)
 # HIWA_demoArray_IND <-
-#   geo.gen.Resample(genObj=HIWA_genind, geoFlag=TRUE, genDistFlag=TRUE, coordPts=HIWA_coordinates,
-#                    geoBuff=geo_buffSize, boundary=world_poly_clip, ecoFlag=FALSE, reps = 1)
+#   geo.gen.Resample(genObj=HIWA_genind, geoFlag=TRUE, SDMrast=HIWA_sdm, coordPts=HIWA_coordinates,
+#                    geoBuff=geo_buffSize, boundary=world_poly_clip, ecoFlag=TRUE, 
+#                    ecoRegions=ecoregion_poly, ecoBuff=eco_buffSize, reps = 1)
 
 # %%% ANALYZE DATA %%% ----
 # Specify filepath for HIWA geographic and genetic data, including resampling array
@@ -109,22 +113,22 @@ arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_50km_GE_5r_resampArr.Rdat
 # Read in the resampling array .Rdata object, saved to disk
 HIWA_demoArray_Par <- readRDS(arrayDir)
 
-# %%%% SMBO2 ----
+# %%%% SMBO4 ----
 # Specify filepath for HIWA geographic and genetic data, including resampling array
 # Read in HIWA SMBO2 resampling array amd convert to data.frame
 HIWA_filePath <- paste0(GeoGenCorr_wd, 'Datasets/HIWA/')
-HIWA_arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata')
+HIWA_arrayDir <- paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO4_G2GE_5r_resampArr.Rdata')
 # Read in array and build a data.frame of values
-HIWA_SMBO2_array <- readRDS(HIWA_arrayDir)
+HIWA_SMBO4_array <- readRDS(HIWA_arrayDir)
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
-HIWA_SMBO2_DF <- resample.array2dataframe(HIWA_SMBO2_array)
+HIWA_SMBO4_DF <- resample.array2dataframe(HIWA_SMBO4_array)
 # Build tables of NRSMSE values, calculated based on data.frame
-HIWA_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=HIWA_SMBO2_DF, genCovType='CV', sdmFlag=FALSE)
+HIWA_NRMSE_Mat <- buildNRMSEmatrix(resampDF=HIWA_SMBO4_DF, genCovType='CV', sdmFlag=TRUE)
 # Store the matrix as a CSV to disk
 write.table(HIWA_NRMSE_Mat,
-            file=paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO2_NRMSE.csv'), sep=',')
+            file=paste0(HIWA_filePath, 'resamplingData/HIWA_SMBO4_NRMSE.csv'), sep=',')
 
 # OPTIMAL BUFFER SIZES
 # From HIWA resampling array, return a matrix of average coverage values for optimal buffer sizes

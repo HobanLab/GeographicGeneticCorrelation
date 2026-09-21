@@ -51,6 +51,8 @@ COGL_genind <- vcfR2genind(COGL_vcf, sep = "/", return.alleles = TRUE)
 # Rename individuals to match the sample names in coordinate CSV (below)
 indNames(COGL_genind) <- gsub("_sorted", "", indNames(COGL_genind))
 indNames(COGL_genind) <- paste0("Congla", indNames(COGL_genind))
+# Remove two duplicate samples (with "_rep" in sample name), leaving 562 samples
+COGL_genind <- COGL_genind[-grep('_rep', indNames(COGL_genind)), drop=TRUE]
 
 # ---- COORDINATE POINTS
 # CSV was provided by Lauren Eserman. Because individuals were sampled very close 
@@ -67,46 +69,45 @@ colnames(COGL_coordinates)[2:3] <- c('decimalLatitude', 'decimalLongitude')
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = FALSE)
 # Perform geographic filter on the admin layer. 
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = COGL_coordinates)
+# Read in raster data, for SDM
+COGL_sdm <- terra::rast(paste0(COGL_filePath,'Geographic/COGL_thresh.tif'))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 
 # (solely in the U.S.)
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
+COGL_sdm_W <- wrap(COGL_sdm)
 world_poly_clip_W <- wrap(world_poly_clip)
 ecoregion_poly_W <- wrap(ecoregion_poly)
-
-# ---- REMOVE DUPLICATE INDIVIDUALS ----
-# Remove two duplicate samples (with "_rep" in sample name), leaving 562 samples
-COGL_genind <- COGL_genind[-grep('_rep', indNames(COGL_genind)), drop=TRUE]
-COGL_coordinates<- COGL_coordinates[-grep('_rep', COGL_coordinates$Sample.Name),]
 
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
 clusterExport(cl, varlist = c('COGL_coordinates','COGL_genind','num_reps','geo_buffSize','eco_buffSize',
-                              'world_poly_clip_W','ecoregion_poly_W'))
+                              'COGL_sdm_W','world_poly_clip_W','ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
                               'eco.intersectBuff','eco.compareBuff','eco.totalEcoregionCount',
                               'gen.getAlleleCategories','gen.buildDistMat', 'gen.calcGenDistCov', 
                               'calculateCoverage', 'exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO3_G2GE_5r_resampArr.Rdata')
+arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO4_G2GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 COGL_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj=COGL_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts=COGL_coordinates, 
-                       geoBuff=geo_buffSize, boundary=world_poly_clip_W, ecoFlag=TRUE, 
-                       ecoBuff=eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer='NA', 
+  geo.gen.Resample.Par(genObj=COGL_genind, geoFlag=TRUE, coordPts=COGL_coordinates, 
+                       geoBuff=geo_buffSize, SDMrast=COGL_sdm_W, boundary=world_poly_clip_W, 
+                       ecoFlag=TRUE, ecoBuff=eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer='NA', 
                        reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
-
 # Close cores
 stopCluster(cl)
 
 # # Run resampling not in parallel (for function testing purposes)
 # COGL_demoArray_IND <-
-#   geo.gen.Resample(gen_obj = COGL_genind, geoFlag = TRUE, coordPts = COGL_coordinates,
-#                    geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, reps = 1)
+#   geo.gen.Resample(genObj = COGL_genind, geoFlag = TRUE, coordPts = COGL_coordinates,
+#                    geoBuff = geo_buffSize, SDMrast=COGL_sdm, boundary = world_poly_clip, 
+#                    ecoFlag = TRUE, ecoLayer='NA', ecoBuff=eco_buffSize, ecoRegions = ecoregion_poly,
+#                    reps = 1)
 
 # %%% ANALYZE DATA %%% ----
 # Specify filepath for COGL geographic and genetic data, including resampling data
@@ -161,25 +162,21 @@ legend(x=350, y=80, inset = 0.05,
        col=c('red', 'darkblue'), pch = c(20,20), cex=1.2, pt.cex = 2, bty='n',
        y.intersp = 0.8)
 
-# %%%% SMBO3 ----
+# %%%% SMBO4 ----
 # Specify filepath for COGL geographic and genetic data, including resampling array
 COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
-arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO3_G2GE_5r_resampArr.Rdata')
+arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO4_G2GE_5r_resampArr.Rdata')
 # Read in array
-COGL_SMBO3_array <- readRDS(arrayDir)
+COGL_SMBO4_array <- readRDS(arrayDir)
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
-COGL_SMBO3_DF <- resample.array2dataframe(COGL_SMBO3_array)
+COGL_SMBO4_DF <- resample.array2dataframe(COGL_SMBO4_array)
 # Build tables of NRSMSE values, calculated based on data.frame
-COGL_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=COGL_SMBO3_DF, genCovType='CV', sdmFlag=FALSE)
-COGL_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=COGL_SMBO3_DF, genCovType='GD', sdmFlag=FALSE)
-# Combine the results of the NRMSE values calculated using allelic coverages and using
-# genetic distances, and then rename the columns accordingly
-COGL_NRMSE_Mat <- cbind(COGL_NRMSE_Mat_CV, COGL_NRMSE_Mat_GD)
+COGL_NRMSE_Mat <- buildNRMSEmatrix(resampDF=COGL_SMBO4_DF, genCovType='CV', sdmFlag=TRUE)
 # Store the matrix as a CSV to disk
 write.table(COGL_NRMSE_Mat,
-            file=paste0(COGL_filePath, 'resamplingData/COGL_SMBO3_NRMSE.csv'), sep=',')
+            file=paste0(COGL_filePath, 'resamplingData/COGL_SMBO4_NRMSE.csv'), sep=',')
 
 # SMBO2: OPTIMAL BUFFER SIZES ----
 # Read in COGL SMBO2 resampling array amd convert to data.frame

@@ -28,13 +28,17 @@ eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
 
 # ---- GENETIC MATRIX
-# Read in the SNPs genetic matrix file
-QULO_tab <- read.table(paste0(QULO_filePath, 'Genetic/SNPs80.forR'), header = TRUE)
-# Make sample names the row names
-rownames(QULO_tab) <- QULO_tab[,1] ; QULO_tab <- QULO_tab[,-1]
-# Convert to genind. ncode based off similar practice for other geninds 
-# (values of 1, 2, and 3 generate identical results)
-QULO_genind <- df2genind(QULO_tab, ncode = 3, ploidy = 2)
+# Read in the SNPs genetic matrix file, and convert sample names (first column) to row names
+QULO_tab <- read.table(paste0(QULO_filePath, 'Genetic/SNPs80.forR'), 
+                       header = TRUE, check.names = FALSE)
+rownames(QULO_tab) <- QULO_tab[, 1] ; QULO_tab <- QULO_tab[, -1]
+# Convert to integer matrix — genind@tab stores allele counts (0/1/2), not frequencies
+tab_mat <- as.matrix(QULO_tab)
+storage.mode(tab_mat) <- "integer"
+# Name columns as "LOCUS.alt" so the constructor parses locus/allele correctly
+colnames(tab_mat) <- colnames(QULO_tab)
+# Use the new("genind") to convert table of allele counts into genind object
+QULO_genind <- new("genind", tab    = tab_mat, ploidy = 2L, type   = "codom")
 
 # ---- GEOGRAPHIC/ECOLOGICAL DATA FILES
 # Read in wild occurrence points. This CSV has 3 columns: sample name, latitude, and longitude. 
@@ -85,12 +89,12 @@ clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuff
                               'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
                               'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO3_G2G2E_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO4_GG2E_5r_resampArr.Rdata')
 # Run resampling (in parallel)
-QULO_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj = QULO_genind, genDistFlag=TRUE, geoFlag = TRUE, coordPts = QULO_points, 
-                       geoBuff = geo_buffSize, SDMrast=QULO_sdm_W, boundary=world_poly_clip_W, 
-                       ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
+QULO_demoArray_Par <-
+  geo.gen.Resample.Par(genObj = QULO_genind, geoFlag = TRUE, coordPts = QULO_points,
+                       geoBuff = geo_buffSize, SDMrast=QULO_sdm_W, boundary=world_poly_clip_W,
+                       ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W,
                        ecoLayer = 'US', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
 # Close cores
 stopCluster(cl)
@@ -103,9 +107,9 @@ stopCluster(cl)
   QULO_genind_small <- QULO_genind[QULO_points_small[,1], drop=TRUE]
   # Run resampling not in parallel (for function testing purposes)
   QULO_demoArray_IND <-
-    geo.gen.Resample(genObj=QULO_genind_small, genDistFlag=TRUE, SDMrast=NA, geoFlag=TRUE, 
-                     coordPts=QULO_points_small, geoBuff=geo_buffSize, boundary=world_poly_clip, 
-                     ecoFlag=FALSE, ecoBuff=eco_buffSize, ecoRegions=ecoregion_poly, ecoLayer='US', reps=1)
+    geo.gen.Resample(genObj=QULO_genind_small, SDMrast=NA, geoFlag=TRUE, 
+                     coordPts=QULO_points_small, geoBuff=5000, boundary=world_poly_clip, 
+                     ecoFlag=FALSE, ecoBuff=5000, ecoRegions=ecoregion_poly, ecoLayer='US', reps=1)
 }
 
 # %%% ANALYZE DATA %%% ----
@@ -119,8 +123,8 @@ QULO_demoArray_Par <- readRDS(arrayDir)
 # Build a data.frame from array values
 QULO_DF <- resample.array2dataframe(QULO_demoArray_Par)
 # Calculate normalized root mean square value
-QULO_nrmse_geo <- nrmse_func(obs=QULO_DF$Geo, pred=QULO_DF$Total) ; QULO_nrmse_geo
-QULO_nrmse_eco <- nrmse_func(obs=QULO_DF$Eco, pred=QULO_DF$Total) ; QULO_nrmse_eco
+QULO_nrmse_geo <- nrmse.func(obs=QULO_DF$Geo_Buff, pred=QULO_DF$Total) ; QULO_nrmse_geo
+QULO_nrmse_eco <- nrmse.func(obs=QULO_DF$Eco, pred=QULO_DF$Total) ; QULO_nrmse_eco
 
 # ---- PLOTTING ----
 # Generate the average values (across replicates) for all proportions
@@ -150,7 +154,7 @@ legend(x=57, y=53, inset = 0.05, xpd=TRUE,
        col=c('darkblue', 'purple'), pch = c(20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 # ---- COVERAGE PLOTS
 # Use the matplot function to plot the matrix of average values, with specified settings
-matplot(averageValueMat, ylim=c(0,100), col=plotColors_Fade[c(1,6,3,5)], 
+matplot(averageValueMat, ylim=c(0,100), col=plotColors_Fade[c(1,6,3,5)],
         pch=16, ylab='')
 # Add title and x-axis labels to the graph
 title(main='Q. lobata: Genetic, Geograpihc, and Ecological Coverages', line=1.5)
@@ -161,7 +165,22 @@ mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
 legend(x=215, y=80, inset = 0.05,
        legend = c('Genetic', 'Geographic (Total buffer)','Geographic (SDM)',
                   'Ecological (EPA Level IV)'),
-       col=plotColors[c(1,6,3,5)], pch = c(20,20,20,20), cex=0.9, 
+       col=plotColors[c(1,6,3,5)], pch = c(20,20,20,20), cex=0.9,
+       pt.cex = 2, bty='n', y.intersp = 0.8)
+
+# ---- 2026-06-26 Plot
+# Use the matplot function to plot the matrix of average values, with specified settings
+matplot(averageValueMat[,c(1,2,4)], ylim=c(0,100), col=plotColors_Fade[c(1,6,5)],
+        pch=16, ylab='')
+# Add title and x-axis labels to the graph
+title(main='Q. lobata: Genetic, Geograpihc, and Ecological Coverages', line=1.5, cex.main=1.5)
+mtext(text='436 Individuals; 50 km buffer; 5 replicates', side=3, line=0.20, cex=1.3)
+mtext(text='Number of individuals', side=1, line=2.4, cex=1.6)
+mtext(text='Coverage (%)', side=2, line=2.3, cex=1.6, srt=90)
+# Add legend
+legend(x=100, y=50, inset = 0.05,
+       legend = c('Genetic', 'Geographic', 'Ecological'),
+       col=plotColors[c(1,6,5)], pch = c(20,20,20), cex=1.2,
        pt.cex = 2, bty='n', y.intersp = 0.8)
 
 # %%%% SDM AND TOTAL BUFFER COMPARISON ----
@@ -363,25 +382,21 @@ mtext(text=paste0('MSSE: ', QULO_Gen_MSSE), side=1, line=-1, at=QULO_Gen_MSSE+15
 mtext(text=paste0(' MSSE: ', QULO_Eco_MSSE), line=-1.5, side=1, at=QULO_Eco_MSSE-15, cex=0.8, col='purple')
 mtext(text='Ecological: 130 km', side=3, at=80, cex=0.9)
 
-# %%%% SMBO3 ----
+# %%%% SMBO4 ----
 # Specify filepath for QULO geographic and genetic data, including resampling array
 QULO_filePath <- paste0(GeoGenCorr_wd, 'Datasets/QULO/')
-arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO3_G2G2E_5r_resampArr.Rdata')
+arrayDir <- paste0(QULO_filePath, 'resamplingData/QULO_SMBO4_GG2E_5r_resampArr.Rdata')
 # Read in array
-QULO_SMBO3_array <- readRDS(arrayDir)
+QULO_SMBO4_array <- readRDS(arrayDir)
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
-QULO_SMBO3_DF <- resample.array2dataframe(QULO_SMBO3_array)
+QULO_SMBO4_DF <- resample.array2dataframe(QULO_SMBO4_array)
 # Build tables of NRSMSE values, calculated based on data.frame
-QULO_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=QULO_SMBO3_DF, genCovType='CV', sdmFlag=TRUE)
-QULO_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=QULO_SMBO3_DF, genCovType='GD', sdmFlag=TRUE)
-# Combine the results of the NRMSE values calculated using allelic coverages and using
-# genetic distances, and then rename the columns accordingly
-QULO_NRMSE_Mat <- cbind(QULO_NRMSE_Mat_CV, QULO_NRMSE_Mat_GD)
+QULO_NRMSE_Mat <- buildNRMSEmatrix(resampDF=QULO_SMBO4_DF, genCovType='CV', sdmFlag=TRUE)
 # Store the matrix as a CSV to disk
 write.table(QULO_NRMSE_Mat,
-            file=paste0(QULO_filePath, 'resamplingData/QULO_SMBO3_NRMSE.csv'), sep=',')
+            file=paste0(QULO_filePath, 'resamplingData/QULO_SMBO4_NRMSE.csv'), sep=',')
 
 # ALLELIC AND GENETIC DISTANCE COVERAGE
 # Vector of colors for plotting

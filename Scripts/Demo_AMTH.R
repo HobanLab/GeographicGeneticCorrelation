@@ -101,40 +101,44 @@ world_poly_clip <-
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.shp')))
 # Perform geographic filter on the admin layer. 
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = AMTH_coordinates)
+# Read in raster data, for SDM
+AMTH_sdm <- terra::rast(paste0(AMTH_filePath,'Geographic/AMTH_thresh.tif'))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 
 # (solely in the U.S.)
 ecoregion_poly <-
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
+AMTH_sdm_W <- wrap(AMTH_sdm)
 world_poly_clip_W <- wrap(world_poly_clip)
 ecoregion_poly_W <- wrap(ecoregion_poly)
 
 # ---- RESAMPLING ----
 # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
-clusterExport(cl, varlist = c('AMTH_coordinates','AMTH_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                              'world_poly_clip_W', 'ecoregion_poly_W'))
+clusterExport(cl, varlist = c('AMTH_coordinates','AMTH_genind','num_reps','geo_buffSize', 'AMTH_sdm_W',
+                              'eco_buffSize','world_poly_clip_W', 'ecoregion_poly_W'))
 # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
 clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
                               'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories', 
                               'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
                               'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO3_G2GE_5r_resampArr.Rdata')
+arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO4_G2GE_5r_resampArr.Rdata')
 
 # Run resampling (in parallel)
 AMTH_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj=AMTH_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts=AMTH_coordinates, 
-                       geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag=TRUE, ecoBuff=eco_buffSize, 
-                       ecoRegions=ecoregion_poly_W, ecoLayer='US', reps=num_reps, arrayFilepath=arrayDir, cluster=cl)
+  geo.gen.Resample.Par(genObj=AMTH_genind, geoFlag=TRUE, coordPts=AMTH_coordinates, geoBuff = geo_buffSize, 
+                       SDMrast=AMTH_sdm_W, boundary=world_poly_clip_W, ecoFlag=TRUE, 
+                       ecoBuff=eco_buffSize, ecoRegions=ecoregion_poly_W, ecoLayer='US', reps=num_reps, 
+                       arrayFilepath=arrayDir, cluster=cl)
 # Close cores
 stopCluster(cl)
 
-# Run resampling not in parallel (for function testing purposes)
-AMTH_demoArray_IND <-
-  geo.gen.Resample(genObj = AMTH_genind, genDistFlag=TRUE, geoFlag = TRUE, coordPts = AMTH_coordinates, 
-                   geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, 
-                   ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = "US", reps = 1)
+# # Run resampling not in parallel (for function testing purposes)
+# AMTH_demoArray_IND <-
+#   geo.gen.Resample(genObj = AMTH_genind, geoFlag = TRUE, coordPts = AMTH_coordinates, 
+#                    geoBuff = geo_buffSize, SDMrast=AMTH_sdm, boundary = world_poly_clip, ecoFlag = FALSE, 
+#                    ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = "US", reps = 1)
 
 # %%% ANALYZE DATA %%% ----
 # Specify filepath for AMTH geographic and genetic data, including resampling array
@@ -198,36 +202,33 @@ legend(x=85, y=180, inset = 0.05,
        col=c('red', 'darkblue', 'purple'), pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n',
        y.intersp = 0.08)
 
-# %%%% SMBO3 ----
+# %%%% SMBO4 ----
 # Specify filepath for AMTH geographic and genetic data, including resampling array
 AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
-arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO3_G2GE_5r_resampArr.Rdata')
+arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO4_G2GE_5r_resampArr.Rdata')
 # Read in array
-AMTH_SMBO3_array <- readRDS(arrayDir)
+AMTH_SMBO4_array <- readRDS(arrayDir)
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
-AMTH_SMBO3_DF <- resample.array2dataframe(AMTH_SMBO3_array)
+AMTH_SMBO4_DF <- resample.array2dataframe(AMTH_SMBO4_array)
 # Build tables of NRSMSE values, calculated based on data.frame
-AMTH_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=AMTH_SMBO3_DF, genCovType='CV', sdmFlag=FALSE)
-AMTH_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=AMTH_SMBO3_DF, genCovType='GD', sdmFlag=FALSE)
-# Combine the results of the NRMSE values calculated using allelic coverages and using
-# genetic distances, and then rename the columns accordingly
-AMTH_NRMSE_Mat <- cbind(AMTH_NRMSE_Mat_CV, AMTH_NRMSE_Mat_GD)
+AMTH_NRMSE_Mat <- buildNRMSEmatrix(resampDF=AMTH_SMBO4_DF, genCovType='CV', sdmFlag=TRUE)
 # Store the matrix as a CSV to disk
 write.table(AMTH_NRMSE_Mat,
-            file=paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO3_NRMSE.csv'), sep=',')
+            file=paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO4_NRMSE.csv'), sep=',')
 
-# SMBO2: OPTIMAL BUFFER SIZES ----
+# SMBO4: OPTIMAL BUFFER SIZES ----
 # Read in AMTH SMBO2 resampling array amd convert to data.frame
 AMTH_filePath <- paste0(GeoGenCorr_wd, 'Datasets/AMTH/')
-AMTH_arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata')
+AMTH_arrayDir <- paste0(AMTH_filePath, 'resamplingData/AMTH_SMBO4_G2GE_5r_resampArr.Rdata')
 # From AMTH resampling array, return a matrix of average coverage values for optimal buffer sizes
 AMTH_optCovMat <- extractOptCovs(AMTH_arrayDir)
 # Calculate MSSEs: minimum number of samples for 95% of each coverage type
 AMTH_Gen_MSSE <- min(which(AMTH_optCovMat[,1] > 95)) ; AMTH_Gen_MSSE
 AMTH_GeoBuff_MSSE <- min(which(AMTH_optCovMat[,2] > 95)) ; AMTH_GeoBuff_MSSE
-AMTH_Eco_MSSE <- min(which(AMTH_optCovMat[,3] > 95)) ; AMTH_Eco_MSSE
+AMTH_GeoSDM_MSSE <- min(which(AMTH_optCovMat[,3] > 95)) ; AMTH_GeoSDM_MSSE
+AMTH_Eco_MSSE <- min(which(AMTH_optCovMat[,4] > 95)) ; AMTH_Eco_MSSE
 
 # PLOTTING
 # Specify plot colors

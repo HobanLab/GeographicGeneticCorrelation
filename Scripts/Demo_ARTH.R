@@ -15,12 +15,14 @@ source('Scripts/functions_GeoGenCoverage.R')
 
 # ---- VARIABLES ----
 # Specify number of resampling replicates
-num_reps <- 5
+num_reps <- 1
 # ---- BUFFER SIZES
 # Specify geographic buffer size in meters
-geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500,1000,1500,2000))
+geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10)))
+# geo_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10)))
 # Specify ecological buffer size in meters 
-eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500,1000,1500,2000))
+eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10)))
+# eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10)))
 
 # ---- READ IN DATA ----
 # Specify filepath for ARTH geographic and genetic data
@@ -64,6 +66,8 @@ if(file.exists(paste0(ARTH_filePath, 'Geographic/ARTH_coordinates.csv'))){
 world_poly_clip <- grabWorldAdmin(GeoGenCorr_wd = GeoGenCorr_wd, fileExtentsion = ".gpkg", overwrite = TRUE)
 # Perform geographic filter on the admin layer. 
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = ARTH_coordinates)
+# Read in raster data, for SDM
+ARTH_sdm <- terra::rast(paste0(ARTH_filePath,'Geographic/ARTH_thresh.tif'))
 # Read in the TNC global ecoregion shapefile, which is used for calculating ecological coverage 
 ecoregion_poly <- 
   vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_globalTNC/Terrestrial_Ecoregions.shp')))
@@ -88,7 +92,7 @@ parFlag <- TRUE
 # If running in parallel, set up cores and export required libraries
 if(parFlag==TRUE){
   # Set up relevant cores 
-  num_cores <- detectCores() - 4 
+  num_cores <- detectCores() - 16 
   cl <- makeCluster(num_cores)
   # Make sure libraries (adegenet, terra, etc.) are on cluster (but avoid printing output)
   invisible(clusterEvalQ(cl, library('adegenet')))
@@ -98,6 +102,7 @@ if(parFlag==TRUE){
   invisible(clusterEvalQ(cl, library('ape')))
   # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
   # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
+  ARTH_sdm_W <- wrap(ARTH_sdm)
   world_poly_clip_W <- wrap(world_poly_clip)
   ecoregion_poly_W <- wrap(ecoregion_poly)
 }
@@ -106,19 +111,22 @@ if(parFlag==TRUE){
 if(parFlag==TRUE){
   # Export necessary objects (genind, coordinate points, buffer size variables, polygons) to the cluster
   clusterExport(cl, varlist = c('ARTH_coordinates','ARTH_genind','num_reps','geo_buffSize', 'eco_buffSize',
-                                'world_poly_clip_W', 'ecoregion_poly_W'))
+                                'ARTH_sdm_W','world_poly_clip_W', 'ecoregion_poly_W'))
   # Export necessary functions (for calculating geographic and ecological coverage) to the cluster
-  clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres', 
-                                'eco.intersectBuff','eco.compareBuff','gen.getAlleleCategories', 
-                                'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
+  clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuffSDM','geo.checkSDMres',
+                                'geo.getSDMrast', 'workerProgressLog', 'eco.intersectBuff', 'eco.compareBuff', 
+                                'eco.totalEcoregionCount','geo.totalBuffArea','geo.totalSDMArea',
+                                'gen.getAlleleCategories', 'gen.buildDistMat', 'gen.calcGenDistCov',
                                 'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
   # Specify file path, for saving resampling array
-  arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO3_G2GE_5r_resampArr.Rdata')
+  arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO4_GG2E_5r_resampArr_1.Rdata')
   
-  # Run resampling (in parallel)
+  # Run resampling (in parallel). NOTE: geo.gen.Resample.Par now internally deduplicates the resampled 
+  # SDM rasters it builds/exports to the cluster (see geo.buildSDMrastList in functions_GeoGenCoverage.R), 
+  # instead of building/exporting one raster copy per geo_buffSize value. No call signature change needed here.
   ARTH_demoArray_Par <- 
-    geo.gen.Resample.Par(genObj = ARTH_genind, genDistFlag = TRUE, geoFlag = TRUE, coordPts = ARTH_coordinates, 
-                         geoBuff = geo_buffSize, boundary=world_poly_clip_W, ecoFlag = TRUE, 
+    geo.gen.Resample.Par(genObj = ARTH_genind, geoFlag = TRUE, coordPts = ARTH_coordinates, 
+                         geoBuff = geo_buffSize, SDMrast=ARTH_sdm_W, boundary=world_poly_clip_W, ecoFlag = TRUE, 
                          ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, ecoLayer = 'GL', 
                          reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
   # Close cores
@@ -128,7 +136,7 @@ if(parFlag==TRUE){
   arrayDir <- paste0(ARTH_filePath, 'resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata')
   # Run resampling not in parallel (for function testing purposes)
   ARTH_demoArray <-
-    geo.gen.Resample(genObj = ARTH_genind,  genDistFlag=FALSE, geoFlag = TRUE, coordPts = ARTH_coordinates,
+    geo.gen.Resample(genObj = ARTH_genind,  geoFlag = TRUE, coordPts = ARTH_coordinates,
                      geoBuff = geo_buffSize, boundary = world_poly_clip, ecoFlag = FALSE, 
                      ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly, ecoLayer = 'GL',
                      reps = 1)

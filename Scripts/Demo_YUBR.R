@@ -25,7 +25,7 @@ eco_buffSize <- 1000*(c(0.5,1,2,3,4,5,seq(10,100,5),seq(110,250,10),500))
 
 # ---- PARALLELIZATION
 # Set up relevant cores
-num_cores <- detectCores() - 4
+num_cores <- detectCores() - 6
 cl <- makeCluster(num_cores)
 # Make sure libraries (adegenet, terra, etc.) are on cluster (but avoid printing output)
 invisible(clusterEvalQ(cl, library('adegenet')))
@@ -47,9 +47,10 @@ YUBR_filePath <- paste0(GeoGenCorr_wd, 'Datasets/YUBR/')
 # the original CSV needs to be cleaned before it can be processed using the 
 # adegenet::read.structure function.
 
+# Read in and process genetic matrix provided in the Dryad repository for Royer et al. 2016. 
 # Read in the original CSV
 YUBR_struTable <- read.csv2(paste0(YUBR_filePath, 'Genetic/GoodLoci319Trees.csv'),
-                          header = TRUE, sep = ",")
+                            header = TRUE, sep = ",")
 # Remove 2nd column of the genetic matrix, which stores the "frequency" values
 YUBR_struTable <- YUBR_struTable[,-2]
 # Write a ".stru" file based on the genetic matrix, converting the commas to spaces
@@ -60,7 +61,7 @@ rm(YUBR_struTable)
 # Read in the reformatted STRUCTURE file 
 YUBR_genind <- read.structure(file=paste0(YUBR_filePath, 'Genetic/GoodLoci319Trees.stru'), 
                               n.ind = 319, n.loc = 9516, onerowperind = FALSE, col.lab = 1, 
-                              col.pop = 0, row.marknames = 0, sep = ' ', ask = FALSE)
+                              col.pop = 0, NA.char='0', ask = FALSE)
 # Delete the ".stru" file just written to the directory
 file.remove(paste0(YUBR_filePath, 'Genetic/GoodLoci319Trees.stru'))
 # Reprocess the names of the individuals (in order to allow for matching with
@@ -129,10 +130,10 @@ clusterExport(cl, varlist = c('createBuffers','geo.compareBuff','geo.compareBuff
                               'gen.buildDistMat', 'gen.calcGenDistCov', 'eco.totalEcoregionCount',
                               'calculateCoverage','exSituResample.Par', 'geo.gen.Resample.Par'))
 # Specify file path, for saving resampling array
-arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO3_G2G2E_resampArr.Rdata')
+arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO4_G2E_resampArr.Rdata')
 # Run resampling (in parallel)
 YUBR_demoArray_Par <- 
-  geo.gen.Resample.Par(genObj = YUBR_genind, genDistFlag=TRUE, geoFlag=TRUE, coordPts = YUBR_coordinates, 
+  geo.gen.Resample.Par(genObj = YUBR_genind, geoFlag=TRUE, coordPts = YUBR_coordinates, 
                        geoBuff = geo_buffSize,SDMrast = YUBR_sdm_W, boundary=world_poly_clip_W, 
                        ecoFlag = TRUE, ecoBuff = eco_buffSize, ecoRegions = ecoregion_poly_W, 
                        ecoLayer = 'US', reps = num_reps, arrayFilepath = arrayDir, cluster = cl)
@@ -285,25 +286,21 @@ legend(x=200, y=85, inset = 0.05, xpd=TRUE,
        legend = c('Genetic coverage', 'Geographic, Total buffer (1 km)', 'Geographic, SDM (1 km)'),
        col=plotColors, pch = c(20,20,20), cex=0.9, pt.cex = 2, bty='n', y.intersp = 0.8)
 
-# %%%% SMBO3 ----
+# %%%% SMBO4 ----
 # Specify filepath for YUBR geographic and genetic data, including resampling array
 YUBR_filePath <- paste0(GeoGenCorr_wd, 'Datasets/YUBR/')
-arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO3_G2G2E_resampArr.Rdata')
+arrayDir <- paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO4_G2E_resampArr.Rdata')
 # Read in array
-YUBR_SMBO3_array <- readRDS(arrayDir)
+YUBR_SMBO4_array <- readRDS(arrayDir)
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
-YUBR_SMBO3_DF <- resample.array2dataframe(YUBR_SMBO3_array)
+YUBR_SMBO4_DF <- resample.array2dataframe(YUBR_SMBO4_array)
 # Build tables of NRSMSE values, calculated based on data.frame
-YUBR_NRMSE_Mat_CV <- buildNRMSEmatrix(resampDF=YUBR_SMBO3_DF, genCovType='CV', sdmFlag=TRUE)
-YUBR_NRMSE_Mat_GD <- buildNRMSEmatrix(resampDF=YUBR_SMBO3_DF, genCovType='GD', sdmFlag=TRUE)
-# Combine the results of the NRMSE values calculated using allelic coverages and using
-# genetic distances, and then rename the columns accordingly
-YUBR_NRMSE_Mat <- cbind(YUBR_NRMSE_Mat_CV, YUBR_NRMSE_Mat_GD)
+YUBR_NRMSE_Mat <- buildNRMSEmatrix(resampDF=YUBR_SMBO4_DF, genCovType='CV', sdmFlag=TRUE)
 # Store the matrix as a CSV to disk
 write.table(YUBR_NRMSE_Mat,
-            file=paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO3_NRMSE.csv'), sep=',')
+            file=paste0(YUBR_filePath, 'resamplingData/YUBR_SMBO4_NRMSE.csv'), sep=',')
 
 # ---- PLOTTING ----
 # Specify plot colors
