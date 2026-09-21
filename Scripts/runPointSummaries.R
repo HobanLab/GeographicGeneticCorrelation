@@ -27,13 +27,13 @@ pointsData <- pointsData[grep('Geographic', pointsData)]
 # Select one coordinate file per species
 amth <- pointsData[grepl(pattern ="AMTH", pointsData)][2] # Necessary due to 2nd (original) coordinate file
 arth <- pointsData[grepl(pattern ="ARTH", pointsData)][2] # Necessary due to 2nd (original) coordinate file
-cogl <- pointsData[grepl(pattern ="COGL", pointsData)]
+cogl <- pointsData[grepl(pattern ="COGL", pointsData)][2] # Necessary due to 2nd (original) coordinate file
 hiwa <- pointsData[grepl(pattern ="HIWA", pointsData)][2] # Necessary due to 2nd (original) coordinate file
 migu <- pointsData[grepl(pattern ="MIGU", pointsData)][2] # Necessary because of a 2nd file of global coordinates
-pico <- pointsData[grepl(pattern ="PICO", pointsData)]
+pico <- pointsData[grepl(pattern ="PICO", pointsData)][2] # Necessary due to 2nd (original) coordinate file
 quac <- pointsData[grepl(pattern ="QUAC", pointsData)]
 qulo <- pointsData[grepl(pattern ="QULO", pointsData)]
-vila <- pointsData[grepl(pattern ="VILA", pointsData)]
+vila <- pointsData[grepl(pattern ="VILA", pointsData)][1] # Necessary due coordinate file including hybrid samples
 yubr <- pointsData[grepl(pattern ="YUBR", pointsData)][2] # Necessary due to 2nd (original) coordinate file
 
 # Build a list of the relevant files, and fields within those files, for each dataset.
@@ -56,7 +56,7 @@ pointsDataList <- list(
     dplyr::select(taxon, lat = Latitude , lon = Longitude), 
   pico = read_csv(pico) |> 
     dplyr::mutate(taxon = "PICO")|>
-    dplyr::select(taxon, lat = Latitude , lon = Longitude),
+    dplyr::select(taxon, lat = decimalLatitude , lon = decimalLongitude),
   quac = read_csv(quac)|> 
     dplyr::mutate(taxon = "QUAC")|>
     dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude), 
@@ -85,29 +85,24 @@ rownames(pointSummariesMat) <- c("EOO", "AOO", "ANN", "VOR", "STD", "ELA", "ELP"
 # the optimal buffer size for each dataset (and for each relevant coverage type) needs to be appended
 # to the matrix of point summary values.
 
-# Specify the filepaths to the resampling array for each dataset
+# Specify the filepaths to the resampling array for each dataset. These were updated based on most recent runs.
 resampArrList <- list(
-  AMTH=paste0(GeoGenCorr_wd, 'Datasets/AMTH/resamplingData/AMTH_SMBO2_GE_5r_resampArr.Rdata'),
+  AMTH=paste0(GeoGenCorr_wd, 'Datasets/AMTH/resamplingData/AMTH_SMBO4_G2GE_5r_resampArr.Rdata'),
   ARTH=paste0(GeoGenCorr_wd, 'Datasets/ARTH/resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata'),
-  COGL=paste0(GeoGenCorr_wd, 'Datasets/COGL/resamplingData/COGL_SMBO2_GE_5r_resampArr.Rdata'),
-  HIWA=paste0(GeoGenCorr_wd, 'Datasets/HIWA/resamplingData/HIWA_SMBO2_GE_5r_resampArr.Rdata'),
+  COGL=paste0(GeoGenCorr_wd, 'Datasets/COGL/resamplingData/COGL_SMBO4_G2GE_5r_resampArr.Rdata'),
+  HIWA=paste0(GeoGenCorr_wd, 'Datasets/HIWA/resamplingData/HIWA_SMBO4_G2GE_5r_resampArr.Rdata'),
   MIGU=paste0(GeoGenCorr_wd, 'Datasets/MIGU/resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata'),
   PICO=paste0(GeoGenCorr_wd, 'Datasets/PICO/resamplingData/SMBO2_G2E/PICO_SMBO2_G2E_5r_resampArr.Rdata'),
   QUAC=paste0(GeoGenCorr_wd, 'Datasets/QUAC/resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata'),
-  QULO=paste0(GeoGenCorr_wd, 'Datasets/QULO/resamplingData/SMBO2/QULO_SMBO2_G2E_5r_resampArr.Rdata'),
-  VILA=paste0(GeoGenCorr_wd, 'Datasets/VILA/resamplingData/VILA_SMBO2_5r_resampArr.Rdata'),
-  YUBR=paste0(GeoGenCorr_wd, 'Datasets/YUBR/resamplingData/YUBR_SMBO2_G2E_resampArr.Rdata')
+  QULO=paste0(GeoGenCorr_wd, 'Datasets/QULO/resamplingData/QULO_SMBO4_GG2E_5r_resampArr.Rdata'),
+  VILA=paste0(GeoGenCorr_wd, 'Datasets/VILA/resamplingData/VILA_SMBO4_5r_resampArr.Rdata'),
+  YUBR=paste0(GeoGenCorr_wd, 'Datasets/YUBR/resamplingData/YUBR_SMBO4_G2E_resampArr.Rdata')
 )
 # Based on data in resampling arrays, extract the optimal buffer sizes for each species
 optBuffs <- lapply(resampArrList, extractOptBuffs)
-# For datasets without SDM values, add a column (in order to match dimensions with other datasets)
-optBuffs$AMTH <- c(optBuffs$AMTH[[1]],NA,optBuffs$AMTH[[2]])
+# For datasets without SDM values (just ARTH), add a column (in order to match dimensions with other datasets)
 optBuffs$ARTH <- c(optBuffs$ARTH[[1]],NA,optBuffs$ARTH[[2]])
-optBuffs$COGL <- c(optBuffs$COGL[[1]],NA,optBuffs$COGL[[2]])
-optBuffs$HIWA <- c(optBuffs$HIWA[[1]],NA,optBuffs$HIWA[[2]])
-optBuffs$VILA <- c(optBuffs$VILA[[1]],NA,optBuffs$VILA[[2]])
-names(optBuffs$AMTH) <- names(optBuffs$ARTH) <- names(optBuffs$COGL)<- names(optBuffs$HIWA) <- 
-  names(optBuffs$VILA) <- names(optBuffs$QULO)
+names(optBuffs$ARTH) <- names(optBuffs$COGL)
 # Convert the list of optimal buffer size values to a matrix
 optBuffsMat <- matrix(unlist(optBuffs), ncol = length(optBuffs), byrow = FALSE)
 colnames(optBuffsMat) <- names(optBuffs)
@@ -143,15 +138,17 @@ corMat_SMBO$P <- adj_pMat # Reassign corrected p values in correlation matrix
 # Plot correlation matrix using corrplot. Label significant correlations using
 # asterisks
 corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P, 
-         sig.level = 0.01, insig = "label_sig", diag = FALSE)
+         sig.level = 0.01, insig = "label_sig", diag = FALSE, 
+         pch.col = 'white', pch.cex = 1.8)
 
 # Write image to disc
 imageOutDir <- 
-  '/home/akoontz/Documents/GeoGenCorr/Documentation/Images/20250813_MANUSCRIPT_DRAFT4/corMat_adjPvalues.png'
+  '/home/akoontz/Documents/GeoGenCorr/Documentation/Images/2026-08-19_corMat_adjPvalues.png'
 png(filename=imageOutDir, width=900, height=760)
 par(oma=c(0,0,3,0), mar=c(5,4,7,2)+0.1)
 corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P, 
-         sig.level = 0.01, insig = "label_sig", diag = FALSE, cl.cex = 1.4, tl.cex=1.2)
+         sig.level = 0.01, insig = "label_sig", diag = FALSE, cl.cex = 1.4, tl.cex=1.2,
+         pch.col = 'white', pch.cex = 1.8)
 title('Correlations: Spatial statistics', line = 5.6, cex.main=1.3)
 dev.off() # Turn off plotting device
 
