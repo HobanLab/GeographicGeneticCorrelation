@@ -120,8 +120,9 @@ geo.calc.AOO <- function(data, cellsize = 2000){
   occupiedCells <- sum(occupied > 0)
   # Area of occupancy (km2) and percent of cells occupied
   cellArea <- (cellsize / 1000)^2
-  data.frame(AOO_km2 = occupiedCells * cellArea,
+  output <- data.frame(AOO_km2 = occupiedCells * cellArea,
              AOO_pct = occupiedCells / length(mcpCells) * 100)
+  return(output)
 }
 
 #' geo.calc.averageNearestNeighbor 
