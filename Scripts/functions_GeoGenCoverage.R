@@ -36,8 +36,12 @@ createBuffers <- function(df, radius=1000, ptProj='+proj=longlat +datum=WGS84',
   # Place buffer around each point, then dissolve into one polygon
   buffers <- terra::buffer(proj_df, width=radius)
   buffers <- terra::aggregate(buffers, dissolve = TRUE)
-  # Clip by boundary, so buffers don't extend into the water
-  boundary <- terra::project(boundary, buffProj)
+  # Clip by boundary, so buffers don't extend into the water. Skip reprojection if boundary is already 
+  # in the target projection -- avoids redundant reprojection when the caller (e.g. calculateCoverage) 
+  # has already projected boundary once for the whole call, rather than on every buffer operation.
+  if(!terra::same.crs(boundary, buffProj)){
+    boundary <- terra::project(boundary, buffProj)
+  }
   buffers_clip <- terra::crop(buffers, boundary)
   # Return buffer polygons
   return(buffers_clip)
@@ -49,7 +53,8 @@ createBuffers <- function(df, radius=1000, ptProj='+proj=longlat +datum=WGS84',
 # dataframe to create a separate "ex situ" spatial object. Then, the createBuffers function is used to 
 # place buffers around all wild points and the sample, and then the proportion of the total area covered 
 # is calculated
-geo.compareBuff <- function(totalWildPoints, sampVect, buffSize, ptProj, buffProj, boundary, parFlag=FALSE){
+geo.compareBuff <- function(totalWildPoints, sampVect, buffSize, ptProj, buffProj, boundary, 
+                            geoTotalArea=NULL, parFlag=FALSE){
   # If running in parallel: world polygon shapefile needs to be 'unwrapped', 
   # after being exported to cluster
   if(parFlag==TRUE){
@@ -57,14 +62,19 @@ geo.compareBuff <- function(totalWildPoints, sampVect, buffSize, ptProj, buffPro
   }
   # Select "ex situ" coordinates by subsetting totalWildPoints data.frame, according to sampVect
   exSitu <- totalWildPoints[sort(match(sampVect, totalWildPoints[,1])),]
-  # Create buffers around selected (exSitu) wild points and around all (total) occurrences 
+  # Create buffers around selected (exSitu) wild points 
   geo_exSitu <- createBuffers(exSitu, buffSize, ptProj, buffProj, boundary)
-  geo_total <- createBuffers(totalWildPoints, buffSize, ptProj, buffProj, boundary)
-  # Calculate the area under both buffers. The 1,000,000 value converts values to km²
+  # Calculate the area under the exSitu buffer. The 1,000,000 value converts values to km²
   geo_exSituArea <- expanse(geo_exSitu)/1000000
-  geo_totalArea <- expanse(geo_total)/1000000
+  # If a precomputed total buffer area wasn't provided, compute it here (original behavior). The total 
+  # area (all wild points) is constant for a given buffSize -- see geo.totalBuffArea(), which precomputes 
+  # this once per buffer size, rather than it being redundantly recomputed on every call here.
+  if(is.null(geoTotalArea)){
+    geo_total <- createBuffers(totalWildPoints, buffSize, ptProj, buffProj, boundary)
+    geoTotalArea <- expanse(geo_total)/1000000
+  }
   # Calculate the proportion of the ex situ buffer areas to the total buffer area (percent geographic coverage)
-  geo_Coverage <- (geo_exSituArea/geo_totalArea)*100
+  geo_Coverage <- (geo_exSituArea/geoTotalArea)*100
   return(geo_Coverage)
 }
 
@@ -75,43 +85,81 @@ geo.compareBuff <- function(totalWildPoints, sampVect, buffSize, ptProj, buffPro
 # "ex situ" spatial object. Then, the createBuffers function is used to place buffers around sampled
 # points, and the proportion of the total area covered is calculated. Authored by Dan Carver
 geo.compareBuffSDM <- function(totalWildPoints, sampVect, buffSize, model, ptProj, buffProj, 
-                               boundary, parFlag=FALSE){
+                               boundary, geoTotalArea_SDM=NULL, parFlag=FALSE){
   # If running in parallel, unwrap spatial features 
   if(parFlag==TRUE){
     boundary <- unwrap(boundary)
     model <- unwrap(model)
   }
-  # Generate a mask of the model layer by converting all 0 values to NA  
-  m <- c(0, 0, NA)
-  mask <- model |>
-    classify(m)
   # Select "ex situ" coordinates by subsetting totalWildPoints data.frame, according to sampVect
   exSitu <- totalWildPoints[sort(match(sampVect, totalWildPoints[,1])),]
-  # Create buffers around selected (exSitu) wild points and around all (total) occurrences 
+  # Create buffers around selected (exSitu) wild points 
   geo_exSitu <- createBuffers(exSitu, buffSize, ptProj, buffProj, boundary) |>
     # Reproject to match crs of smd object 
-      terra::project(mask)
+    terra::project(model)
+  # Crop the (potentially very large, e.g. disaggregated global-extent) raster down to just the buffer's 
+  # local extent BEFORE doing any pixel-level operations. A single buffer covers a tiny fraction of a 
+  # global raster; classify/rasterize/multiply/cellSize on the full raster for every sample was the actual 
+  # dominant per-call cost -- not redundant repetition (already fixed), but legitimate work sized to the 
+  # whole raster instead of the small area actually needed. geoTotalArea_SDM (the denominator) is computed 
+  # separately, from the uncropped raster, so this does not change what's being measured -- only how much 
+  # irrelevant area gets processed to compute the ex situ buffer's area.
+  modelCrop <- terra::crop(model, geo_exSitu)
+  # Generate a mask of the (cropped) model layer by converting all 0 values to NA  
+  m <- c(0, 0, NA)
+  mask <- modelCrop |>
+    classify(m)
   # Rasterize 
   buffRast <- geo_exSitu |>
     terra::rasterize(mask)
   # Apply mask
   buffMask <- buffRast * mask
-  # Calculate the area under both rasters in km²
+  # Calculate the area under the exSitu raster in km²
   geo_exSituArea <- terra::cellSize(buffMask, mask= TRUE, unit = "km") |>
     terra::values()|>
     sum(na.rm = TRUE)
-  geo_totalArea <- terra::cellSize(mask, mask= TRUE, unit = "km") |>
-    terra::values()|>
-    sum(na.rm = TRUE)
+  # If a precomputed total SDM area wasn't provided, compute it here (original behavior) -- from the FULL, 
+  # uncropped raster, since the total area denominator must reflect the entire SDM extent. This total area 
+  # depends only on the model raster -- not on buffSize or sample -- see geo.totalSDMArea(), which 
+  # precomputes this once for the whole run, rather than it being redundantly recomputed on every call here
+  # (this was especially costly given the size of the SDM raster).
+  if(is.null(geoTotalArea_SDM)){
+    geoTotalArea_SDM <- terra::cellSize(model |> classify(m), mask= TRUE, unit = "km") |>
+      terra::values()|>
+      sum(na.rm = TRUE)
+  }
   # Calculate the proportion of the ex situ buffer areas to the total buffer area (percent geographic coverage)
-  geo_Coverage <- (geo_exSituArea/geo_totalArea)*100
+  geo_Coverage <- (geo_exSituArea/geoTotalArea_SDM)*100
   return(geo_Coverage)
 }
 
+# DIAGNOSTIC HELPER: prints a timestamped system memory snapshot (via `free -h`) to stdout. Used to bracket 
+# major steps in geo.gen.Resample.Par, to identify exactly which step memory usage climbs during. Read-only; 
+# does not affect any computation.
+memCheck <- function(label){
+  cat(paste0('\n@@@ MEM CHECK [', label, '] ', Sys.time(), ' @@@\n'))
+  cat(paste(system('free -h', intern=TRUE), collapse='\n'))
+  cat('\n')
+}
+
+# WORKER FUNCTION: writes a timestamped progress+memory checkpoint to a per-worker log file, every 
+# `every` samples. Worker stdout is NOT visible in the master's nohup.out during parSapply execution (PSOCK 
+# workers' output is not forwarded by default), so this is the only way to see what a worker was doing --  
+# and what memory looked like -- at the moment it stops responding. logDir must be a location visible to 
+# all workers (e.g. shared with the master, same as SDMrast_files); defaults to tempdir().
+workerProgressLog <- function(sampleIndex, every=1, logDir=tempdir()){
+  if(sampleIndex %% every != 0) return(invisible(NULL))
+  logFile <- file.path(logDir, paste0('worker_', Sys.getpid(), '_progress.log'))
+  memInfo <- paste(system('free -h', intern=TRUE), collapse=' | ')
+  cat(paste0(Sys.time(), ' | sample ', sampleIndex, ' | ', memInfo, '\n'), file=logFile, append=TRUE)
+}
+
 # WORKER FUNCTION: This function compares the resolution of a raster argument to the geographic buffer size 
-# being used. If the buffer size is smaller than the raster resolution, a warning is given, and the SDM 
-# is resampled (scaled) to a lower resolution. (Without this scaling, geographic coverage commands will 
-# throw an error). Authored by Dan Carver.
+# being used, and returns the disaggregation scale factor needed (1 = no resampling needed). Does NOT return
+# a raster copy itself -- see geo.buildSDMscaleFactors()/geo.getSDMrast(), which use this to avoid building 
+# or broadcasting a resampled raster per buffer size (most buffer sizes typically need no resampling, or 
+# share the same scale factor).
+# Authored by Dan Carver; modified to return only a scale factor.
 geo.checkSDMres <- function(buffSize, raster, parFlag=FALSE){
   # If running in parallel, unwrap the raster argument
   if(parFlag==TRUE){
@@ -121,21 +169,88 @@ geo.checkSDMres <- function(buffSize, raster, parFlag=FALSE){
   buffSizeDegree <- buffSize * 0.000012726903908907691
   # Extract the raster resolution
   sdmDegree <- terra::res(raster)[1]
-  # If geographic buffer less than SDM resolution, give a warning and resample SDM to smaller resolution
+  # If geographic buffer less than SDM resolution, give a warning and flag that resampling is needed
   if(buffSizeDegree < sdmDegree){
-    warning(paste0('SDM provided has a resolution larger than geographic buffer size (',
-                buffSize, ' km). SDM will be resampled to a smaller resolution.'))
-    # Resample the raster to a smaller cell size, based on scaling factor
     scaleFactor <- ceiling(sdmDegree / buffSizeDegree)
-    raster <- terra::disagg(raster, scaleFactor) 
+    warning(paste0('SDM provided has a resolution larger than geographic buffer size (',
+                   buffSize, ' m). SDM will be resampled to a smaller resolution (scale factor: ', 
+                   scaleFactor, ').'))
+  } else {
+    scaleFactor <- 1
   }
-  # If running in parallel, rewrap the raster argument
-  if(parFlag==TRUE){
-    raster <- wrap(raster)
-  }
-  # Return the raster
-  return(raster)
+  # Return the scale factor (not a raster)
+  return(scaleFactor)
 }
+
+# WORKER FUNCTION: Given a vector of geographic buffer sizes and a single SDM raster, determine the 
+# disaggregation scale factor needed for EACH buffer size. Unlike the earlier geo.buildSDMrastList, this 
+# does NOT build or return any resampled raster -- it only returns the small numeric scale-factor vector. 
+# Building the (potentially much larger, disaggregated) raster is deferred to each worker individually, 
+# via geo.getSDMrast() below -- this avoids the master building a large disaggregated raster and 
+# broadcasting a full copy of it to every cluster worker via clusterExport, which was very costly for a 
+# global-extent SDM raster.
+geo.buildSDMscaleFactors <- function(geoBuff, raster, parFlag=FALSE){
+  sapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=raster, parFlag=parFlag))
+}
+
+# WORKER FUNCTION: Returns a (locally cached, per-worker) version of the SDM raster, resampled to the given 
+# scale factor. If a pre-written file path is available for this scale factor (SDMrast_files -- written 
+# ONCE by the master via geo.buildSDMrastFiles, for scale factors > 1), the raster is read from disk, 
+# which is disk-backed/lightweight rather than a full in-memory disaggregation. This avoids every worker 
+# independently disaggregating the same raster in memory at once (a "thundering herd" at the start of 
+# resampling, when all workers begin their first task simultaneously). If no file is available (scale 
+# factor 1, or SDMrast_files not provided), falls back to unwrapping/disaggregating SDMrast_orig directly. 
+# Either way, the result is cached in a persistent cache environment so all subsequent calls -- across 
+# every sample and every replicate processed by that worker -- reuse the cached version. The cache 
+# environment (.sdmRastCache) is created lazily, in whichever session's global environment this function 
+# is running in, the first time it's called -- this makes the function self-contained: it does NOT rely on 
+# the cache being separately shipped to or initialized on each worker (a function's free variables, when 
+# the function is defined at top level, resolve in whichever R session's global environment it is actually 
+# running in -- so a cache created only on the master would not be visible to workers; each worker needs, 
+# and now gets, its own).
+geo.getSDMrast <- function(scaleFactor, SDMrast_orig, SDMrast_files=NULL){
+  if(!exists('.sdmRastCache', envir=.GlobalEnv)){
+    assign('.sdmRastCache', new.env(), envir=.GlobalEnv)
+  }
+  cache <- get('.sdmRastCache', envir=.GlobalEnv)
+  key <- as.character(scaleFactor)
+  if(!exists(key, envir=cache)){
+    if(scaleFactor > 1 && !is.null(SDMrast_files) && key %in% names(SDMrast_files)){
+      r <- terra::rast(SDMrast_files[[key]])
+    } else {
+      r <- unwrap(SDMrast_orig)
+      if(scaleFactor > 1){
+        r <- terra::disagg(r, scaleFactor)
+      }
+    }
+    assign(key, r, envir=cache)
+  }
+  return(get(key, envir=cache))
+}
+
+# MASTER-SIDE FUNCTION: For each DISTINCT scale factor > 1 required across a set of buffer sizes, 
+# disaggregate the SDM raster ONCE and write the result to a GeoTIFF file (in a location accessible to 
+# both the master and all cluster workers, since a local PSOCK cluster's workers share the master's 
+# filesystem). Returns a named vector of file paths (keyed by scale factor, as a string), which is small 
+# and cheap to clusterExport -- unlike broadcasting the disaggregated raster object(s) themselves. Workers 
+# then read these files via geo.getSDMrast(), rather than each independently disaggregating in memory.
+geo.buildSDMrastFiles <- function(scaleFactors, raster, parFlag=FALSE, outDir=tempdir()){
+  uniqueFactors <- unique(scaleFactors)
+  uniqueFactors <- uniqueFactors[uniqueFactors > 1]
+  if(length(uniqueFactors) == 0){
+    return(NULL)
+  }
+  files <- sapply(uniqueFactors, function(sf){
+    r <- if(parFlag==TRUE) unwrap(raster) else raster
+    r <- terra::disagg(r, sf)
+    fp <- file.path(outDir, paste0('SDMrast_scaleFactor', sf, '.tif'))
+    terra::writeRaster(r, fp, overwrite=TRUE)
+    fp
+  })
+  names(files) <- as.character(uniqueFactors)
+  return(files)
+}
+
 
 # WORKER FUNCTION: Create a data.frame with ecoregion data extracted for area covered by buffers
 eco.intersectBuff <- function(df, buffSize, ptProj, buffProj, ecoRegion, boundary, parFlag=FALSE){
@@ -146,10 +261,22 @@ eco.intersectBuff <- function(df, buffSize, ptProj, buffProj, ecoRegion, boundar
   }
   # Create buffers
   buffers <- createBuffers(df, buffSize, ptProj, buffProj, boundary)
-  # Make sure ecoregions are in same projection as buffers
-  ecoProj <- terra::project(ecoRegion, buffProj)
-  # Intersect buffers with ecoregions, and return
-  ecoBuffJoin <- terra::intersect(buffers, ecoProj)
+  # Make sure ecoregions are in same projection as buffers. Skip reprojection if already in the target 
+  # projection -- avoids redundantly reprojecting the (large, global) ecoregions layer on every call.
+  if(!terra::same.crs(ecoRegion, buffProj)){
+    ecoProj <- terra::project(ecoRegion, buffProj)
+  } else {
+    ecoProj <- ecoRegion
+  }
+  # Crop the (large, global) ecoregion polygon down to just the buffers' extent BEFORE intersecting. 
+  # A buffer around a handful of points covers a small fraction of a global ecoregion layer's extent; 
+  # intersecting against the full layer for every sample is the same class of oversized-per-call-work 
+  # problem already fixed for the SDM raster (geo.compareBuffSDM crop) -- this had not yet been applied 
+  # here. Cropping first can only remove features that couldn't intersect anyway, so this does not 
+  # change the result.
+  ecoProjCrop <- terra::crop(ecoProj, buffers)
+  # Intersect buffers with (cropped) ecoregions, and return
+  ecoBuffJoin <- terra::intersect(buffers, ecoProjCrop)
   return(ecoBuffJoin)
 }
 
@@ -226,6 +353,40 @@ eco.totalEcoregionCount <- function(totalWildPoints, buffSize, ptProj, buffProj,
   return(eco_totalCount)
 }
 
+# WORKER FUNCTION: Analogous to eco.totalEcoregionCount, but for the geographic buffer approach: computes 
+# the TOTAL buffered area (all wild points) for a given buffer size, ONCE. This value is constant across 
+# all samples/reps for a given buffer size, so precomputing it (rather than recomputing it inside every 
+# geo.compareBuff call) avoids substantial redundant buffer/aggregate/crop computation.
+geo.totalBuffArea <- function(totalWildPoints, buffSize, ptProj, buffProj, boundary, parFlag=FALSE){
+  # If running in parallel: world polygon shapefile needs to be 'unwrapped', after being exported to cluster
+  if(parFlag==TRUE){
+    boundary <- unwrap(boundary)
+  }
+  # Create buffer around all (total) occurrences, and calculate area in km²
+  geo_total <- createBuffers(totalWildPoints, buffSize, ptProj, buffProj, boundary)
+  geo_totalArea <- expanse(geo_total)/1000000
+  return(geo_totalArea)
+}
+
+# WORKER FUNCTION: Analogous to geo.totalBuffArea, but for the SDM-based approach: computes the total 
+# masked SDM area, ONCE. This value does not depend on buffSize or sample -- only on the SDM raster 
+# (model) -- so it only needs to be computed a single time per run, rather than recomputed inside every 
+# geo.compareBuffSDM call (which is especially costly for a large raster).
+geo.totalSDMArea <- function(model, parFlag=FALSE){
+  # If running in parallel, unwrap the raster argument
+  if(parFlag==TRUE){
+    model <- unwrap(model)
+  }
+  # Generate a mask of the model layer by converting all 0 values to NA
+  m <- c(0, 0, NA)
+  mask <- model |> classify(m)
+  # Calculate the total area under the mask, in km²
+  geo_totalArea <- terra::cellSize(mask, mask=TRUE, unit="km") |>
+    terra::values() |>
+    sum(na.rm=TRUE)
+  return(geo_totalArea)
+}
+
 # WORKER FUNCTION: Function for reporting representation rates, given (1) a genetic matrix,
 # which includes ALL samples, and (2) a vector of sample names, which represents the samples
 # of interest to calculate genetic coverage for. The function first builds a vector of allele
@@ -244,7 +405,8 @@ gen.getAlleleCategories <- function(genMat, sampNames){
   # Remove absent alleles. Conditional is to accommodate sample sizes of 1
   if(length(sampNames) == 1){
     # Remove any missing alleles from the sample "matrix" (vector)
-    sampMat <- sampMat[which(sampMat != 0)]
+    sampMat <- sampMat[!is.na(sampMat) & sampMat != 0]
+    # sampMat <- sampMat[which(sampMat != 0)]
     # Capture names of present alleles in sample "matrix" (vector)
     sampAlleleNames <- names(sampMat)
   } else {
@@ -326,8 +488,10 @@ gen.calcGenDistCov <- function(distMat, sampVect){
 # which involves using buffered areas). Both geoBuff and ecoBuff can be single values or
 # a vector of values, in which case multiple geographic/ecological coverages are calculated
 # according to each buffer value.
-calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geoBuff, 
-                              SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
+calculateCoverage <- function(genMat, genType=c('CV','DI','EN','AN','EE','HE'), 
+                              genDistMat=NA, genCHGeno=NA, geoFlag=TRUE, coordPts, 
+                              geoBuff, SDMrast=NA, SDMrast_scaleFactor=NULL, SDMrast_files=NULL, geoTotalArea=NULL, 
+                              geoTotalArea_SDM=NULL, ptProj='+proj=longlat +datum=WGS84', 
                               buffProj='+proj=eqearth +datum=WGS84', boundary, 
                               ecoFlag=FALSE, ecoBuff, ecoTotalCount, ecoRegions, 
                               ecoLayer=c('US','NA','GL'), parFlag=FALSE, numSamples){
@@ -336,22 +500,77 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
   # be used for all downstream coverage calculations within this function. The sampNames object
   # is simply the vector of sample names.
   sampNames <- sample(rownames(genMat), numSamples)
+  # Log progress (every 20 samples) to a per-worker file -- worker stdout isn't visible in nohup.out during 
+  # parSapply execution, so this is the only way to see how far a worker got, and what memory looked like, 
+  # if it stops responding.
+  if(parFlag==TRUE){
+    workerProgressLog(sampleIndex=numSamples)
+  }
   
   # GENETIC PROCESSING
-  # Genetic coverage: calculate sample's allelic representation
-  genRates <- gen.getAlleleCategories(genMat, sampNames)
-  # Check if genetic distance matrix was passed down by upper level functions;
-  # if so, calculate coverages using a distance metric (in addition to allelic coverage)
-  if(class(genDistMat)=='logical'){
+  # Conditionals below capture different gen. metrics; first is "standard" (default) allelic coverage
+  if(genType=='CV'){
+    # Genetic coverage: calculate sample's allelic representation
+    genRates <- gen.getAlleleCategories(genMat, sampNames)
     # Subset matrix returned by getAlleleCategories to just 3rd column (representation rates), and return
     genRates <- genRates[,3]
-  } else {
+  }
+  # Calculate total genetic distance
+  if(genType=='DI'){
+    # Ensure the genetic distance matrix has been provided
+    if(class(genDistMat)=='logical'){
+      stop('Genetic distance matrix must be provided when specifying DI genType!')
+    }
     # Pass distance matrix and sample name vector to function calculating  
     # proportion of total pairwise genetic distances represented in sample
     genDistCov <- gen.calcGenDistCov(distMat=genDistMat, sampVect=sampNames)
     # Append the resulting coverage value to the allelic coverages
     genRates <- c(genRates[,3], genDistCov)
     names(genRates)[6] <- 'GenDist'
+  }
+  # Calculate CoreHunter metrics
+  if (genType %in% c('EN', 'AN', 'EE', 'HE')){
+    # Ensure the CoreHunter genotype object has been provided
+    if(length(class(genCHGeno))==1){
+      stop('CoreHunter genotype object must be provided when specifying EN, AN, EE, or HE genType!')
+    }
+    # Calculate genRate value using corehunter::evaluateCore function
+    genRates <- evaluateCore(sampNames, genCHGeno, objective = objective(type = genType))
+    names(genRates) <- paste0('CH_',genType)
+  }
+  
+  # If running in parallel, unwrap spatial objects ONCE per calculateCoverage call (i.e. once per sample),
+  # rather than once per buffer size inside each geo.compareBuff/geo.compareBuffSDM/eco.compareBuff call below.
+  # Previously, a single calculateCoverage call could re-unwrap boundary/ecoRegions/SDM rasters from their 
+  # packed form dozens of times (once per buffer size, per geo/eco function) -- across many samples, buffer 
+  # sizes, and reps, this adds up to hundreds of thousands of redundant unwrap() calls cluster-wide, which was 
+  # causing memory to climb quickly. Downstream calls receive parFlag=FALSE, since the objects passed to them
+  # below are now already live (unwrapped) -- this matches how the non-parallel path already calls them.
+  if(parFlag==TRUE){
+    if(geoFlag==TRUE || ecoFlag==TRUE){
+      boundary <- unwrap(boundary)
+    }
+    if(ecoFlag==TRUE){
+      ecoRegions <- unwrap(ecoRegions)
+    }
+    parFlag <- FALSE
+  }
+  # Note: SDMrast is intentionally NOT unwrapped here. It stays as the single, small, wrapped original 
+  # raster; geo.getSDMrast() (called below, in the SDM branch) unwraps and -- if needed -- disaggregates 
+  # it, caching the result in a persistent, worker-local cache so the (potentially expensive) 
+  # disaggregation only happens once per worker for the life of the run, rather than once per call, and 
+  # so the disaggregated raster is never itself broadcast over the network.
+  # Reproject boundary/ecoRegions ONCE per calculateCoverage call, rather than inside every downstream 
+  # buffer/intersect operation (createBuffers/eco.intersectBuff now skip their own internal reprojection 
+  # when the object they receive is already in the target projection -- see the terra::same.crs() checks 
+  # there). For the GLOBAL ecoregions layer in particular, reprojection is expensive; this was previously 
+  # being repeated on every one of the ~41 buffer-size iterations, for every sample, for every rep. This 
+  # step runs regardless of parFlag, so the non-parallel path benefits too.
+  if(geoFlag==TRUE || ecoFlag==TRUE){
+    boundary <- terra::project(boundary, buffProj)
+  }
+  if(ecoFlag==TRUE){
+    ecoRegions <- terra::project(ecoRegions, buffProj)
   }
   
   # GEOGRAPHIC PROCESSING
@@ -366,20 +585,26 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
     # geo.compareBuff worker function, which will calculate the proportion of area covered in the 
     # random sample. 
     geoRates <- 
-      lapply(geoBuff, function(x) geo.compareBuff(totalWildPoints=coordPts, sampVect=sampNames,
-                                                  buffSize=x, ptProj=ptProj, buffProj=buffProj, 
-                                                  boundary=boundary, parFlag=parFlag))
+      lapply(seq_along(geoBuff), function(i) geo.compareBuff(totalWildPoints=coordPts, sampVect=sampNames,
+                                                             buffSize=geoBuff[i], ptProj=ptProj, buffProj=buffProj, 
+                                                             boundary=boundary, 
+                                                             geoTotalArea=if(is.null(geoTotalArea)) NULL else geoTotalArea[i],
+                                                             parFlag=parFlag))
     # If no rasterized SDM is provided, calculate geographic coverage using just the buffer approach (default)
     if(class(SDMrast)=='logical'){
       names(geoRates) <- paste0(rep('Geo_Buff_',), geoBuff/1000, 'km')
     } else {
       # If rasterized SDM provided, calculate geo. coverage using SDM approach, and append coverages. 
-      # Using mapply to iterate over multiple lists (buffer sizes and SDM rasters)
+      # SDMrast is the single, original (undisaggregated) raster; SDMrast_scaleFactor (same length/order 
+      # as geoBuff) gives the disaggregation scale factor needed for each buffer size. geo.getSDMrast() 
+      # builds (and worker-locally caches) the resampled raster version for each scale factor as needed, 
+      # rather than indexing into a pre-built list that was broadcast to every worker up front.
       geoRates_SDM <- 
-        mapply(function(b,r) geo.compareBuffSDM(totalWildPoints=coordPts, sampVect=sampNames,
-                                                buffSize=b, model=r, ptProj=ptProj, 
-                                                buffProj=buffProj, boundary=boundary, 
-                                                parFlag=parFlag), b=geoBuff, r=SDMrast)
+        mapply(function(b,sf) geo.compareBuffSDM(totalWildPoints=coordPts, sampVect=sampNames,
+                                                 buffSize=b, model=geo.getSDMrast(scaleFactor=sf, SDMrast_orig=SDMrast, SDMrast_files=SDMrast_files), 
+                                                 ptProj=ptProj, buffProj=buffProj, boundary=boundary, 
+                                                 geoTotalArea_SDM=geoTotalArea_SDM,
+                                                 parFlag=FALSE), b=geoBuff, sf=SDMrast_scaleFactor)
       # Combine the geographic coverage values (total buffered area approach and SDM approach)
       geoRates <- c(geoRates, geoRates_SDM)
       # Name geographic coverage values, according to buffer size
@@ -415,15 +640,17 @@ calculateCoverage <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geo
 }
 
 # WRAPPER FUNCTION: iterates calculateCoverage over the entire matrix of samples
-exSituResample <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, 
-                           ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
+exSituResample <- function(genMat, genType=c('CV','DI','EN','AN','EE','HE'),
+                           genDistMat=NA, genCHGeno=NA, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, 
+                           SDMrast_scaleFactor=NULL, SDMrast_files=NULL, ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
                            boundary, ecoFlag=FALSE, ecoBuff=50000, ecoTotalCount, ecoRegions, ecoLayer='US', parFlag){
   # Apply the calculateCoverage function to all rows of the wild matrix.
   # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
   cov_matrix <- 
     t(sapply(1:nrow(genMat), 
-             function(x) calculateCoverage(genMat=genMat, genDistMat=genDistMat, geoFlag=geoFlag, coordPts=coordPts, 
-                                           geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, 
+             function(x) calculateCoverage(genMat=genMat, genType=genType, genDistMat=genDistMat, 
+                                           genCHGeno=genCHGeno, geoFlag=geoFlag, coordPts=coordPts, 
+                                           geoBuff=geoBuff, SDMrast=SDMrast, SDMrast_scaleFactor=SDMrast_scaleFactor, SDMrast_files=SDMrast_files, ptProj=ptProj, 
                                            buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag, 
                                            ecoBuff=ecoBuff, ecoTotalCount=ecoTotalCount, ecoRegions=ecoRegions, 
                                            ecoLayer=ecoLayer, parFlag=FALSE, numSamples=x), simplify = 'array'))
@@ -432,18 +659,20 @@ exSituResample <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geoBuf
 }
 
 # WRAPPER FUNCTION: iterates calculateCoverage over the entire matrix of samples, in parallel
-exSituResample.Par <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, 
+exSituResample.Par <- function(genMat, genType=c('CV','DI','EN','AN','EE','HE'),
+                               genDistMat=NA, genCHGeno=NA, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA, 
+                               SDMrast_scaleFactor=NULL, SDMrast_files=NULL, geoTotalArea=NULL, geoTotalArea_SDM=NULL, 
                                ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84', 
                                boundary, ecoFlag=FALSE, ecoBuff=50000, ecoTotalCount, ecoRegions, ecoLayer='US', 
                                parFlag=TRUE, cluster){
-  # Apply the calculateCoverage function to all rows of the wild matrix using parSapply.
-  # The resulting matrix needs to be transposed, in order to keep columns as different coverage categories
+  # Use parSapply (load balanced) to iterate calculate coverage for each sample size. Transpose the resulting matrix.
   cov_matrix <-
-    t(parSapply(cluster, 1:nrow(genMat), 
-                function(x) calculateCoverage(genMat=genMat, genDistMat=genDistMat, geoFlag=geoFlag, 
-                                              coordPts=coordPts, geoBuff=geoBuff, SDMrast=SDMrast, ptProj=ptProj, 
-                                              buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag, 
-                                              ecoBuff=ecoBuff, ecoTotalCount=ecoTotalCount, ecoRegions=ecoRegions, 
+    t(parSapply(cluster, 1:nrow(genMat),
+                function(x) calculateCoverage(genMat=genMat, genType=genType, genDistMat=genDistMat, genCHGeno=genCHGeno,
+                                              geoFlag=geoFlag, coordPts=coordPts, geoBuff=geoBuff, SDMrast=SDMrast,
+                                              SDMrast_scaleFactor=SDMrast_scaleFactor, SDMrast_files=SDMrast_files, geoTotalArea=geoTotalArea, 
+                                              geoTotalArea_SDM=geoTotalArea_SDM, ptProj=ptProj, buffProj=buffProj, boundary=boundary, ecoFlag=ecoFlag,
+                                              ecoBuff=ecoBuff, ecoTotalCount=ecoTotalCount, ecoRegions=ecoRegions,
                                               ecoLayer=ecoLayer, parFlag=parFlag, numSamples=x), simplify = 'array'))
   # Return the matrix of coverage values
   return(cov_matrix)
@@ -453,20 +682,34 @@ exSituResample.Par <- function(genMat, genDistMat=NA, geoFlag=TRUE, coordPts, ge
 # Checks for arguments are also performed; if ecological coverage is being calculated, then the total number
 # of ecoregions will . This function doesn't run in parallel, so it's  primarily used
 # for testing/demonstration purposes
-geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA,
+geo.gen.Resample <- function(genObj, genType='CV', geoFlag=TRUE, coordPts, geoBuff=50000, SDMrast=NA,
                              ptProj='+proj=longlat +datum=WGS84', buffProj='+proj=eqearth +datum=WGS84',
                              boundary, ecoFlag=FALSE, ecoBuff=50000, ecoRegions,
                              ecoLayer=c('US', 'NA', 'GL'), reps=5){
+  # Check that genType argument is an allowed value; if not, notify user
+  if(!(genType %in% c('CV','DI','EN', 'AN', 'EE', 'HE'))){
+    stop('The genType argument can only be equal to CV, DI, EN, AN, EE, or HE!')
+  }
   # Extract the genetic matrix from the genind object
   genMat <- genObj@tab
-  # If genetic distance flag is set to TRUE, build the matrix of genetic distances to pass down to lower functions
-  if(genDistFlag==TRUE){
-    cat(paste0('\n', '- genDistFlag ON: will calculate genetic distance coverage -'))
+  # If genetic distances are being calculated, build matrix of genetic distances to pass down to lower functions
+  if(genType=='DI'){
+    cat(paste0('\n', '-- genType set to DI: will calculate genetic distance coverage --'))
     genDistMat <- gen.buildDistMat(genObj=genObj)
-    # Otherwise, set genDistMat as NA
   } else {
+    # Otherwise, set genDistMat as NA
     genDistMat <- NA
   } 
+  # If CoreHunter metrics are being calculated, build CoreHunter genotype object to pass down to lower functions
+  if(genType %in% c('EN', 'AN', 'EE', 'HE')){
+    cat(paste0('\n', '-- genType set to ', genType, ': will use CoreHunter metrics --'))
+    genCHGeno <- genotypes(genMat, format="biparental")
+  } else {
+    # Otherwise, set genCHGeno as NA
+    genCHGeno <- NA
+  } 
+  # Initialize SDMrast_scaleFactor as NULL; only set if geoFlag=TRUE and an SDM raster is provided (below)
+  SDMrast_scaleFactor <- NULL
   # If calculating geographic coverage, check for arguments
   if(geoFlag==TRUE){
     # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
@@ -476,9 +719,9 @@ geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, 
     if(missing(boundary)) stop('For geographic coverage, a SpatVector object of country boundaries (boundary) is required')
     # Check that the names of the latitude and longitude columns are properly written (this is unfortunately hard-coded)
     if(!identical(colnames(coordPts)[2:3], c('decimalLatitude', 'decimalLongitude'))){
-    stop('The column names of the geographic coordinates dataframe (coordPts) need to be
+      stop('The column names of the geographic coordinates dataframe (coordPts) need to be
          decimalLatitude and decimalLongitude. Please rename your dataframe of geographic coordinates!')
-      }
+    }
     # Print out message stating what coverages are being calculated, and how many buffer sizes
     cat('\n', '- geoFlag ON: will calculate geographic coverage (total buffer) -')
     cat(paste0('\n', '--- Number of buffer sizes (Geo, Total buffer): ', length(geoBuff), ' ---'))
@@ -487,10 +730,11 @@ geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, 
       # Print out message stating what coverages are being calculated, and how many buffer sizes
       cat(paste0('\n', '- SDM provided: will calculate geographic coverage (SDM) -'))
       cat(paste0('\n', '--- Number of buffer sizes (Geo, SDM): ', length(geoBuff), ' ---'))
-      # Check that geographic buffer size is greater than SDM raster resolution,
-      # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
-      # multiple times, and return a list
-      SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=FALSE))
+      # Check that geographic buffer size is greater than SDM raster resolution, and fix if not. Rather 
+      # than building one (potentially large) resampled raster per buffer size up front, only the 
+      # per-buffer-size scale factor is computed here; geo.getSDMrast() builds (and locally caches) the 
+      # actual resampled raster for a given scale factor lazily, the first time it's needed.
+      SDMrast_scaleFactor <- geo.buildSDMscaleFactors(geoBuff=geoBuff, raster=SDMrast, parFlag=FALSE)
     }
   }
   # If calculating ecological coverage, check for arguments
@@ -520,39 +764,65 @@ geo.gen.Resample <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, 
   cat(paste0('\n', '%%% RESAMPLING START: ', startTime, '\n'))
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <-
-    sapply(1:reps, function(x) exSituResample(genMat=genMat, genDistMat=genDistMat, geoFlag=geoFlag,
-                                              coordPts=coordPts, geoBuff=geoBuff,
-                                              SDMrast=SDMrast, ptProj=ptProj,
+    sapply(1:reps, function(x) exSituResample(genMat=genMat, genType=genType, genDistMat=genDistMat, 
+                                              genCHGeno=genCHGeno, geoFlag=geoFlag, coordPts=coordPts, 
+                                              geoBuff=geoBuff, SDMrast=SDMrast, SDMrast_scaleFactor=SDMrast_scaleFactor, ptProj=ptProj,
                                               buffProj=buffProj,boundary=boundary,
                                               ecoFlag=ecoFlag, ecoBuff=ecoBuff,
                                               ecoTotalCount=ecoTotalCount, ecoRegions=ecoRegions,
                                               ecoLayer=ecoLayer, parFlag=FALSE), simplify = 'array')
-    # Print ending time and total runtime
-    endTime <- Sys.time()
-    cat(paste0('\n', '%%% RESAMPLING END: ', endTime))
-    cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
-    # Return array
-    return(resamplingArray)
+  # Print ending time and total runtime
+  endTime <- Sys.time()
+  cat(paste0('\n', '%%% RESAMPLING END: ', endTime))
+  cat(paste0('\n', '%%% TOTAL RUNTIME: ', endTime-startTime))
+  # Return array
+  return(resamplingArray)
 }
 
 # WRAPPER FUNCTION: iterates exSituResample.Par, which will generate an array of values from a single genind object
 # This function iterates the parallelized version of exSituResample, such that each different sample size for a 
 # single resampling replicate is processed on a single core. Results (resampling array) are saved to a specified file path.
-geo.gen.Resample.Par <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordPts, geoBuff=50000, 
-                                 SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
+geo.gen.Resample.Par <- function(genObj, genType='CV', genCHGeno=NA, geoFlag=TRUE, coordPts, 
+                                 geoBuff=50000, SDMrast=NA, ptProj='+proj=longlat +datum=WGS84', 
                                  buffProj='+proj=eqearth +datum=WGS84', boundary, ecoFlag=FALSE, 
                                  ecoBuff=50000, ecoRegions, ecoLayer=c('US','NA','GL'), reps=5,
                                  arrayFilepath='~/resamplingArray.Rdata', cluster){
-  # Extract the genetic matrix from the genind object
+  # Check that genType argument is an allowed value; if not, notify user
+  if(!(genType %in% c('CV','DI','EN', 'AN', 'EE', 'HE'))){
+    stop('The genType argument can only be equal to CV, DI, EN, AN, EE, or HE!')
+  }
+  # Extract the genetic matrix from the genind object, and export it to the cluster
   genMat <- genObj@tab
+  clusterExport(cl = cluster, varlist = 'genMat', envir = environment())
   # If genetic distance flag is set to TRUE, build the matrix of genetic distances to pass down to lower functions
-  if(genDistFlag==TRUE){
-    cat(paste0('\n', '- genDistFlag ON: will calculate genetic distance coverage -'))
+  if(genType=='DI'){
+    cat(paste0('\n', '-- genType set to DI: will calculate genetic distance coverage --'))
     genDistMat <- gen.buildDistMat(genObj=genObj)
-    # Otherwise, set genDistMat as NA
   } else {
+    # Otherwise, set genDistMat as NA
     genDistMat <- NA
   }
+  # If CoreHunter metrics are being calculated, make sure CoreHunter genotype object has been specified
+  if(genType %in% c('EN', 'AN', 'EE', 'HE')){
+    # Ensure the genetic distance matrix has been provided
+    if(length(class(genCHGeno))==1){
+      stop('CoreHunter Genotype object must be provided when specifying genType EE, AN, EE, or HE.')
+    } else{
+      cat(paste0('\n', '-- genType set to ', genType, ': expecting CoreHunter genotype to be exported to cluster! --'))
+    }
+  } 
+  # Initialize SDMrast_scaleFactor/SDMrast_files as NULL; only set if geoFlag=TRUE and an SDM raster is 
+  # provided (below)
+  SDMrast_scaleFactor <- NULL
+  SDMrast_files <- NULL
+  # Initialize precomputed geographic total-area denominators as NULL; only set if geoFlag=TRUE (below).
+  # These mirror ecoTotalCount (below): the "total" area used as the coverage denominator does not depend 
+  # on the sample or replicate -- only on buffer size (or, for the SDM approach, not even on buffer size) 
+  # -- so it's computed ONCE here, rather than being redundantly recomputed inside every geo.compareBuff / 
+  # geo.compareBuffSDM call (previously happening on the order of hundreds of thousands of times).
+  geoTotalArea <- NULL
+  geoTotalArea_SDM <- NULL
+  memCheck('function start')
   # If calculating geographic coverage, check for arguments
   if(geoFlag==TRUE){
     # Check for the required arguments (ptProj and buffProj will use defaults, if not specified)
@@ -568,17 +838,50 @@ geo.gen.Resample.Par <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordP
     # Print out message stating what coverages are being calculated, and how many buffer sizes
     cat('\n', '- geoFlag ON: will calculate geographic coverage (total buffer) -')
     cat(paste0('\n', '--- Number of buffer sizes (Geo, Total buffer): ', length(geoBuff), ' ---'))
+    # Unwrap and project boundary ONCE here (locally), for use in the total-area precomputation below. This 
+    # local, live copy (boundary_live) is only used here on the master for precomputation -- it is never 
+    # exported to the cluster (only the resulting numeric areas are).
+    boundary_live <- unwrap(boundary)
+    boundary_live <- terra::project(boundary_live, buffProj)
+    memCheck('boundary unwrapped+projected')
+    # CALCULATE TOTAL GEOGRAPHIC (BUFFER) COVERAGE: the total buffered area across all wild points, for 
+    # each buffer size. This is constant across samples/reps for a given buffer size.
+    cat(paste0('\n', '--- CALCULATING TOTAL GEOGRAPHIC BUFFER COVERAGE... ---'))
+    geoTotalArea <- sapply(geoBuff, function(x) geo.totalBuffArea(totalWildPoints=coordPts, buffSize=x,
+                                                                  ptProj=ptProj, buffProj=buffProj,
+                                                                  boundary=boundary_live, parFlag=FALSE))
+    memCheck('after geoTotalArea precompute')
     # If SDM is provided (meaning it's not NA, or class logical):
     if(!class(SDMrast)=='logical'){
       # Print out message stating what coverages are being calculated, and how many buffer sizes
       cat(paste0('\n', '- SDM provided: will calculate geographic coverage (SDM) -'))
       cat(paste0('\n', '--- Number of buffer sizes (Geo, SDM): ', length(geoBuff), ' ---'))
-      # Check that geographic buffer size is greater than SDM raster resolution, 
-      # and fix if not. If multiple buffer sizes are used, resample the resolution of the SDM according
-      # multiple times, and return a list
-      SDMrast <- lapply(geoBuff, function(x) geo.checkSDMres(buffSize=x, raster=SDMrast, parFlag=TRUE))
-      # Export list of raster objects to the cluster
-      clusterExport(cl=cluster, varlist='SDMrast', envir=environment())
+      # Determine the disaggregation scale factor needed for each buffer size.
+      SDMrast_scaleFactor <- geo.buildSDMscaleFactors(geoBuff=geoBuff, raster=SDMrast, parFlag=TRUE)
+      cat(paste0('\n', '--- Distinct SDM scale factors needed: ', length(unique(SDMrast_scaleFactor)), 
+                 ' (of ', length(geoBuff), ' buffer sizes) ---'))
+      memCheck('after SDM scale factor check')
+      # For any scale factor > 1, disaggregate ONCE here (on the master) and write the result to disk, 
+      # rather than broadcasting the disaggregated raster object to every worker (very costly -- ~64GB 
+      # spike in earlier testing) OR letting every worker independently disaggregate in memory the moment 
+      # resampling starts (a "thundering herd" of simultaneous heavy operations -- the cause of the most 
+      # recent failure). Workers read the small file path and load the raster lazily/disk-backed via 
+      # geo.getSDMrast(), instead of holding a full in-memory copy built by each worker separately.
+      SDMrast_files <- geo.buildSDMrastFiles(scaleFactors=SDMrast_scaleFactor, raster=SDMrast, parFlag=TRUE)
+      memCheck('after SDM raster file(s) written')
+      # CALCULATE TOTAL SDM COVERAGE: the total masked SDM area does not depend on buffer size or sample, 
+      # and does not depend on the disaggregation scale factor either (disaggregating doesn't change total 
+      # area) -- so it's computed ONCE here, directly from the original (undisaggregated) raster.
+      geoTotalArea_SDM <- geo.totalSDMArea(model=SDMrast, parFlag=TRUE)
+      memCheck('after geoTotalArea_SDM precompute')
+      # Export the small original raster, the scale-factor vector, the (small) file path lookup, and the 
+      # precomputed total areas to the cluster. SDMrast here is still just the single, original, small 
+      # (undisaggregated) raster -- the disaggregated raster itself is never sent over the network.
+      clusterExport(cl=cluster, varlist=c('SDMrast','SDMrast_scaleFactor','SDMrast_files','geoTotalArea','geoTotalArea_SDM'), envir=environment())
+      memCheck('after clusterExport (SDMrast/geoTotalArea)')
+    } else {
+      # Export the precomputed total buffer areas to the cluster
+      clusterExport(cl=cluster, varlist='geoTotalArea', envir=environment())
     }
   }
   # If calculating ecological coverage, check for arguments
@@ -594,23 +897,39 @@ geo.gen.Resample.Par <- function(genObj, genDistFlag=FALSE, geoFlag=TRUE, coordP
     # Print out message stating what coverages are being calculated, and how many buffer sizes
     cat(paste0('\n', '- ecoFlag ON: will calculate ecological coverage -'))
     cat(paste0('\n', '--- Number of buffer sizes (Eco): ', length(ecoBuff), ' ---'))
+    # Unwrap and project boundary/ecoRegions ONCE here (locally; reusing boundary_live if it was already 
+    # built above), for use in the total-ecoregion-count precomputation below. This avoids the unwrap + 
+    # reproject that used to happen inside every single one of the 41 eco.totalEcoregionCount calls below 
+    # -- which, for the (large, global) ecoregions layer, was very costly, and was a major contributor to 
+    # memory climbing steeply even before the parallel resampling loop started.
+    if(!exists('boundary_live')){
+      boundary_live <- unwrap(boundary)
+      boundary_live <- terra::project(boundary_live, buffProj)
+    }
+    ecoRegions_live <- unwrap(ecoRegions)
+    ecoRegions_live <- terra::project(ecoRegions_live, buffProj)
+    memCheck('ecoRegions unwrapped+projected')
     # CALCULATE TOTAL ECOLOGICAL COVERAGE: calculate the number of ecoregions found under all samples for all 
     # buffer sizes, and pass this down to lower level functions, to optimize processing
     cat(paste0('\n', '--- CALCULATING TOTAL ECOREGION COVERAGE... ---'))
     ecoTotalCount <- lapply(ecoBuff, 
                             function(x) eco.totalEcoregionCount(totalWildPoints=coordPts, buffSize=x,
                                                                 ptProj=ptProj, buffProj=buffProj, 
-                                                                ecoRegion=ecoRegions, layerType=ecoLayer,
-                                                                boundary=boundary, parFlag=TRUE))
+                                                                ecoRegion=ecoRegions_live, layerType=ecoLayer,
+                                                                boundary=boundary_live, parFlag=FALSE))
+    memCheck('after ecoTotalCount precompute')
   }
   # Print starting time
   startTime <- Sys.time() 
+  memCheck('immediately before resampling loop')
   cat(paste0('\n', '%%% RESAMPLING START: ', startTime, '\n'))
   # Run resampling for all replicates, using sapply and lambda function
   resamplingArray <- 
-    sapply(1:reps, function(x) exSituResample.Par(genMat=genMat, genDistMat=genDistMat, geoFlag=geoFlag, 
+    sapply(1:reps, function(x) exSituResample.Par(genMat=genMat, genType=genType, genDistMat=genDistMat, 
+                                                  genCHGeno=genCHGeno, geoFlag=geoFlag, 
                                                   coordPts=coordPts, geoBuff=geoBuff, 
-                                                  SDMrast=SDMrast, ptProj=ptProj, 
+                                                  SDMrast=SDMrast, SDMrast_scaleFactor=SDMrast_scaleFactor, SDMrast_files=SDMrast_files, 
+                                                  geoTotalArea=geoTotalArea, geoTotalArea_SDM=geoTotalArea_SDM, ptProj=ptProj, 
                                                   buffProj=buffProj, boundary=boundary, 
                                                   ecoFlag=ecoFlag, ecoBuff=ecoBuff,
                                                   ecoTotalCount=ecoTotalCount, ecoRegions=ecoRegions, 
