@@ -168,6 +168,16 @@ COGL_filePath <- paste0(GeoGenCorr_wd, 'Datasets/COGL/')
 arrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO4_G2GE_5r_resampArr.Rdata')
 # Read in array
 COGL_SMBO4_array <- readRDS(arrayDir)
+# Troubleshooting: Ecological coverage at 240 km. This value is erroneously picking
+# up other ecoregions at this particular buffer size, which causes ecological coverages
+# <100%. This leads to unsuspected results in downstream analyses.
+COGL_SMBO4_array[,125:127,]
+# Generate a copy array, to use for downstream data analyses
+COGL_SMBO4_Updated_array <- COGL_SMBO4_array
+COGL_SMBO4_Updated_array[,126,] <- 100
+# Write updated array to disk
+updateArrayDir <- paste0(COGL_filePath, 'resamplingData/COGL_SMBO4_G2GE_5r_resampArr_Update.Rdata')
+saveRDS(COGL_SMBO4_Updated_array, updateArrayDir)
 
 # ---- CALCULATIONS ----
 # Build a data.frame from array values
