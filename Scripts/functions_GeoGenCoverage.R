@@ -1480,7 +1480,10 @@ makeAMap <- function(points,raster,buffer=NA){
 # were authored by Dan Carver.
 
 #' geo.generateSpatialObject -- Dan Carver
-#' Build a spatial object from coordinate data
+#' Build a spatial object from coordinate data (columns lat, lon in decimal degrees, WGS84).
+#' Points are projected to Mollweide, an equal-area projection, so that the area based metrics
+#' (EOO, AOO, ELA) are measured in an equal-area projection as recommended by the IUCN Red List
+#' guidelines. Distances (ANN, STD, ELP) are handled separately within each function.
 geo.generateSpatialObject <- function(data){
   # Clean 
   data1 <- data |>
@@ -1489,133 +1492,162 @@ geo.generateSpatialObject <- function(data){
   # Lat long data
   sp1 <- sf::st_as_sf(x = data1,
                       coords = c("lon","lat"),
-                      crs = CRS("+proj=longlat +datum=WGS84 +no_defs +type=crs"),
+                      crs = 4326,
                       remove = FALSE)
   # Projected data 
-  sp1_proj <- sf::st_transform(x = sp1, crs ="+proj=moll")
+  sp1_proj <- sf::st_transform(x = sp1, crs = "+proj=moll")
   return(sp1_proj)
 }
 
 #' geo.calc.EOO
-#' Calculate the extent of occurence (EOO) value. Units: square meters
+#' Calculate the extent of occurrence (EOO): the area of the minimum convex polygon (convex hull)
+#' around all locations, following the IUCN Red List guidelines. The hull is drawn and measured
+#' in the equal-area projection of the input (see geo.generateSpatialObject). Units: km2
 geo.calc.EOO <- function(data){
-  # Convert to a multipoint object
-  bb <- st_convex_hull(st_union(data))
-  # Export value and return
-  eooArea <- st_area(bb,)
+  # Minimum convex polygon around all locations
+  mcp <- st_convex_hull(st_union(data))
+  # Area in km2
+  eooArea <- as.numeric(st_area(mcp)) / 1e6
   return(eooArea)
 }
 
 #' geo.calc.AOO
-#' Calculate the area of occurence (EOO) value. Units: square meters
-geo.calc.AOO <- function(data){
-  bb <- st_convex_hull(st_union(data))
-  # Create the gridded feature 
-  allGrids <- st_make_grid(bb,
-                           square = T, 
-                           cellsize = 2000)
-  # Test for intersetion with the conver hull 
-  intersectionCells <- sf::st_intersects(x = allGrids,y = bb,
-                                         sparse= FALSE) # the grid, covering bounding box
-  # Filter the full polygon feature
-  selectAreas <- allGrids[intersectionCells]
-  # Determine the number of areas that have an observation 
-  intersectionPoints <- sf::st_intersects(x = selectAreas, y = data, sparse= TRUE)
-  # Count of all features with at least one observation 
-  testIntersect <- function(area){
-    if(length(area)>0){
-      return(1)
-    }else{
-      0
-    }
-  }
-  areasWithPoints <- purrr::map(.x = intersectionPoints, .f = testIntersect )|> 
-    unlist()|> 
-    sum()
-  
-  # Calculate A00 and return
-  aoo <- areasWithPoints / nrow(intersectionPoints) *100
-  return(aoo)
+#' Calculate the area of occupancy (AOO). A grid of 2 km x 2 km cells (the IUCN Red List reference
+#' scale) is placed over the minimum convex polygon, in the equal-area projection of the input, and
+#' the cells containing at least one location are counted. Two values are returned:
+#'   AOO_km2: number of occupied cells x 4 km2, the IUCN Red List AOO
+#'   AOO_pct: occupied cells as a percentage of all cells intersecting the minimum convex polygon
+#'            (the value reported in earlier drafts; a measure of occupancy relative to EOO)
+#' Note that the cell counts depend on where the grid is placed; the grid is anchored at the lower
+#' left corner of the bounding box of the locations.
+geo.calc.AOO <- function(data, cellsize = 2000){
+  # Minimum convex polygon around all locations
+  mcp <- st_convex_hull(st_union(data))
+  # Grid of 2 km cells covering the bounding box of the minimum convex polygon
+  allGrids <- st_make_grid(mcp, square = TRUE, cellsize = cellsize)
+  # Keep the cells intersecting the minimum convex polygon
+  mcpCells <- allGrids[sf::st_intersects(x = allGrids, y = mcp, sparse = FALSE)]
+  # Count the cells with at least one location
+  occupied <- sf::st_intersects(x = mcpCells, y = data, sparse = TRUE) |>
+    lengths()
+  occupiedCells <- sum(occupied > 0)
+  # Area of occupancy (km2) and percent of cells occupied
+  cellArea <- (cellsize / 1000)^2
+  output <- data.frame(AOO_km2 = occupiedCells * cellArea,
+                       AOO_pct = occupiedCells / length(mcpCells) * 100)
+  # Specifying only the return of the km^2 metric, to keep downstream analyses clean
+  return(output)
 }
 
 #' geo.calc.averageNearestNeighbor 
-#' Calculate the average nearest neighbor metric. Units: meters
+#' Calculate the average nearest neighbor distance (Clark and Evans 1954): for each location, the
+#' distance to the closest other location, averaged over all locations. Distances are geodesic
+#' (great circle distances on a sphere, via sf::st_distance with s2) so they do not depend on the projection. Individuals 
+#' sharing the same coordinates are collapsed to a single location first; otherwise site level 
+#' datasets (e.g. AMTH, PICO, VILA) would have nearest neighbor distances of zero. Units: km
 geo.calc.averageNearestNeighbor <- function(data){
-  # Convert data back to lat lon 
-  refSP <- data |>
+  # Unique locations, in lat lon for geodesic distances
+  uniqueLoc <- data[!duplicated(sf::st_coordinates(data)), ] |>
     sf::st_transform(crs = 4326)
-  # Remove duplicated locations 
-  refSP_noDup <- refSP[!duplicated(refSP),]
-  # Calculate average nearest neighbor
-  aveNearNeighbor <- refSP_noDup |> 
-    mutate(
-      nb = st_dist_band(geometry),
-      dists = st_nb_dists(geometry, nb,longlat = TRUE),
-      avg_dist = purrr::map_dbl(dists, mean),
-      group_average = mean(avg_dist, na.rm = TRUE)
-    ) 
-  # Extract metric and return
-  ANN <- aveNearNeighbor$group_average[1]
+  # Pairwise distance matrix (m); a location is not its own neighbor
+  distMat <- sf::st_distance(uniqueLoc) |>
+    units::drop_units()
+  diag(distMat) <- NA
+  # Distance from each location to its nearest neighbor
+  nearestDist <- apply(distMat, 1, min, na.rm = TRUE)
+  # Average, in km
+  ANN <- mean(nearestDist) / 1000
   return(ANN)
 }
 
 #' geo.calc.voronoiAreas
-#' Calculate the area of Voronoi cells. Unitless
+#' Calculate the evenness of the spatial sampling from a Voronoi tessellation. Each unique location
+#' is assigned the area closer to it than to any other location; the tessellation is built in the
+#' equal-area projection of the input and clipped to the minimum convex polygon (EOO). The metric
+#' is the coefficient of variation (sd / mean) of the cell areas: evenly spaced locations produce
+#' cells of similar size (values near 0), clustered sampling produces a few large and many small
+#' cells (larger values). Note that the mean cell area itself is always EOO / number of locations,
+#' regardless of the arrangement of the points, so it is not reported. Unitless
 geo.calc.voronoiAreas <- function(data){
-  # Produce the tesselations 
-  tesselation <- deldir(data$lon, data$lat)
-  # Creates the spatial representation on the areas 
-  tiles <- tile.list(tesselation)
-  # Declare a helper function for indexing out of the tiles object
-  selectArea <- function(tile){tile[6]}
-  # Go through each tile and determine the overall average area
-  aveVoronoiArea <- purrr::map(.x = tiles, .f = selectArea ) |> unlist() |> mean(na.rm=TRUE)
-  return(aveVoronoiArea)
+  # Unique locations (duplicated coordinates produce empty cells)
+  uniqueLoc <- data[!duplicated(sf::st_coordinates(data)), ]
+  # Minimum convex polygon, used to bound the outer cells
+  mcp <- sf::st_convex_hull(sf::st_union(uniqueLoc))
+  # Voronoi tessellation, clipped to the minimum convex polygon
+  cells <- sf::st_voronoi(sf::st_union(uniqueLoc)) |>
+    sf::st_collection_extract("POLYGON") |>
+    sf::st_intersection(mcp)
+  # Cell areas (km2) and their coefficient of variation
+  cellAreas <- as.numeric(sf::st_area(cells)) / 1e6
+  vorCV <- sd(cellAreas) / mean(cellAreas)
+  return(vorCV)
 }
 
 #' geo.calc.stdDistance
-#' Calculate the standard distance metric. Units: meters
+#' Calculate the standard distance: the root mean square distance of the unique locations from
+#' their mean center, a measure of the overall dispersion of the sampling (Bachi 1963). Calculated
+#' in the equal-area projection of the input. Units: km
 geo.calc.stdDistance <- function(data){
-  stdDist <- std_distance(geometry = data)
+  # Unique locations
+  uniqueLoc <- data[!duplicated(sf::st_coordinates(data)), ]
+  # Standard distance (m) to km
+  stdDist <- sfdep::std_distance(geometry = uniqueLoc) / 1000
   return(stdDist)
 }
 
-#' geo.calc.stdDistanceEllipseArea
-#' Calculate the standard distance of the ellipse area. Units: meters
-geo.calc.stdDistanceEllipseArea <- function(data){
-  # Determine the standard distance 
-  stdDist <- std_distance(geometry = data)
-  # Determine the mean center 
-  meanCenter <- sfdep::center_mean(geometry = data)
-  # Grab coords from the mean center
-  meanCoords <- as.data.frame(sf::st_coordinates(meanCenter))
-  # Produces a list of points within the ellipse 
-  stdDistEllipse <- ellipse(x = meanCoords$X,y = meanCoords$Y , sx = stdDist, sy = stdDist)
-  # Convert to a polygon and project 
-  poly <- stdDistEllipse |>
-    as.data.frame()|>
-    sfheaders::sf_polygon(x = "x", y = "y")
-  sf::st_crs(poly) <- crs(data)
-  # Make valid and reproject 
-  validPoly <- st_make_valid(poly)
-  # Determine area of the polygon and return
-  stdEllipseArea <- st_area(poly)
-  return(stdEllipseArea)
+#' geo.calc.ellipseElongation
+#' Calculate the elongation of the standard deviational ellipse (Yuill 1971) of the unique
+#' locations: the ratio of the major to the minor axis (one standard deviation along each axis).
+#' A value of 1 indicates an isotropic (circular) arrangement of the locations, larger values an
+#' increasingly linear arrangement. Note that the area and perimeter of the ellipse, and the area
+#' of the standard distance circle (pi * STD^2), are all size measures which rank the datasets in 
+#' the same order as STD; the elongation is the shape information the ellipse adds. Unitless
+geo.calc.ellipseElongation <- function(data){
+  # Unique locations
+  uniqueLoc <- data[!duplicated(sf::st_coordinates(data)), ]
+  # Standard deviational ellipse (sx, sy: axis lengths; theta: rotation)
+  sde <- sfdep::std_dev_ellipse(geometry = uniqueLoc)
+  # Ratio of the major to the minor axis
+  elongation <- max(sde$sx, sde$sy) / min(sde$sx, sde$sy)
+  return(elongation)
 }
 
-#' geo.calc.stdDeviationEllipseArea
-#' Calculate the standard deviation of the ellipse perimeter. Units: meters
-geo.calc.stdDevationEllipseArea <- function(data){
-  stdDevElli <- std_dev_ellipse(geometry = data)
-  # Points for the ellipse 
-  stdDevEllipse <- st_ellipse(geometry =stdDevElli,
-                              sx = stdDevElli$sx,
-                              sy = stdDevElli$sy,
-                              rotation = -stdDevElli$theta)
-  # Determine length of the perimeter and return
-  stdDevationEllipseArea <- st_length(stdDevEllipse)
-  return(stdDevationEllipseArea)
-}
+#' #' geo.calc.stdDistanceEllipseArea <-- NO LONGER USED
+#' #' Calculate the standard distance of the ellipse area. Units: meters
+#' geo.calc.stdDistanceEllipseArea <- function(data){
+#'   # Determine the standard distance 
+#'   stdDist <- std_distance(geometry = data)
+#'   # Determine the mean center 
+#'   meanCenter <- sfdep::center_mean(geometry = data)
+#'   # Grab coords from the mean center
+#'   meanCoords <- as.data.frame(sf::st_coordinates(meanCenter))
+#'   # Produces a list of points within the ellipse 
+#'   stdDistEllipse <- ellipse(x = meanCoords$X,y = meanCoords$Y , sx = stdDist, sy = stdDist)
+#'   # Convert to a polygon and project 
+#'   poly <- stdDistEllipse |>
+#'     as.data.frame()|>
+#'     sfheaders::sf_polygon(x = "x", y = "y")
+#'   sf::st_crs(poly) <- crs(data)
+#'   # Make valid and reproject 
+#'   validPoly <- st_make_valid(poly)
+#'   # Determine area of the polygon and return
+#'   stdEllipseArea <- st_area(poly)
+#'   return(stdEllipseArea)
+#' }
+#' 
+#' #' geo.calc.stdDeviationEllipseArea <-- NO LONGER USED
+#' #' Calculate the standard deviation of the ellipse perimeter. Units: meters
+#' geo.calc.stdDevationEllipseArea <- function(data){
+#'   stdDevElli <- std_dev_ellipse(geometry = data)
+#'   # Points for the ellipse 
+#'   stdDevEllipse <- st_ellipse(geometry =stdDevElli,
+#'                               sx = stdDevElli$sx,
+#'                               sy = stdDevElli$sy,
+#'                               rotation = -stdDevElli$theta)
+#'   # Determine length of the perimeter and return
+#'   stdDevationEllipseArea <- st_length(stdDevEllipse)
+#'   return(stdDevationEllipseArea)
+#' }
 
 # Wrapper function of the above point summary functions, which will calculate
 # each point summary statistic for a given dataset, and return 
@@ -1627,10 +1659,10 @@ geo.calc.pointSummaries <- function(geoData){
   AOO <- geo.calc.AOO(geoSpat)
   ANN <- geo.calc.averageNearestNeighbor(geoSpat)
   VOR <- geo.calc.voronoiAreas(geoSpat)
-  StdDist <- geo.calc.stdDistance(geoSpat)
-  StdDistEA <- geo.calc.stdDistanceEllipseArea(geoSpat)
-  StdDevEA <- geo.calc.stdDevationEllipseArea(geoSpat)
+  STD <- geo.calc.stdDistance(geoSpat)
+  ELG <- geo.calc.ellipseElongation(geoSpat)
   # Combine metrics into a data.frame, and return
-  ptSummaryDF <- data.frame(EOO, AOO, ANN, VOR, StdDist, StdDistEA, StdDevEA)
+  ptSummaryDF <- data.frame(EOO = EOO, AOO = AOO$AOO_km2, AOO_pct = AOO$AOO_pct, 
+                            ANN = ANN, VOR = VOR, STD = STD, ELG = ELG)
   return(ptSummaryDF)
 }
