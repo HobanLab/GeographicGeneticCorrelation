@@ -71,12 +71,16 @@ pointsDataList <- list(
     dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude)
 )
 # Apply function which calculates multiple point summary metrics to list of datasets
+# Note that this line takes a long time to run; there is another line for reading in
+# an existing R object, once it has been created.
 # pointSummaries <- lapply(pointsDataList, geo.calc.pointSummaries)
 pointSummaries <- readRDS(paste0(GeoGenCorr_wd,'Datasets/Outputs/pointSummariesList.Rdata'))
 # Transform the point summary values into a list, where columns are the species and rows are the metrics
 pointSummariesMat <- matrix(unlist(pointSummaries), ncol = length(pointSummaries), byrow = FALSE)
 colnames(pointSummariesMat) <- toupper(names(pointSummaries))
-rownames(pointSummariesMat) <- c("EOO", "AOO", "ANN", "VOR", "STD", "ELA", "ELP")
+rownames(pointSummariesMat) <- c("EOO", "AOO", "AOO_pct", "ANN", "VOR", "STD", "ELG")
+# Strike the AOO_pct row from the matrix (only focus on AOO as km^2)
+pointSummariesMat <- pointSummariesMat[-3,] 
 # Write the matrix of point values to disk
 # write_csv(x = as.data.frame(pointSummariesMat), file = paste0(GeoGenCorr_wd,"Datasets/pointSummaryMeasures.csv"))
 
@@ -89,7 +93,7 @@ rownames(pointSummariesMat) <- c("EOO", "AOO", "ANN", "VOR", "STD", "ELA", "ELP"
 resampArrList <- list(
   AMTH=paste0(GeoGenCorr_wd, 'Datasets/AMTH/resamplingData/AMTH_SMBO4_G2GE_5r_resampArr.Rdata'),
   ARTH=paste0(GeoGenCorr_wd, 'Datasets/ARTH/resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata'),
-  COGL=paste0(GeoGenCorr_wd, 'Datasets/COGL/resamplingData/COGL_SMBO4_G2GE_5r_resampArr.Rdata'),
+  COGL=paste0(GeoGenCorr_wd, 'Datasets/COGL/resamplingData/COGL_SMBO4_G2GE_5r_resampArr_Update.Rdata'),
   HIWA=paste0(GeoGenCorr_wd, 'Datasets/HIWA/resamplingData/HIWA_SMBO4_G2GE_5r_resampArr.Rdata'),
   MIGU=paste0(GeoGenCorr_wd, 'Datasets/MIGU/resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata'),
   PICO=paste0(GeoGenCorr_wd, 'Datasets/PICO/resamplingData/SMBO2_G2E/PICO_SMBO2_G2E_5r_resampArr.Rdata'),
@@ -102,12 +106,12 @@ resampArrList <- list(
 optBuffs <- lapply(resampArrList, extractOptBuffs)
 # For datasets without SDM values (just ARTH), add a column (in order to match dimensions with other datasets)
 optBuffs$ARTH <- c(optBuffs$ARTH[[1]],NA,optBuffs$ARTH[[2]])
-names(optBuffs$ARTH) <- names(optBuffs$COGL)
+names(optBuffs$ARTH) <- names(optBuffs$AMTH)
 # Convert the list of optimal buffer size values to a matrix
 optBuffsMat <- matrix(unlist(optBuffs), ncol = length(optBuffs), byrow = FALSE)
 colnames(optBuffsMat) <- names(optBuffs)
 rownames(optBuffsMat) <- c('Opt. Geo. Buff', 'Opt. Geo. SDM', 'Opt. Eco.')
-# Combine the point summary matrix to the optimal buffer size matrix. Transpose such that 
+# Combine the point summary matrix to the optimal buffer size matrix. Transpose such that
 # rows are datasets and columns are summary metrics, and order by optimal GeoBuff size
 SMBO_Mat <- t(rbind(pointSummariesMat, optBuffsMat))
 SMBO_Mat <- SMBO_Mat[order(SMBO_Mat[,'Opt. Geo. Buff']),]
@@ -137,19 +141,53 @@ diag(adj_pMat) <- 0  # Set diagonal to 0, for plotting purposes
 corMat_SMBO$P <- adj_pMat # Reassign corrected p values in correlation matrix
 # Plot correlation matrix using corrplot. Label significant correlations using
 # asterisks
-corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P, 
-         sig.level = 0.01, insig = "label_sig", diag = FALSE, 
+corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P,
+         sig.level = 0.01, insig = "label_sig", diag = FALSE,
          pch.col = 'white', pch.cex = 1.8)
-
 # Write image to disc
-imageOutDir <- 
+imageOutDir <-
   '/home/akoontz/Documents/GeoGenCorr/Documentation/Images/2026-08-19_corMat_adjPvalues.png'
 png(filename=imageOutDir, width=900, height=760)
 par(oma=c(0,0,3,0), mar=c(5,4,7,2)+0.1)
-corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P, 
+corrplot(corMat_SMBO$r, type="upper", order="original", p.mat = corMat_SMBO$P,
          sig.level = 0.01, insig = "label_sig", diag = FALSE, cl.cex = 1.4, tl.cex=1.2,
          pch.col = 'white', pch.cex = 1.8)
 title('Correlations: Spatial statistics', line = 5.6, cex.main=1.3)
+dev.off() # Turn off plotting device
+
+# PLOTTING: FIGURE 3, MANUSCRIPT DRAFT #5
+# Setting the correlation type to Spearman, since we don't know whether the relationship
+# between the optimal buffer sizes and each point statistic is linear (and data likely
+# isn't Normally distributed)
+corType <- 'spearman'
+# Build a correlation matrix based off of values
+corMat_SMBO <- rcorr(SMBO_Mat, type=corType)
+# Replace NAs in diagonal of p-value matrix with 0s, to match dimensions
+corMat_SMBO$P[which(is.na(corMat_SMBO$P))] <- 0
+# Subset to spatial metrics (rows 1-6: EOO--ELG) vs. optimal buffer sizes (last 3 columns)
+spatRows <- 1:6
+optCols <- (ncol(corMat_SMBO$r)-2):ncol(corMat_SMBO$r)
+sub_rMat <- corMat_SMBO$r[spatRows, optCols]
+sub_pMat <- corMat_SMBO$P[spatRows, optCols]
+# CORRECTION FOR MULTIPLE TESTING
+# Adjust p-values of only the plotted pairs (every cell of the subset is a unique test)
+# (using BH, Benjamini–Hochberg: tests are not independent, we want to
+# reduce false positives but retain power...)
+adj_pMat <- sub_pMat
+adj_pMat[] <- p.adjust(sub_pMat, method = "BH")
+# Specify output file path
+imageOutDir <-
+  '/home/akoontz/Documents/GeoGenCorr/Documentation/Images/2026-09-22_MANUSCRIPT_DRAFT5/Fig3_corrPlot.png'
+png(filename=imageOutDir, width=900, height=760)
+# Plot correlation matrix using corrplot. Label significant correlations using
+# asterisks
+corrplot(sub_rMat, order="original",
+         p.mat = adj_pMat,
+         sig.level = 0.01, insig = "label_sig",
+         pch.col = 'white', pch.cex = 1.8, tl.col = 'black',
+         cl.offset = 0.3, cl.align.text = 'l', cl.cex=1.2,
+         title = 'Correlations: Spatial Statistics with Optimal Buffer Sizes',
+         mar = c(0, 0, 2, 0))
 dev.off() # Turn off plotting device
 
 # # SDM COVERAGES
@@ -159,7 +197,7 @@ dev.off() # Turn off plotting device
 # corMat_SMBO_SDM$P[which(is.na(corMat_SMBO_SDM$P))] <- 0
 # # Plot correlation matrix using corrplot. Label significant correlations using
 # # asterisks
-# corrplot(corMat_SMBO_SDM$r, type="upper", order="original", p.mat = corMat_SMBO_SDM$P, 
+# corrplot(corMat_SMBO_SDM$r, type="upper", order="original", p.mat = corMat_SMBO_SDM$P,
 #          sig.level = 0.01, insig = "label_sig", diag = FALSE)
 # mtext('Spearman correlations: Points-based statistics and Geo/SDM/Eco coverages', side=3, line=1.2, adj=0.6, cex=1.2)
 
