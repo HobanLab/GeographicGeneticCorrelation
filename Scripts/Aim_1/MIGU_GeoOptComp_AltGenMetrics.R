@@ -54,20 +54,13 @@ MIGU_genind <- MIGU_genind_global[MIGU_coordinates[,1], drop=TRUE]
 cat(paste0('\n','--- OPTIMIZATION: Genetic coverages of geographically optimized datasets ---','\n'))
 # Read in lists of MIGU geographic core sets. These are CSVs adapted from results provided by Dan Carver,
 # with a unique group of core sets for each buffer size (1km, 5km, 10km, 25km, 50km, 100km, 250km)
-MIGU_1km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/GeoCoreSets/MIGU_geoCoreSets_1km.csv')
-MIGU_5km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/GeoCoreSets/MIGU_geoCoreSets_5km.csv')
-MIGU_10km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/GeoCoreSets/MIGU_geoCoreSets_10km.csv')
-MIGU_25km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/GeoCoreSets/MIGU_geoCoreSets_25km.csv')
-MIGU_50km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/GeoCoreSets/MIGU_geoCoreSets_50km.csv')
-MIGU_100km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/GeoCoreSets/MIGU_geoCoreSets_100km.csv')
-MIGU_250km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Mimulus_guttatus/Geographic/GeoCoreSets/MIGU_geoCoreSets_250km.csv')
+MIGU_1km_geoCoreSets <- read.csv(file=paste0(MIGU_filePath,'Geographic/GeoCoreSets/MIGU_geoCoreSets_1km.csv'))
+MIGU_5km_geoCoreSets <- read.csv(file=paste0(MIGU_filePath,'Geographic/GeoCoreSets/MIGU_geoCoreSets_5km.csv'))
+MIGU_10km_geoCoreSets <- read.csv(file=paste0(MIGU_filePath,'Geographic/GeoCoreSets/MIGU_geoCoreSets_10km.csv'))
+MIGU_25km_geoCoreSets <- read.csv(file=paste0(MIGU_filePath,'Geographic/GeoCoreSets/MIGU_geoCoreSets_25km.csv'))
+MIGU_50km_geoCoreSets <- read.csv(file=paste0(MIGU_filePath,'Geographic/GeoCoreSets/MIGU_geoCoreSets_50km.csv'))
+MIGU_100km_geoCoreSets <- read.csv(file=paste0(MIGU_filePath,'Geographic/GeoCoreSets/MIGU_geoCoreSets_100km.csv'))
+MIGU_250km_geoCoreSets <- read.csv(file=paste0(MIGU_filePath,'Geographic/GeoCoreSets/MIGU_geoCoreSets_250km.csv'))
 # Make a matrix geographic core sets (strictly the sample names), and name the columns according to buffer sizes
 MIGU_geoCoreMat <- as.matrix(cbind(MIGU_250km_geoCoreSets[,1], MIGU_100km_geoCoreSets[,1], MIGU_50km_geoCoreSets[,1],
                                    MIGU_25km_geoCoreSets[,1], MIGU_10km_geoCoreSets[,1], MIGU_5km_geoCoreSets[,1],

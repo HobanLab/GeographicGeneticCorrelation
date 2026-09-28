@@ -56,20 +56,13 @@ COGL_genind <- COGL_genind[-grep('_rep', indNames(COGL_genind)), drop=TRUE]
 cat(paste0('\n','--- OPTIMIZATION: Genetic coverages of geographically optimized datasets ---','\n'))
 # Read in lists of COGL geographic core sets. These are CSVs adapted from results provided by Dan Carver,
 # with a unique group of core sets for each buffer size (1km, 5km, 10km, 25km, 50km, 100km, 250km)
-COGL_1km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Conradina_glabra/Geographic/GeoCoreSets/COGL_geoCoreSets_1km.csv')
-COGL_5km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Conradina_glabra/Geographic/GeoCoreSets/COGL_geoCoreSets_5km.csv')
-COGL_10km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Conradina_glabra/Geographic/GeoCoreSets/COGL_geoCoreSets_10km.csv')
-COGL_25km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Conradina_glabra/Geographic/GeoCoreSets/COGL_geoCoreSets_25km.csv')
-COGL_50km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Conradina_glabra/Geographic/GeoCoreSets/COGL_geoCoreSets_50km.csv')
-COGL_100km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Conradina_glabra/Geographic/GeoCoreSets/COGL_geoCoreSets_100km.csv')
-COGL_250km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Conradina_glabra/Geographic/GeoCoreSets/COGL_geoCoreSets_250km.csv')
+COGL_1km_geoCoreSets <- read.csv(file=paste0(COGL_filePath,'Geographic/GeoCoreSets/COGL_geoCoreSets_1km.csv'))
+COGL_5km_geoCoreSets <- read.csv(file=paste0(COGL_filePath,'Geographic/GeoCoreSets/COGL_geoCoreSets_5km.csv'))
+COGL_10km_geoCoreSets <- read.csv(file=paste0(COGL_filePath,'Geographic/GeoCoreSets/COGL_geoCoreSets_10km.csv'))
+COGL_25km_geoCoreSets <- read.csv(file=paste0(COGL_filePath,'Geographic/GeoCoreSets/COGL_geoCoreSets_25km.csv'))
+COGL_50km_geoCoreSets <- read.csv(file=paste0(COGL_filePath,'Geographic/GeoCoreSets/COGL_geoCoreSets_50km.csv'))
+COGL_100km_geoCoreSets <- read.csv(file=paste0(COGL_filePath,'Geographic/GeoCoreSets/COGL_geoCoreSets_100km.csv'))
+COGL_250km_geoCoreSets <- read.csv(file=paste0(COGL_filePath,'Geographic/GeoCoreSets/COGL_geoCoreSets_250km.csv'))
 # Make a matrix geographic core sets (strictly the sample names), and name the columns according to buffer sizes
 COGL_geoCoreMat <- as.matrix(cbind(COGL_250km_geoCoreSets[,1], COGL_100km_geoCoreSets[,1], COGL_50km_geoCoreSets[,1],
                                    COGL_25km_geoCoreSets[,1], COGL_10km_geoCoreSets[,1], COGL_5km_geoCoreSets[,1],

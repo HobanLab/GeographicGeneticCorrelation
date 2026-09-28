@@ -44,20 +44,13 @@ PICO_genind <- read.structure(file=paste0(PICO_filePath, 'Genetic/Pine_NaturalCo
 cat(paste0('\n','--- OPTIMIZATION: Genetic coverages of geographically optimized datasets ---','\n'))
 # Read in lists of PICO geographic core sets. These are CSVs adapted from results provided by Dan Carver,
 # with a unique group of core sets for each buffer size (1km, 5km, 10km, 25km, 50km, 100km, 250km)
-PICO_1km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Pinus_contorta/Geographic/GeoCoreSets/PICO_geoCoreSets_1km.csv')
-PICO_5km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Pinus_contorta/Geographic/GeoCoreSets/PICO_geoCoreSets_5km.csv')
-PICO_10km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Pinus_contorta/Geographic/GeoCoreSets/PICO_geoCoreSets_10km.csv')
-PICO_25km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Pinus_contorta/Geographic/GeoCoreSets/PICO_geoCoreSets_25km.csv')
-PICO_50km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Pinus_contorta/Geographic/GeoCoreSets/PICO_geoCoreSets_50km.csv')
-PICO_100km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Pinus_contorta/Geographic/GeoCoreSets/PICO_geoCoreSets_100km.csv')
-PICO_250km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Pinus_contorta/Geographic/GeoCoreSets/PICO_geoCoreSets_250km.csv')
+PICO_1km_geoCoreSets <- read.csv(file=paste0(PICO_filePath,'Geographic/GeoCoreSets/PICO_geoCoreSets_1km.csv'))
+PICO_5km_geoCoreSets <- read.csv(file=paste0(PICO_filePath,'Geographic/GeoCoreSets/PICO_geoCoreSets_5km.csv'))
+PICO_10km_geoCoreSets <- read.csv(file=paste0(PICO_filePath,'Geographic/GeoCoreSets/PICO_geoCoreSets_10km.csv'))
+PICO_25km_geoCoreSets <- read.csv(file=paste0(PICO_filePath,'Geographic/GeoCoreSets/PICO_geoCoreSets_25km.csv'))
+PICO_50km_geoCoreSets <- read.csv(file=paste0(PICO_filePath,'Geographic/GeoCoreSets/PICO_geoCoreSets_50km.csv'))
+PICO_100km_geoCoreSets <- read.csv(file=paste0(PICO_filePath,'Geographic/GeoCoreSets/PICO_geoCoreSets_100km.csv'))
+PICO_250km_geoCoreSets <- read.csv(file=paste0(PICO_filePath,'Geographic/GeoCoreSets/PICO_geoCoreSets_250km.csv'))
 # Make a matrix geographic core sets (strictly the sample names), and name the columns according to buffer sizes
 PICO_geoCoreMat <- as.matrix(cbind(PICO_250km_geoCoreSets[,1], PICO_100km_geoCoreSets[,1], PICO_50km_geoCoreSets[,1],
                                    PICO_25km_geoCoreSets[,1], PICO_10km_geoCoreSets[,1], PICO_5km_geoCoreSets[,1],

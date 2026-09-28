@@ -74,20 +74,13 @@ VILA_genind <- VILA_genind[VILA_coordinates[,1], drop=TRUE]
 cat(paste0('\n','--- OPTIMIZATION: Genetic coverages of geographically optimized datasets ---','\n'))
 # Read in lists of VILA geographic core sets. These are CSVs adapted from results provided by Dan Carver,
 # with a unique group of core sets for each buffer size (1km, 5km, 10km, 25km, 50km, 100km, 250km)
-VILA_1km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Vitis_labrusca/Geographic/GeoCoreSets/VILA_geoCoreSets_1km.csv')
-VILA_5km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Vitis_labrusca/Geographic/GeoCoreSets/VILA_geoCoreSets_5km.csv')
-VILA_10km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Vitis_labrusca/Geographic/GeoCoreSets/VILA_geoCoreSets_10km.csv')
-VILA_25km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Vitis_labrusca/Geographic/GeoCoreSets/VILA_geoCoreSets_25km.csv')
-VILA_50km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Vitis_labrusca/Geographic/GeoCoreSets/VILA_geoCoreSets_50km.csv')
-VILA_100km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Vitis_labrusca/Geographic/GeoCoreSets/VILA_geoCoreSets_100km.csv')
-VILA_250km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Vitis_labrusca/Geographic/GeoCoreSets/VILA_geoCoreSets_250km.csv')
+VILA_1km_geoCoreSets <- read.csv(file=paste0(VILA_filePath,'Geographic/GeoCoreSets/VILA_geoCoreSets_1km.csv'))
+VILA_5km_geoCoreSets <- read.csv(file=paste0(VILA_filePath,'Geographic/GeoCoreSets/VILA_geoCoreSets_5km.csv'))
+VILA_10km_geoCoreSets <- read.csv(file=paste0(VILA_filePath,'Geographic/GeoCoreSets/VILA_geoCoreSets_10km.csv'))
+VILA_25km_geoCoreSets <- read.csv(file=paste0(VILA_filePath,'Geographic/GeoCoreSets/VILA_geoCoreSets_25km.csv'))
+VILA_50km_geoCoreSets <- read.csv(file=paste0(VILA_filePath,'Geographic/GeoCoreSets/VILA_geoCoreSets_50km.csv'))
+VILA_100km_geoCoreSets <- read.csv(file=paste0(VILA_filePath,'Geographic/GeoCoreSets/VILA_geoCoreSets_100km.csv'))
+VILA_250km_geoCoreSets <- read.csv(file=paste0(VILA_filePath,'Geographic/GeoCoreSets/VILA_geoCoreSets_250km.csv'))
 # Make a matrix geographic core sets (strictly the sample names), and name the columns according to buffer sizes
 VILA_geoCoreMat <- as.matrix(cbind(VILA_250km_geoCoreSets[,1], VILA_100km_geoCoreSets[,1], VILA_50km_geoCoreSets[,1],
                                    VILA_25km_geoCoreSets[,1], VILA_10km_geoCoreSets[,1], VILA_5km_geoCoreSets[,1],

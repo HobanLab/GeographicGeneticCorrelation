@@ -71,20 +71,13 @@ HIWA_genind <- HIWA_all_genind[HIWA_coordinates[,1], drop=TRUE]
 cat(paste0('\n','--- OPTIMIZATION: Genetic coverages of geographically optimized datasets ---','\n'))
 # Read in lists of HIWA geographic core sets. These are CSVs adapted from results provided by Dan Carver,
 # with a unique group of core sets for each buffer size (1km, 5km, 10km, 25km, 50km, 100km, 250km)
-HIWA_1km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Hibiscus_waimeae/Geographic/GeoCoreSets/HIWA_geoCoreSets_1km.csv')
-HIWA_5km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Hibiscus_waimeae/Geographic/GeoCoreSets/HIWA_geoCoreSets_5km.csv')
-HIWA_10km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Hibiscus_waimeae/Geographic/GeoCoreSets/HIWA_geoCoreSets_10km.csv')
-HIWA_25km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Hibiscus_waimeae/Geographic/GeoCoreSets/HIWA_geoCoreSets_25km.csv')
-HIWA_50km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Hibiscus_waimeae/Geographic/GeoCoreSets/HIWA_geoCoreSets_50km.csv')
-HIWA_100km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Hibiscus_waimeae/Geographic/GeoCoreSets/HIWA_geoCoreSets_100km.csv')
-HIWA_250km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Hibiscus_waimeae/Geographic/GeoCoreSets/HIWA_geoCoreSets_250km.csv')
+HIWA_1km_geoCoreSets <- read.csv(file=paste0(HIWA_filePath,'Geographic/GeoCoreSets/HIWA_geoCoreSets_1km.csv'))
+HIWA_5km_geoCoreSets <- read.csv(file=paste0(HIWA_filePath,'Geographic/GeoCoreSets/HIWA_geoCoreSets_5km.csv'))
+HIWA_10km_geoCoreSets <- read.csv(file=paste0(HIWA_filePath,'Geographic/GeoCoreSets/HIWA_geoCoreSets_10km.csv'))
+HIWA_25km_geoCoreSets <- read.csv(file=paste0(HIWA_filePath,'Geographic/GeoCoreSets/HIWA_geoCoreSets_25km.csv'))
+HIWA_50km_geoCoreSets <- read.csv(file=paste0(HIWA_filePath,'Geographic/GeoCoreSets/HIWA_geoCoreSets_50km.csv'))
+HIWA_100km_geoCoreSets <- read.csv(file=paste0(HIWA_filePath,'Geographic/GeoCoreSets/HIWA_geoCoreSets_100km.csv'))
+HIWA_250km_geoCoreSets <- read.csv(file=paste0(HIWA_filePath,'Geographic/GeoCoreSets/HIWA_geoCoreSets_250km.csv'))
 # Make a matrix geographic core sets (strictly the sample names), and name the columns according to buffer sizes
 HIWA_geoCoreMat <- as.matrix(cbind(HIWA_250km_geoCoreSets[,1], HIWA_100km_geoCoreSets[,1], HIWA_50km_geoCoreSets[,1],
                                    HIWA_25km_geoCoreSets[,1], HIWA_10km_geoCoreSets[,1], HIWA_5km_geoCoreSets[,1],

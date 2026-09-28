@@ -47,20 +47,13 @@ pop(QUAC_genind) <- rep('wild', nInd(QUAC_genind))
 cat(paste0('\n','--- OPTIMIZATION: Genetic coverages of geographically optimized datasets ---','\n'))
 # Read in lists of QUAC geographic core sets. These are CSVs adapted from results provided by Dan Carver,
 # with a unique group of core sets for each buffer size (1km, 5km, 10km, 25km, 50km, 100km, 250km)
-QUAC_1km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Quercus_acerifolia/Geographic/GeoCoreSets/QUAC_geoCoreSets_1km.csv')
-QUAC_5km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Quercus_acerifolia/Geographic/GeoCoreSets/QUAC_geoCoreSets_5km.csv')
-QUAC_10km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Quercus_acerifolia/Geographic/GeoCoreSets/QUAC_geoCoreSets_10km.csv')
-QUAC_25km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Quercus_acerifolia/Geographic/GeoCoreSets/QUAC_geoCoreSets_25km.csv')
-QUAC_50km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Quercus_acerifolia/Geographic/GeoCoreSets/QUAC_geoCoreSets_50km.csv')
-QUAC_100km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Quercus_acerifolia/Geographic/GeoCoreSets/QUAC_geoCoreSets_100km.csv')
-QUAC_250km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Quercus_acerifolia/Geographic/GeoCoreSets/QUAC_geoCoreSets_250km.csv')
+QUAC_1km_geoCoreSets <- read.csv(file=paste0(QUAC_filePath,'Geographic/GeoCoreSets/QUAC_geoCoreSets_1km.csv'))
+QUAC_5km_geoCoreSets <- read.csv(file=paste0(QUAC_filePath,'Geographic/GeoCoreSets/QUAC_geoCoreSets_5km.csv'))
+QUAC_10km_geoCoreSets <- read.csv(file=paste0(QUAC_filePath,'Geographic/GeoCoreSets/QUAC_geoCoreSets_10km.csv'))
+QUAC_25km_geoCoreSets <- read.csv(file=paste0(QUAC_filePath,'Geographic/GeoCoreSets/QUAC_geoCoreSets_25km.csv'))
+QUAC_50km_geoCoreSets <- read.csv(file=paste0(QUAC_filePath,'Geographic/GeoCoreSets/QUAC_geoCoreSets_50km.csv'))
+QUAC_100km_geoCoreSets <- read.csv(file=paste0(QUAC_filePath,'Geographic/GeoCoreSets/QUAC_geoCoreSets_100km.csv'))
+QUAC_250km_geoCoreSets <- read.csv(file=paste0(QUAC_filePath,'Geographic/GeoCoreSets/QUAC_geoCoreSets_250km.csv'))
 # Make a matrix geographic core sets (strictly the sample names), and name the columns according to buffer sizes
 QUAC_geoCoreMat <- as.matrix(cbind(QUAC_250km_geoCoreSets[,1], QUAC_100km_geoCoreSets[,1], QUAC_50km_geoCoreSets[,1],
                                    QUAC_25km_geoCoreSets[,1], QUAC_10km_geoCoreSets[,1], QUAC_5km_geoCoreSets[,1],

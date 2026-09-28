@@ -62,20 +62,13 @@ indNames(YUBR_genind) <- gsub("cat_", "", indNames(YUBR_genind))
 cat(paste0('\n','--- OPTIMIZATION: Genetic coverages of geographically optimized datasets ---','\n'))
 # Read in lists of YUBR geographic core sets. These are CSVs adapted from results provided by Dan Carver,
 # with a unique group of core sets for each buffer size (1km, 5km, 10km, 25km, 50km, 100km, 250km)
-YUBR_1km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Yucca_brevifolia/Geographic/GeoCoreSets/YUBR_geoCoreSets_1km.csv')
-YUBR_5km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Yucca_brevifolia/Geographic/GeoCoreSets/YUBR_geoCoreSets_5km.csv')
-YUBR_10km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Yucca_brevifolia/Geographic/GeoCoreSets/YUBR_geoCoreSets_10km.csv')
-YUBR_25km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Yucca_brevifolia/Geographic/GeoCoreSets/YUBR_geoCoreSets_25km.csv')
-YUBR_50km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Yucca_brevifolia/Geographic/GeoCoreSets/YUBR_geoCoreSets_50km.csv')
-YUBR_100km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Yucca_brevifolia/Geographic/GeoCoreSets/YUBR_geoCoreSets_100km.csv')
-YUBR_250km_geoCoreSets <-
-  read.csv(file='/home/akoontz/Documents/GeoGenCorr/Datasets/Yucca_brevifolia/Geographic/GeoCoreSets/YUBR_geoCoreSets_250km.csv')
+YUBR_1km_geoCoreSets <- read.csv(file=paste0(YUBR_filePath,'Geographic/GeoCoreSets/YUBR_geoCoreSets_1km.csv'))
+YUBR_5km_geoCoreSets <- read.csv(file=paste0(YUBR_filePath,'Geographic/GeoCoreSets/YUBR_geoCoreSets_5km.csv'))
+YUBR_10km_geoCoreSets <- read.csv(file=paste0(YUBR_filePath,'Geographic/GeoCoreSets/YUBR_geoCoreSets_10km.csv'))
+YUBR_25km_geoCoreSets <- read.csv(file=paste0(YUBR_filePath,'Geographic/GeoCoreSets/YUBR_geoCoreSets_25km.csv'))
+YUBR_50km_geoCoreSets <- read.csv(file=paste0(YUBR_filePath,'Geographic/GeoCoreSets/YUBR_geoCoreSets_50km.csv'))
+YUBR_100km_geoCoreSets <- read.csv(file=paste0(YUBR_filePath,'Geographic/GeoCoreSets/YUBR_geoCoreSets_100km.csv'))
+YUBR_250km_geoCoreSets <- read.csv(file=paste0(YUBR_filePath,'Geographic/GeoCoreSets/YUBR_geoCoreSets_250km.csv'))
 # Make a matrix geographic core sets (strictly the sample names), and name the columns according to buffer sizes
 YUBR_geoCoreMat <- as.matrix(cbind(YUBR_250km_geoCoreSets[,1], YUBR_100km_geoCoreSets[,1], YUBR_50km_geoCoreSets[,1],
                                    YUBR_25km_geoCoreSets[,1], YUBR_10km_geoCoreSets[,1], YUBR_5km_geoCoreSets[,1],
