@@ -74,7 +74,7 @@ COGL_sdm <- terra::rast(paste0(COGL_filePath,'Geographic/COGL_thresh.tif'))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 
 # (solely in the U.S.)
 ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'Datasets/GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means the must be processed before being
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
 COGL_sdm_W <- wrap(COGL_sdm)

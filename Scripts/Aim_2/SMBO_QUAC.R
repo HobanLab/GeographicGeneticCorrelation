@@ -53,7 +53,7 @@ world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints 
 QUAC_sdm <- terra::rast(paste0(GeoGenCorr_wd,'/Datasets/QUAC/Geographic/QUAC_91inds_rast.tif'))
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage (solely in the U.S.)
 ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'Datasets/GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel

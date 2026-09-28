@@ -54,7 +54,7 @@ QULO_sdm <- terra::rast(paste0(QULO_filePath,'Geographic/QULO_436inds_rast_Carve
 # Read in the EPA Level IV ecoregion shapefile, which is used for calculating ecological coverage 
 # (solely in the U.S.)
 ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'Datasets/GIS_shpFiles/ecoregions_EPA_level4/us_eco_l4.shp')))
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel

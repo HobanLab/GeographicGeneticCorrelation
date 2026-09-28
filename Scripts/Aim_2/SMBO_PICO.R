@@ -75,13 +75,13 @@ PICO_sdm <- terra::rast(paste0(PICO_filePath,'Geographic/PICO_929inds_rast_Carve
 # Read in world countries layer (created as part of the gap analysis workflow)
 # This layer is used to clip buffers, to make sure they're not in the water
 world_poly_clip <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/world_countries_10m/world_countries_10m.gpkg')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'Datasets/GIS_shpFiles/world_countries_10m/world_countries_10m.gpkg')))
 # Perform geographic filter on the admin layer. 
 world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints = PICO_coordinates)
 # Read in the EPA Level III ecoregion shapefile, which is used for calculating ecological coverage 
 # (in North America)
 ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_EPA_level3/NA_CEC_Eco_Level3.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'Datasets/GIS_shpFiles/ecoregions_EPA_level3/NA_CEC_Eco_Level3.shp')))
 
 # ---- PARALLELIZATION
 # Flag for running resampling steps in parallel

@@ -68,7 +68,7 @@ world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints 
 ARTH_sdm <- terra::rast(paste0(ARTH_filePath,'Geographic/ARTH_thresh.tif'))
 # Read in the TNC global ecoregion shapefile, which is used for calculating ecological coverage 
 ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_globalTNC/Terrestrial_Ecoregions.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'Datasets/GIS_shpFiles/ecoregions_globalTNC/Terrestrial_Ecoregions.shp')))
 
 # ---- GENETIC MATRIX
 # Read in the VCF file provided via the 1001 Genomes Consortium 

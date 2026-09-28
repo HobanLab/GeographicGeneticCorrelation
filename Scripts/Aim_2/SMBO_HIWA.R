@@ -65,7 +65,7 @@ world_poly_clip <- prepWorldAdmin(world_poly_clip = world_poly_clip, wildPoints 
 HIWA_sdm <- terra::rast(paste0(HIWA_filePath,'Geographic/HIWA_thresh.tif'))
 # Read in the TNC global ecoregion shapefile, which is used for calculating ecological coverage 
 ecoregion_poly <- 
-  vect(file.path(paste0(GeoGenCorr_wd, 'GIS_shpFiles/ecoregions_globalTNC/Terrestrial_Ecoregions.shp')))
+  vect(file.path(paste0(GeoGenCorr_wd, 'Datasets/GIS_shpFiles/ecoregions_globalTNC/Terrestrial_Ecoregions.shp')))
 # Shapefiles are by default a 'non-exportable' object, which means they must be processed before being
 # exported to the cluster (for parallelized calculations). The terra::wrap function is used to do this.
 HIWA_sdm_W <- wrap(HIWA_sdm)
