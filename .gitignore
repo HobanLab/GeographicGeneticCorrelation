@@ -14,12 +14,23 @@
 # Any output files
 *.out
 Datasets/Outputs_Archive/
-Datasets/*/resamplingData/
 Datasets/*/resamplingData/*.csv
+Datasets/*/reasmplingData/
+# EXCEPTION: keep track of the GeoOpt_AltGenMets.Rdata files, for each dataset
+!Datasets/AMTH/resamplingData/AMTH_GeoOpt_AltGenMets.Rdata
+!Datasets/ARTH/resamplingData/ARTH_GeoOpt_AltGenMets.Rdata
+!Datasets/COGL/resamplingData/COGL_GeoOpt_AltGenMets.Rdata
+!Datasets/HIWA/resamplingData/HIWA_GeoOpt_AltGenMets.Rdata
+!Datasets/MIGU/resamplingData/MIGU_GeoOpt_AltGenMets.Rdata
+!Datasets/PICO/resamplingData/PICO_GeoOpt_AltGenMets.Rdata
+!Datasets/QUAC/resamplingData/QUAC_GeoOpt_AltGenMets.Rdata
+!Datasets/QULO/resamplingData/QULO_GeoOpt_AltGenMets.Rdata
+!Datasets/VILA/resamplingData/VILA_GeoOpt_AltGenMets.Rdata
+!Datasets/YUBR/resamplingData/YUBR_GeoOpt_AltGenMets.Rdata
 
 # Folder of GIS files (for geographic/ecological analyses). Included in this folder are the .shp files used for 
 # calculating geographic range for different species. These are too large (> 50MB) to be included on the repository.
-GIS_shpFiles/
+Datasets/GIS_shpFiles/
 
 # STRUCTURE input file for Pinus contorta dataset (PICO). This file is referenced in the Demo_PICO.R script, but is too large
 # (> 50MB) to be included on the repository.
