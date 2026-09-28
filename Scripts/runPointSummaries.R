@@ -70,19 +70,25 @@ pointsDataList <- list(
     dplyr::mutate(taxon = "YUBR")|>
     dplyr::select(taxon, lat = decimalLatitude  , lon = decimalLongitude)
 )
-# Apply function which calculates multiple point summary metrics to list of datasets
-# Note that this line takes a long time to run; there is another line for reading in
-# an existing R object, once it has been created.
-# pointSummaries <- lapply(pointsDataList, geo.calc.pointSummaries)
-pointSummaries <- readRDS(paste0(GeoGenCorr_wd,'Datasets/Outputs/pointSummariesList.Rdata'))
+# Check if the file of spatial summaries already exists; if not, then run the necessary 
+# processing command for generating the file (note that this is a time-intensive step).
+if(file.exists(paste0(GeoGenCorr_wd,'Datasets/Outputs/pointSummariesList.Rdata'))){
+  # Read in the .Rdata file storing the calculated point summary values
+  pointSummaries <- readRDS(paste0(GeoGenCorr_wd,'Datasets/Outputs/pointSummariesList.Rdata'))
+} else {
+  # Call lapply function, which calculates point summary metrics to list of datasets
+  pointSummaries <- lapply(pointsDataList, geo.calc.pointSummaries)
+}
 # Transform the point summary values into a list, where columns are the species and rows are the metrics
 pointSummariesMat <- matrix(unlist(pointSummaries), ncol = length(pointSummaries), byrow = FALSE)
 colnames(pointSummariesMat) <- toupper(names(pointSummaries))
 rownames(pointSummariesMat) <- c("EOO", "AOO", "AOO_pct", "ANN", "VOR", "STD", "ELG")
 # Strike the AOO_pct row from the matrix (only focus on AOO as km^2)
 pointSummariesMat <- pointSummariesMat[-3,] 
-# Write the matrix of point values to disk
-# write_csv(x = as.data.frame(pointSummariesMat), file = paste0(GeoGenCorr_wd,"Datasets/pointSummaryMeasures.csv"))
+# Write the matrix of point values to disk, if a file has not already been written
+if(-file.exists(paste0(GeoGenCorr_wd,"Datasets/pointSummaryMeasures.csv"))){
+  write_csv(x = as.data.frame(pointSummariesMat), file = paste0(GeoGenCorr_wd,"Datasets/pointSummaryMeasures.csv"))
+}
 
 # EXTRACTING OPTIMAL BUFFER SIZES ----
 # To measure any possible correlation between optimal buffer sizes and the point summary statistics,
@@ -190,6 +196,7 @@ corrplot(sub_rMat, order="original",
          mar = c(0, 0, 2, 0))
 dev.off() # Turn off plotting device
 
+# ARCHIVE ----
 # # SDM COVERAGES
 # # Build a correlation matrix based off of values
 # corMat_SMBO_SDM <- rcorr(SMBO_SDM_Mat, type=corType)
@@ -201,15 +208,15 @@ dev.off() # Turn off plotting device
 #          sig.level = 0.01, insig = "label_sig", diag = FALSE)
 # mtext('Spearman correlations: Points-based statistics and Geo/SDM/Eco coverages', side=3, line=1.2, adj=0.6, cex=1.2)
 
-# PLOTTING OPTIMAL BUFFER SIZES VERSUS POINTS BASED METRICS
-plot(SMBO_Mat[,'ANN'], SMBO_Mat[,'Opt_Geo-Buff'], pch=16, col='black',
-     ylab='Optimal Geographic Buffer Sizes', xlab='Average Nearest Neighbor Values',
-     main='SMBO2: Buffer sizes across ANN metrics', ylim=c(-10,600))
-
-plot(SMBO_Mat[,'EOO'], SMBO_Mat[,'Opt_Geo-Buff'], pch=16, col='black',
-     ylab='Optimal Geographic Buffer Sizes', xlab='Extent of Occurrence Values',
-     main='SMBO2: Buffer sizes across EOO metrics')
-
-plot(SMBO_Mat[,'StDevEllP'], SMBO_Mat[,'Opt_Geo-Buff'], pch=16, col='black',
-     ylab='Optimal Geographic Buffer Sizes', xlab='Standard Deviation Ellipses Perimeter Values',
-     main='SMBO2: Buffer sizes across St. Dev. Ellipse Perimeter metrics')
+# # PLOTTING OPTIMAL BUFFER SIZES VERSUS POINTS BASED METRICS
+# plot(SMBO_Mat[,'ANN'], SMBO_Mat[,'Opt_Geo-Buff'], pch=16, col='black',
+#      ylab='Optimal Geographic Buffer Sizes', xlab='Average Nearest Neighbor Values',
+#      main='SMBO2: Buffer sizes across ANN metrics', ylim=c(-10,600))
+# 
+# plot(SMBO_Mat[,'EOO'], SMBO_Mat[,'Opt_Geo-Buff'], pch=16, col='black',
+#      ylab='Optimal Geographic Buffer Sizes', xlab='Extent of Occurrence Values',
+#      main='SMBO2: Buffer sizes across EOO metrics')
+# 
+# plot(SMBO_Mat[,'StDevEllP'], SMBO_Mat[,'Opt_Geo-Buff'], pch=16, col='black',
+#      ylab='Optimal Geographic Buffer Sizes', xlab='Standard Deviation Ellipses Perimeter Values',
+#      main='SMBO2: Buffer sizes across St. Dev. Ellipse Perimeter metrics')
