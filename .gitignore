@@ -11,22 +11,33 @@
 *.Rdata
 *.Rproj*
 
-# Any output files
+# Generally, any output files and folders
 *.out
 Datasets/Outputs_Archive/
 Datasets/*/resamplingData/*.csv
 Datasets/*/reasmplingData/
-# EXCEPTION: keep track of the GeoOpt_AltGenMets.Rdata files, for each dataset
+# EXCEPTION: keep track of the GeoOpt_AltGenMets.Rdata files, for each dataset. Also keep track of
+# the relevant SMBO files for each dataset; these are used for Aim #3
 !Datasets/AMTH/resamplingData/AMTH_GeoOpt_AltGenMets.Rdata
+!Datasets/AMTH/resamplingData/AMTH_SMBO4_G2GE_5r_resampArr.Rdata
 !Datasets/ARTH/resamplingData/ARTH_GeoOpt_AltGenMets.Rdata
+!Datasets/ARTH/resamplingData/ARTH_SMBO2_GE_5r_resampArr.Rdata
 !Datasets/COGL/resamplingData/COGL_GeoOpt_AltGenMets.Rdata
+!Datasets/COGL/resamplingData/COGL_SMBO4_G2GE_5r_resampArr_Update.Rdata
 !Datasets/HIWA/resamplingData/HIWA_GeoOpt_AltGenMets.Rdata
+!Datasets/HIWA/resamplingData/HIWA_SMBO4_G2GE_5r_resampArr.Rdata
 !Datasets/MIGU/resamplingData/MIGU_GeoOpt_AltGenMets.Rdata
+!Datasets/MIGU/resamplingData/SMBO2_G2E/MIGU_SMBO2_G2E_5r_resampArr.Rdata
 !Datasets/PICO/resamplingData/PICO_GeoOpt_AltGenMets.Rdata
+!Datasets/PICO/resamplingData/SMBO2_G2E/PICO_SMBO2_G2E_5r_resampArr.Rdata
 !Datasets/QUAC/resamplingData/QUAC_GeoOpt_AltGenMets.Rdata
+!Datasets/QUAC/resamplingData/QUAC_SMBO2_G2E_5r_resampArr.Rdata
 !Datasets/QULO/resamplingData/QULO_GeoOpt_AltGenMets.Rdata
+!Datasets/QULO/resamplingData/QULO_SMBO4_GG2E_5r_resampArr.Rdata
 !Datasets/VILA/resamplingData/VILA_GeoOpt_AltGenMets.Rdata
+!Datasets/VILA/resamplingData/VILA_SMBO4_5r_resampArr.Rdata
 !Datasets/YUBR/resamplingData/YUBR_GeoOpt_AltGenMets.Rdata
+!Datasets/YUBR/resamplingData/YUBR_SMBO4_G2E_resampArr.Rdata
 
 # Folder of GIS files (for geographic/ecological analyses). Included in this folder are the .shp files used for 
 # calculating geographic range for different species. These are too large (> 50MB) to be included on the repository.
@@ -55,6 +66,28 @@ Datasets/COGL/*
 # is a threatened, rare plant)
 Datasets/AMTH/*
 
-# Miscellaneous files and scripts which have been used in different phases of this project are stored
+# Older files and scripts which have been used in different phases of this project are stored
 # in an Archive folder.
 Archive/
+
+# The following is a list of miscellaneous files which are specifically being called out for ignoring
+Datasets/ARTH/Geographic/ARTH_thresh.tif
+Datasets/MIGU/Genetic/MIGU_coreSets.csv
+Datasets/MIGU/MIGU_CoreSets_GenRates.csv
+Datasets/MIGU/MIGU_CoreSets_GeoBuffRates.csv
+Datasets/MIGU/MIGU_CoreSets_GeoSDMRates.csv
+Datasets/MIGU/MIGU_RandomSets_GenRates.csv
+Datasets/MIGU/MIGU_SemiRandomSets_GenRates.csv
+Datasets/MIGU/MIGU_genCoreSets.csv
+Datasets/MIGU/resamplingData/SMBO2_G2E/
+Datasets/MIGU/resamplingData/SMBO3/
+Datasets/MIGU/resamplingData/haplotypicData/
+Datasets/PICO/resamplingData/SMBO2_G2E/
+Datasets/QULO/resamplingData/SMBO2/
+Datasets/VILA/Genetic/VILA_withHybrids.vcf
+Datasets/VILA/Geographic/VILA_thresh.tif
+Datasets/VILA/Geographic/samples_keyfile_austin.txt
+Datasets/VILA/Geographic/withHybrids/
+Datasets/VILA/resamplingData/withHybrids/
+Datasets/YUBR/Genetic/GoodLoci319Trees_CSV-COPY.stru
+Datasets/YUBR/resamplingData/Old_YUBR-Data/
