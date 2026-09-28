@@ -16,7 +16,7 @@
 Datasets/*/resamplingData/*.csv
 
 # Folder of GIS files (for geographic/ecological analyses). Included in this folder are the .shp files used for 
-# calculating geographic range for different species. These are two large (> 50MB) to be included on the repository.
+# calculating geographic range for different species. These are too large (> 50MB) to be included on the repository.
 GIS_shpFiles/
 
 # STRUCTURE input file for Pinus contorta dataset (PICO). This file is referenced in the Demo_PICO.R script, but is too large
@@ -41,3 +41,7 @@ Datasets/COGL/*
 # analyses have not been published yet. The geographic data cannot be shared because coordinates are protected (as this
 # is a threatened, rare plant)
 Datasets/AMTH/*
+
+# Miscellaneous files and scripts which have been used in different phases of this project are stored
+# in an Archive folder.
+Archive/
