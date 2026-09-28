@@ -13,6 +13,7 @@
 
 # Any output files
 *.out
+Datasets/Outputs_Archive/
 Datasets/*/resamplingData/
 Datasets/*/resamplingData/*.csv
 
