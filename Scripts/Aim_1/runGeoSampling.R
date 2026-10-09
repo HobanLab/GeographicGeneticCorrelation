@@ -1,36 +1,26 @@
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+# %%% RUN GEOGRAPHIC MAXIMIZATION %%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# This script calls the functions declared in the geoSamplingFunctions.R script
+# and iterates runGeoSelection over a vector of buffer sizes and a vector of 
+# species acronyms. This results in the CSVs stored in the GeoCoreSets folder
+# of each species.
+
 pacman::p_load(terra, dplyr, readr, furrr, tictoc, purrr)
 
 # source and global vars  -------------------------------------------------
+# Specify buffer sizes (in meters)
 buffDists <- c(1000, 5000, 10000, 25000, 50000, 100000, 250000)
+# Read in functions for geographic maximization
 source("Scripts/geoSamplingFunctions.R")
 
 # preprocessing data  -----------------------------------------------------
-# allSpecies <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR", "AMTH", "ARTH", "COGL", "HIWA", "VILA")
 taxon <- c("MIGU", "PICO", "QUAC", "QULO", "YUBR", "AMTH", "ARTH", "COGL", "HIWA", "VILA")
-# species with no coordinates at the moment  "AMTH", "COGL", "HIWA",
 prepData(species = taxon)
-
-# individual species processing  ------------------------------------------
-# taxon <- c("ARTH")
-
 # Create a data frame of all parameter combinations
 params <- tidyr::expand_grid(species = taxon, buffDist = buffDists)
 
-# trying just a for loop
-testing = FALSE
-if(testing){
-  for(i in 1:nrow(params)){
-    print(i)
-    runGeoSelection(
-      buffDist = params$buffDist[i],
-      species = params$species[i],
-      area = 0
-    )
-  }
-}
-
-
-  ## removing this startegry for now for troubleshooting 
+# Initialize parallelization
 future::plan(strategy = "multicore", workers = 8)
 # iterate over the two columns
 furrr::future_walk2(
@@ -39,13 +29,3 @@ furrr::future_walk2(
   .f = runGeoSelection,
   area = 0
 )
-
-
-# DELETE ALL the THINGS or just a specific species
-## change doit to TRUE and set species
-## species == NA will include all species, species == "MIGU" with grep only files from the taxon
-## tried to make it safe as gone is forever in this case
-# for (i in c("ARTH")) {
-#   #  c("MIGU", "PICO", "QUAC", "YUBR")
-#   removeFiles(doit = TRUE, species = i)
-# }
