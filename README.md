@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/659927424.svg)](https://doi.org/10.5281/zenodo.23352953)
+
 # Overview
 This repository contains the code used for Goal #1 of the Morton Arboretum [IMLS 2022 National Leadership Grant (NLG)](https://www.imls.gov/grants/awarded/mg-251613-oms-22), 
 which seeks to determine if, and in what circumstances, measures of geographic and ecological coverage predict genetic coverage.
