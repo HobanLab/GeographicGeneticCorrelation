@@ -23,6 +23,8 @@ source('Scripts/functions_GeoGenCoverage.R')
 # CALCULATING POINT SUMMARY VALUES ----
 # Create a list of the relevant CSVs in the Datasets repository 
 pointsData <- list.files(paste0(getwd(), "/Datasets"), pattern = ".csv", recursive = TRUE, full.names = TRUE)
+pointsData <- grep("resamplingData/", pointsData, invert = TRUE, value = TRUE)
+pointsData <- grep("GeoCoreSets/", pointsData, invert = TRUE, value = TRUE)
 pointsData <- pointsData[grep('Geographic', pointsData)]
 # Select one coordinate file per species
 amth <- pointsData[grepl(pattern ="AMTH", pointsData)][2] # Necessary due to 2nd (original) coordinate file
@@ -72,9 +74,9 @@ pointsDataList <- list(
 )
 # Check if the file of spatial summaries already exists; if not, then run the necessary 
 # processing command for generating the file (note that this is a time-intensive step).
-if(file.exists(paste0(GeoGenCorr_wd,'Datasets/Outputs/pointSummariesList.Rdata'))){
+if(file.exists(paste0(GeoGenCorr_wd,'Datasets/pointSummariesList.Rdata'))){
   # Read in the .Rdata file storing the calculated point summary values
-  pointSummaries <- readRDS(paste0(GeoGenCorr_wd,'Datasets/Outputs/pointSummariesList.Rdata'))
+  pointSummaries <- readRDS(paste0(GeoGenCorr_wd,'Datasets/pointSummariesList.Rdata'))
 } else {
   # Call lapply function, which calculates point summary metrics to list of datasets
   pointSummaries <- lapply(pointsDataList, geo.calc.pointSummaries)
