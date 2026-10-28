@@ -91,5 +91,5 @@ Datasets/VILA/Geographic/withHybrids/
 Datasets/VILA/resamplingData/withHybrids/
 Datasets/YUBR/Genetic/GoodLoci319Trees_CSV-COPY.stru
 Datasets/YUBR/resamplingData/Old_YUBR-Data/
-Datasets/VILA/GeoCoreSets/Old_Mismatch/
-Datasets/VILA/GeoCoreSets/wrongSets/
+Datasets/VILA/Geographic/GeoCoreSets/Old_Mismatch/
+Datasets/VILA/Geographic/GeoCoreSets/wrongSets/
