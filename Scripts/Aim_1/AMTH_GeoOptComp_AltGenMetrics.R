@@ -297,10 +297,10 @@ AMTH_plot <- ggplot(df, aes(x = Samples, y = Delta, color = Strategy)) +
 # Display plot
 print(AMTH_plot)
 # Specify output file
-outFile <- paste0(GeoGenCorr_wd, "../Documentation/Images/2026-08-14_GeoOptComps/AMTH_optGeoRand.png")
+outFile <- paste0(GeoGenCorr_wd, "../Documentation/Images/Manuscript_PPP/FigS06_AMTH.tiff")
 # Specify plot height, and save
 plot_h <- 2.1 * length(metric_names)
-ggsave(outFile, plot = AMTH_plot, width = 10, height = plot_h, dpi = 150)
+ggsave(outFile, plot = AMTH_plot, width = 10, height = plot_h, dpi = 600)
 
 # # %%% PLOTTING: COVERAGE PLOTS %%% ----
 # # Read in array

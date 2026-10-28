@@ -299,10 +299,10 @@ QUAC_plot <- ggplot(df, aes(x = Samples, y = Delta, color = Strategy)) +
 # Display plot
 print(QUAC_plot)
 # Specify output file
-outFile <- paste0(GeoGenCorr_wd, "../Documentation/Images/2026-08-14_GeoOptComps/QUAC_optGeoRand.png")
+outFile <- paste0(GeoGenCorr_wd, "../Documentation/Images/Manuscript_PPP/FigS05_QUAC.tiff")
 # Specify plot height, and save
 plot_h <- 2.1 * length(metric_names)
-ggsave(outFile, plot = QUAC_plot, width = 10, height = plot_h, dpi = 150)
+ggsave(outFile, plot = QUAC_plot, width = 10, height = plot_h, dpi = 600)
 
 # # %%% PLOTTING: COVERAGE PLOTS %%% ----
 # # Read in array
