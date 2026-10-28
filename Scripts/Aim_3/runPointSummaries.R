@@ -183,8 +183,8 @@ adj_pMat <- sub_pMat
 adj_pMat[] <- p.adjust(sub_pMat, method = "BH")
 # Specify output file path
 imageOutDir <-
-  '/home/akoontz/Documents/GeoGenCorr/Documentation/Images/2026-09-22_MANUSCRIPT_DRAFT5/Fig3_corrPlot.png'
-png(filename=imageOutDir, width=900, height=760)
+  '/home/akoontz/Documents/GeoGenCorr/Documentation/Images/Manuscript_PPP/Fig3_corrPlot.tiff'
+tiff(filename=imageOutDir, width=900, height=760)
 # Plot correlation matrix using corrplot. Label significant correlations using
 # asterisks
 corrplot(sub_rMat, order="original",
